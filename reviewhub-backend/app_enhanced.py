@@ -33,7 +33,7 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 # Initialize extensions
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
-migrate = Migrate(app, db)
+migrate = Migrate(app, db, directory="migrations")
 
 # CORS configuration (standardize env var name)
 cors_origins = os.getenv(
