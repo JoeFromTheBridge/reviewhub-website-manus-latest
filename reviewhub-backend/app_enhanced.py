@@ -35,9 +35,13 @@ db = SQLAlchemy(app)
 jwt = JWTManager(app)
 migrate = Migrate(app, db)
 
-# CORS configuration
-cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
-CORS(app, origins=cors_origins, supports_credentials=True)
+# CORS configuration (standardize env var name)
+cors_origins = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:3000,http://localhost:5173'
+).split(',')
+CORS(app, origins=[o.strip() for o in cors_origins if o.strip()], supports_credentials=True)
+
 
 # --- Health checks ---
 @app.get("/api/health")
@@ -726,46 +730,8 @@ Review.image_records = db.relationship('Image',
     primaryjoin="and_(Review.id==foreign(Image.related_id), Image.image_type=='review')",
     lazy='dynamic')
 
-if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
-    app.run(host='0.0.0.0', port=5000, debug=True)
-
-
 
 # Product and Review Routes (from original app.py)
-@app.route("/api/products", methods=["GET"])
-def get_products():
-    try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
-        category_id = request.args.get('category_id', type=int)
-        
-        query = Product.query.filter_by(is_active=True)
-        
-        if category_id:
-            query = query.filter_by(category_id=category_id)
-        
-        products = query.paginate(
-            page=page, 
-            per_page=per_page, 
-            error_out=False
-        )
-        
-        # Index products in Elasticsearch if available
-        if search_service.is_available:
-            for product in products.items:
-                search_service.index_product(product.to_dict())
-        
-        return jsonify({
-            "products": [product.to_dict() for product in products.items],
-            "total": products.total,
-            "pages": products.pages,
-            "current_page": page
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 @app.route("/api/products/<int:product_id>", methods=["GET"])
 def get_product(product_id):
     try:
@@ -943,25 +909,6 @@ def vote_review(review_id):
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/categories", methods=["GET"])
-def get_categories():
-    try:
-        categories = Category.query.all()
-        return jsonify({
-            "categories": [
-                {
-                    "id": cat.id,
-                    "name": cat.name,
-                    "slug": cat.slug,
-                    "description": cat.description,
-                    "icon_url": cat.icon_url,
-                    "product_count": len(cat.products)
-                }
-                for cat in categories
-            ]
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/categories", methods=["POST"])
 @jwt_required()
