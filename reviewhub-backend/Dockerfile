@@ -17,5 +17,6 @@ ENV FLASK_APP=app_enhanced.py
 # Expose (Render will pass $PORT at runtime)
 EXPOSE 5000
 
-# Start the server on $PORT when provided, otherwise 5000 for local runs
-CMD ["sh", "-c", "flask run --host=0.0.0.0 --port=${PORT:-5000}"]
+# Start: run migrations, then start Gunicorn
+CMD flask db upgrade && \
+    gunicorn -w 2 -k gthread -b 0.0.0.0:${PORT:-5000} app_enhanced:app
