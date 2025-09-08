@@ -39,6 +39,17 @@ migrate = Migrate(app, db)
 cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173').split(',')
 CORS(app, origins=cors_origins, supports_credentials=True)
 
+# --- Health checks ---
+@app.get("/api/health")
+def api_health():
+    return jsonify({"status": "ok"}), 200
+
+@app.get("/healthz")
+def healthz():
+    # Simple string helps Render/container health checks
+    return "ok", 200
+
+
 # Enhanced Database Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
