@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual env
+.venv/
+venv/
+
+# Local SQLite / instance artifacts
+reviewhub-backend/instance/*.db
+reviewhub-backend/instance/*.sqlite
+reviewhub-backend/instance/*.sqlite3
+reviewhub-backend/instance/uploads/
