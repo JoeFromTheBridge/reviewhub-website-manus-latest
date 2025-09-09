@@ -1,6 +1,7 @@
+// src/components/Header.jsx
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, User, Menu, X, LogOut, Settings, TrendingUp } from 'lucide-react'
+import { Search, User, Menu, X, LogOut, Settings, TrendingUp, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '../contexts/AuthContext'
@@ -14,7 +15,7 @@ export function Header() {
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  
+
   const navigate = useNavigate()
   const { user, logout, isAuthenticated } = useAuth()
 
@@ -47,7 +48,14 @@ export function Header() {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
-              <img src={logoImage} alt="ReviewHub" className="h-8 w-auto" />
+              <img
+                src={logoImage}
+                alt="ReviewHub"
+                className="h-10 w-auto md:h-12 lg:h-14 object-contain"
+                loading="eager"
+                fetchPriority="high"
+              />
+              <span className="sr-only">ReviewHub</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -70,6 +78,7 @@ export function Header() {
                 size="sm"
                 onClick={() => navigate("/search")}
                 className="text-gray-700 hover:text-primary"
+                aria-label="Search"
               >
                 <Search className="h-5 w-5" />
               </Button>
@@ -82,58 +91,74 @@ export function Header() {
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
                     className="flex items-center space-x-2 text-gray-700 hover:text-primary transition-colors"
+                    aria-haspopup="menu"
+                    aria-expanded={showUserMenu}
                   >
                     <User className="h-4 w-4" />
                     <span>{user?.first_name || user?.username}</span>
                   </button>
-                  
+
                   {showUserMenu && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                    <div
+                      className="absolute right-0 mt-2 w-52 bg-white rounded-md shadow-lg py-1 z-50 border"
+                      role="menu"
+                    >
                       <Link
                         to="/profile"
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setShowUserMenu(false)}
+                        role="menuitem"
                       >
                         <Settings className="h-4 w-4 mr-2" />
                         Profile
                       </Link>
+
                       <Link
                         to="/my-reviews"
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                         onClick={() => setShowUserMenu(false)}
+                        role="menuitem"
                       >
                         <User className="h-4 w-4 mr-2" />
                         My Reviews
                       </Link>
-                    <Link
-                      to="/analytics"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <TrendingUp className="h-4 w-4" />
-                      Analytics
-                    </Link>
-                    <Link
-                      to="/privacy"
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    >
-                      <Shield className="h-4 w-4" />
-                      Privacy & Data
-                    </Link>
+
+                      <Link
+                        to="/analytics"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                        role="menuitem"
+                      >
+                        <TrendingUp className="h-4 w-4" />
+                        Analytics
+                      </Link>
+
+                      <Link
+                        to="/privacy"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        onClick={() => setShowUserMenu(false)}
+                        role="menuitem"
+                      >
+                        <Shield className="h-4 w-4" />
+                        Privacy & Data
+                      </Link>
+
                       {user?.is_admin && (
                         <Link
                           to="/admin"
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-100"
                           onClick={() => setShowUserMenu(false)}
+                          role="menuitem"
                         >
                           <Settings className="h-4 w-4 mr-2" />
                           Admin Panel
                         </Link>
                       )}
+
                       <button
                         onClick={handleLogout}
                         className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-100"
+                        role="menuitem"
                       >
                         <LogOut className="h-4 w-4 mr-2" />
                         Sign Out
@@ -143,8 +168,8 @@ export function Header() {
                 </div>
               ) : (
                 <>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     onClick={() => setShowLoginModal(true)}
                   >
                     <User className="h-4 w-4 mr-2" />
@@ -163,6 +188,7 @@ export function Header() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                aria-label="Toggle menu"
               >
                 {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
@@ -187,7 +213,7 @@ export function Header() {
                 <Search className="h-4 w-4 mr-2" />
                 Search
               </Button>
-              
+
               <nav className="space-y-2">
                 <Link
                   to="/"
@@ -211,7 +237,7 @@ export function Header() {
                   About
                 </Link>
               </nav>
-              
+
               <div className="mt-4 space-y-2">
                 {isAuthenticated ? (
                   <>
@@ -244,8 +270,8 @@ export function Header() {
                   </>
                 ) : (
                   <>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="w-full"
                       onClick={() => {
                         setShowLoginModal(true)
@@ -255,7 +281,7 @@ export function Header() {
                       <User className="h-4 w-4 mr-2" />
                       Sign In
                     </Button>
-                    <Button 
+                    <Button
                       className="w-full"
                       onClick={() => {
                         setShowRegisterModal(true)
@@ -286,4 +312,3 @@ export function Header() {
     </>
   )
 }
-
