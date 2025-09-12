@@ -1,3 +1,4 @@
+// src/components/HomePage.jsx
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, Star, TrendingUp, Users, Shield, Loader2 } from 'lucide-react'
@@ -9,13 +10,12 @@ import LazyLoading, { useLazyLoading } from './ui/lazy-loading'
 import ImageOptimizer from './ui/image-optimizer'
 import { useAuth } from '../contexts/AuthContext'
 import apiService from '../services/api'
+
 import heroImage from '../assets/hero_image.png'
 import electronicsIcon from '../assets/category_electronics.png'
 import automotiveIcon from '../assets/category_automotive.png'
 import homeIcon from '../assets/category_home.png'
 import beautyIcon from '../assets/category_beauty.png'
-
-
 
 export function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -34,15 +34,12 @@ export function HomePage() {
     try {
       setLoading(true)
       setError('')
-      
-      // Fetch categories and recent reviews in parallel
       const [categoriesResponse, reviewsResponse] = await Promise.all([
         apiService.getCategories(),
         apiService.getReviews({ limit: 6, sort: 'created_at' })
       ])
-      
-      setCategories(categoriesResponse.categories || [])
-      setFeaturedReviews(reviewsResponse.reviews || [])
+      setCategories(categoriesResponse?.categories || [])
+      setFeaturedReviews(reviewsResponse?.reviews || [])
     } catch (error) {
       setError('Failed to load homepage data')
       console.error('Error fetching homepage data:', error)
@@ -58,15 +55,24 @@ export function HomePage() {
     }
   }
 
-  const getCategoryIcon = (categoryName) => {
-    const iconMap = {
-      'Electronics': electronicsIcon,
-      'Automotive': automotiveIcon,
-      'Home & Garden': homeIcon,
-      'Beauty & Health': beautyIcon,
-    }
-    return iconMap[categoryName] || electronicsIcon
+  // More forgiving icon picker: handles "Home", "Home & Garden", "Beauty", etc.
+  const getCategoryIcon = (categoryName = '') => {
+    const n = String(categoryName).toLowerCase()
+    if (n.includes('auto')) return automotiveIcon
+    if (n.includes('beaut')) return beautyIcon
+    if (n.includes('electr')) return electronicsIcon
+    if (n.includes('home')) return homeIcon
+    // Fallback
+    return electronicsIcon
   }
+
+  // Static fallback tiles for Phase 0 when API returns empty
+  const STATIC_CATEGORIES = [
+    { id: 'electronics', name: 'Electronics', img: electronicsIcon, href: '/search?category=Electronics' },
+    { id: 'automotive', name: 'Automotive',  img: automotiveIcon,  href: '/search?category=Automotive' },
+    { id: 'home',       name: 'Home & Garden', img: homeIcon,      href: '/search?category=Home%20%26%20Garden' },
+    { id: 'beauty',     name: 'Beauty & Health', img: beautyIcon,  href: '/search?category=Beauty%20%26%20Health' },
+  ]
 
   const renderStars = (rating) => {
     return (
@@ -122,7 +128,10 @@ export function HomePage() {
             </div>
           </div>
         </div>
-      </section>      <section className="py-16 bg-white">
+      </section>
+
+      {/* Stats */}
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="flex flex-col items-center">
@@ -157,34 +166,59 @@ export function HomePage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Browse by Category</h2>
             <p className="text-xl text-gray-600">Find reviews for products in every category</p>
           </div>
-          
+
           {loading ? (
             <div className="flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : error ? (
-            <div className="text-center text-red-600">{error}</div>
-          ) : (
+            // If error, still show static categories so the section isn’t empty
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {categories.map((category) => (
-                <Link
-                  key={category.id}
-                  to={`/search?category=${encodeURIComponent(category.name)}`}
-                  className="group"
-                >
+              {STATIC_CATEGORIES.map((category) => (
+                <Link key={category.id} to={category.href} className="group">
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                     <CardContent className="p-6 text-center">
                       <img 
-                        src={getCategoryIcon(category.name)} 
+                        src={category.img} 
                         alt={category.name}
                         className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform"
                       />
                       <h3 className="font-semibold text-gray-900 mb-2">{category.name}</h3>
-                      <p className="text-sm text-gray-600">{category.product_count || 0} products</p>
+                      <p className="text-sm text-gray-600">Explore products</p>
                     </CardContent>
                   </Card>
                 </Link>
               ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {(categories.length ? categories : STATIC_CATEGORIES).map((category) => {
+                const name = category.name || category.title || 'Category'
+                const href =
+                  category.id
+                    ? `/search?category=${encodeURIComponent(name)}`
+                    : category.href
+                const img =
+                  category.img || getCategoryIcon(name)
+
+                return (
+                  <Link key={category.id || category.slug || name} to={href} className="group">
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                      <CardContent className="p-6 text-center">
+                        <img 
+                          src={img}
+                          alt={name}
+                          className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform"
+                        />
+                        <h3 className="font-semibold text-gray-900 mb-2">{name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {category.product_count ?? 'Explore products'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>
@@ -197,7 +231,7 @@ export function HomePage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Recent Reviews</h2>
             <p className="text-xl text-gray-600">See what our community is saying</p>
           </div>
-          
+
           {loading ? (
             <div className="flex justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -219,10 +253,10 @@ export function HomePage() {
                       </div>
                       {renderStars(review.rating)}
                     </div>
-                    
+
                     <h4 className="font-medium text-gray-900 mb-2">{review.title}</h4>
                     <p className="text-gray-700 text-sm mb-4 line-clamp-3">{review.comment}</p>
-                    
+
                     <div className="flex items-center justify-between text-xs text-gray-500">
                       <div className="flex items-center space-x-2">
                         <span>By {review.user?.username || 'Anonymous'}</span>
@@ -239,7 +273,7 @@ export function HomePage() {
               ))}
             </div>
           )}
-          
+
           <div className="text-center mt-8">
             <Button variant="outline" size="lg" onClick={() => navigate('/search')}>
               View All Reviews
@@ -294,4 +328,3 @@ export function HomePage() {
     </div>
   )
 }
-
