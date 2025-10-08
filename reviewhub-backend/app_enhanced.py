@@ -2717,24 +2717,43 @@ def invalidate_cache_on_mutations(response):
                 performance_svc.invalidate_cache_group('categories')
         except Exception as e:
             logger.warning(f"Cache invalidation error: {e}")
-    
     return response
 
+
+# --- AUTO MIGRATE (Render-friendly) ---
+def run_auto_migrations_if_enabled(app):
+    """
+    If AUTO_MIGRATE=1, run Alembic upgrade on startup.
+    Safe to call on Render (no shell access) and locally.
+    """
+    if os.getenv("AUTO_MIGRATE") == "1":
+        try:
+            from flask_migrate import upgrade
+            with app.app_context():
+                upgrade()
+            app.logger.info("Auto migration completed (flask db upgrade).")
+        except Exception as e:
+            app.logger.error(f"Auto migration failed: {e}")
+
+
 if __name__ == "__main__":
-    # Initialize database indexes on startup
+    # Run migrations first (so schema is current before any create_all())
+    run_auto_migrations_if_enabled(app)
+
+    # Initialize services and warm-ups
     with app.app_context():
+        # Keep create_all for local dev safety; Alembic handles prod schema
         db.create_all()
         performance_svc.optimize_database_indexes()
         performance_svc.warm_cache()
-        
+
         # Initialize GDPR service
         gdpr_svc = get_gdpr_service(db)
-        
+
         # Initialize data export service
         export_svc = get_data_export_service(db)
-        
+
         # Initialize visual search service
         visual_search_service.init_app(app)
-    
-    app.run(host="0.0.0.0", port=5000, debug=True)
 
+    app.run(host="0.0.0.0", port=5000, debug=True)
