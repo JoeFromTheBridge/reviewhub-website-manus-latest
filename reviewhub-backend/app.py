@@ -820,3 +820,27 @@ def get_my_reviews():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# --- AUTO MIGRATE (Render-friendly) ---
+def run_auto_migrations_if_enabled(app):
+    """
+    If AUTO_MIGRATE=1, run Alembic upgrade on startup.
+    Safe to call on Render (no shell access) and locally.
+    """
+    if os.getenv("AUTO_MIGRATE") == "1":
+        try:
+            from flask_migrate import upgrade
+            with app.app_context():
+                upgrade()
+            app.logger.info("Auto migration completed (flask db upgrade).")
+        except Exception as e:
+            app.logger.error(f"Auto migration failed: {e}")
+
+
+if __name__ == "__main__":
+    # Run migrations first so schema is current
+    run_auto_migrations_if_enabled(app)
+
+    # If you already have any startup warm-ups (e.g., db.create_all(), cache warm, etc.)
+    # keep them here; otherwise, a simple run is fine:
+    app.run(host="0.0.0.0", port=5000, debug=True)
+
