@@ -2740,7 +2740,7 @@ if __name__ == "__main__":
     # Run migrations first (so schema is current before any create_all())
     run_auto_migrations_if_enabled(app)
 
-    # Initialize services and warm-ups
+    # Initialize database indexes and warm-ups
     with app.app_context():
         # Keep create_all for local dev safety; Alembic handles prod schema
         db.create_all()
