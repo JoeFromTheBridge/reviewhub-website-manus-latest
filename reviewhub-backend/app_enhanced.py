@@ -44,9 +44,19 @@ CORS(app, origins=[o.strip() for o in cors_origins if o.strip()], supports_crede
 
 
 # --- Health checks ---
+def build_health_payload():
+    return {
+        "status": "ok",
+        "service": "reviewhub-backend",
+        "version": os.getenv("BACKEND_VERSION", None),
+        "revision": os.getenv("RENDER_GIT_COMMIT", os.getenv("GIT_SHA", None)),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "environment": os.getenv("ENVIRONMENT", os.getenv("FLASK_ENV", None)),
+    }
+
 @app.get("/api/health")
 def api_health():
-    return jsonify({"status": "ok"}), 200
+    return jsonify(build_health_payload()), 200
 
 @app.get("/healthz")
 def healthz():
