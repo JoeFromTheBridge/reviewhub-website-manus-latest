@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 from email_service import email_service, generate_token
 from search_service import search_service
 from image_upload_routes import register_image_routes
@@ -35,12 +36,29 @@ db = SQLAlchemy(app)
 jwt = JWTManager(app)
 migrate = Migrate(app, db, directory="migrations")
 
-# CORS configuration (standardize env var name)
-cors_origins = os.getenv(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000,http://localhost:5173'
-).split(',')
-CORS(app, origins=[o.strip() for o in cors_origins if o.strip()], supports_credentials=True)
+# CORS configuration (standardize env var name and include APP_BASE_URL/FRONTEND_URL)
+def _normalize_origin(value: str) -> str:
+    value = (value or '').strip().rstrip('/')
+    if not value:
+        return ''
+    parsed = urlparse(value)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return value
+
+raw_list = os.getenv('CORS_ALLOWED_ORIGINS') or os.getenv('CORS_ORIGINS') or ''
+extra_urls = [
+    os.getenv('APP_BASE_URL', ''),
+    os.getenv('FRONTEND_URL', ''),
+]
+defaults = 'http://localhost:3000,http://localhost:5173'
+combined = ','.join(filter(None, [raw_list, ','.join(extra_urls), defaults]))
+cors_origins = list({
+    _normalize_origin(item)
+    for item in combined.split(',')
+    if _normalize_origin(item)
+})
+CORS(app, origins=cors_origins, supports_credentials=True)
 
 
 # --- Health checks ---

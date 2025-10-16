@@ -60,7 +60,9 @@ class EmailService:
     
     def send_verification_email(self, user_email, username, verification_token):
         """Send email verification email"""
-        verification_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/verify-email?token={verification_token}"
+        app_base = os.getenv('APP_BASE_URL') or os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        app_base = app_base.rstrip('/')
+        verification_url = f"{app_base}/verify-email?token={verification_token}"
         
         subject = "Verify Your ReviewHub Account"
         
@@ -131,7 +133,9 @@ class EmailService:
     
     def send_password_reset_email(self, user_email, username, reset_token):
         """Send password reset email"""
-        reset_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token={reset_token}"
+        app_base = os.getenv('APP_BASE_URL') or os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        app_base = app_base.rstrip('/')
+        reset_url = f"{app_base}/reset-password?token={reset_token}"
         
         subject = "Reset Your ReviewHub Password"
         
