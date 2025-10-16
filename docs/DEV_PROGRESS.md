@@ -25,3 +25,16 @@
 - **Notes**:
   - Reduces production CORS by proxying via Vercel
   - Aligns email links with current app domain
+
+### 2025-10-16 (prod check)
+
+- **Observation**: Backend (Render) shows DB suspended and API service failed; Vercel `/api/health` blank due to proxying to suspended backend; signup returns 405 likely from failed proxy/hibernation.
+- **Actions needed (ops)**:
+  - Reactivate Render Postgres (or switch to Neon/Supabase) and restart API service
+  - Set `APP_BASE_URL=https://www.thereviewhub.ca`, `CORS_ALLOWED_ORIGINS=https://www.thereviewhub.ca`, `FRONTEND_URL=https://www.thereviewhub.ca`
+  - Redeploy Vercel to pick up `vercel.json` rewrite
+- **Verification plan**:
+  - `curl -i https://reviewhub-website-manus-latest.onrender.com/healthz` → 200 ok
+  - `curl -s https://reviewhub-website-manus-latest.onrender.com/api/health` → JSON payload
+  - `https://www.thereviewhub.ca/api/health` → JSON via proxy
+  - Signup flow → email link points to `www.thereviewhub.ca`
