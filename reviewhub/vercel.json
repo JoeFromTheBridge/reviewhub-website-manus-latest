@@ -1,5 +1,9 @@
 {
   "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://reviewhub-website-manus-latest.onrender.com/api/:path*"
+    },
     { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [
