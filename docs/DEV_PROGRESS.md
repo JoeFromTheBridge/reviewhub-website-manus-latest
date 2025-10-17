@@ -38,3 +38,11 @@
   - `curl -s https://reviewhub-website-manus-latest.onrender.com/api/health` → JSON payload
   - `https://www.thereviewhub.ca/api/health` → JSON via proxy
   - Signup flow → email link points to `www.thereviewhub.ca`
+
+### 2025-10-17
+
+- **Task completed**: Production endpoints healthy via Vercel; signup working
+- **Verification**:
+  - `https://www.thereviewhub.ca/api/health` returned JSON `{"status":"ok"}`
+  - Signup succeeded via FE calling Render API
+- **Next step**: Verify email verification redirect domain and complete auth flow polish
