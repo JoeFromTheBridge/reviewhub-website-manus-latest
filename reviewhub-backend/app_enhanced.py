@@ -58,7 +58,14 @@ cors_origins = list({
     for item in combined.split(',')
     if _normalize_origin(item)
 })
-CORS(app, origins=cors_origins, supports_credentials=True)
+CORS(
+    app,
+    origins=cors_origins,
+    supports_credentials=True,
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization"],
+    expose_headers=["Content-Type", "Authorization"],
+)
 
 
 # --- Health checks ---
