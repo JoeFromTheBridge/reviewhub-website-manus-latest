@@ -46,3 +46,12 @@
   - `https://www.thereviewhub.ca/api/health` returned JSON `{"status":"ok"}`
   - Signup succeeded via FE calling Render API
 - **Next step**: Verify email verification redirect domain and complete auth flow polish
+
+### 2025-10-17 (later)
+
+- **Task completed**: Email service now supports MAIL_* envs and TLS/SSL
+- **Files modified**:
+  - `reviewhub-backend/email_service.py` (reads SMTP_* or MAIL_*; supports STARTTLS/SSL)
+- **Ops required**:
+  - Ensure Render env has: MAIL_SERVER/PORT/USERNAME/PASSWORD, MAIL_USE_TLS or MAIL_USE_SSL, MAIL_DEFAULT_SENDER
+  - Restart backend and test resend verification

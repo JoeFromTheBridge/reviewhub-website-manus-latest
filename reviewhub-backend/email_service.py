@@ -14,12 +14,19 @@ load_dotenv()
 
 class EmailService:
     def __init__(self):
-        self.smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-        self.smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        self.smtp_username = os.getenv('SMTP_USERNAME', '')
-        self.smtp_password = os.getenv('SMTP_PASSWORD', '')
-        self.from_email = os.getenv('FROM_EMAIL', 'noreply@reviewhub.com')
-        self.from_name = os.getenv('FROM_NAME', 'ReviewHub')
+        # Support both SMTP_* and MAIL_* env vars
+        self.smtp_server = os.getenv('SMTP_SERVER') or os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+        # Prefer explicit SMTP_PORT, else MAIL_PORT, default 587 (STARTTLS)
+        self.smtp_port = int(os.getenv('SMTP_PORT') or os.getenv('MAIL_PORT', '587'))
+        self.smtp_username = os.getenv('SMTP_USERNAME') or os.getenv('MAIL_USERNAME', '')
+        self.smtp_password = os.getenv('SMTP_PASSWORD') or os.getenv('MAIL_PASSWORD', '')
+        self.from_email = os.getenv('FROM_EMAIL') or os.getenv('MAIL_DEFAULT_SENDER', 'noreply@reviewhub.com')
+        self.from_name = os.getenv('FROM_NAME', os.getenv('MAIL_DEFAULT_SENDER_NAME', 'ReviewHub'))
+        # TLS/SSL flags
+        self.use_tls = os.getenv('SMTP_USE_TLS') or os.getenv('MAIL_USE_TLS') or 'true'
+        self.use_ssl = os.getenv('SMTP_USE_SSL') or os.getenv('MAIL_USE_SSL') or 'false'
+        self.use_tls = str(self.use_tls).lower() in ['1', 'true', 'yes', 'on']
+        self.use_ssl = str(self.use_ssl).lower() in ['1', 'true', 'yes', 'on']
         
     def send_email(self, to_email, subject, html_content, text_content=None):
         """Send an email with HTML content"""
@@ -41,8 +48,12 @@ class EmailService:
             
             # Send email
             if self.smtp_username and self.smtp_password:
-                server = smtplib.SMTP(self.smtp_server, self.smtp_port)
-                server.starttls()
+                if self.use_ssl:
+                    server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
+                else:
+                    server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+                    if self.use_tls:
+                        server.starttls()
                 server.login(self.smtp_username, self.smtp_password)
                 server.send_message(msg)
                 server.quit()
