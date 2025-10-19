@@ -9,6 +9,8 @@ import secrets
 import string
 from flask import current_app, url_for
 from dotenv import load_dotenv
+from email.utils import parseaddr, formataddr
+import ssl
 
 load_dotenv()
 
@@ -20,8 +22,12 @@ class EmailService:
         self.smtp_port = int(os.getenv('SMTP_PORT') or os.getenv('MAIL_PORT', '587'))
         self.smtp_username = os.getenv('SMTP_USERNAME') or os.getenv('MAIL_USERNAME', '')
         self.smtp_password = os.getenv('SMTP_PASSWORD') or os.getenv('MAIL_PASSWORD', '')
-        self.from_email = os.getenv('FROM_EMAIL') or os.getenv('MAIL_DEFAULT_SENDER', 'noreply@reviewhub.com')
-        self.from_name = os.getenv('FROM_NAME', os.getenv('MAIL_DEFAULT_SENDER_NAME', 'ReviewHub'))
+        raw_sender = os.getenv('FROM_EMAIL') or os.getenv('MAIL_DEFAULT_SENDER', 'noreply@reviewhub.com')
+        # Parse possible "Name <email>" format
+        parsed_name, parsed_email = parseaddr(raw_sender)
+        self.from_email = parsed_email or raw_sender
+        # Prefer explicit name if provided, else name from MAIL_DEFAULT_SENDER, else default
+        self.from_name = os.getenv('FROM_NAME', os.getenv('MAIL_DEFAULT_SENDER_NAME', parsed_name or 'ReviewHub'))
         # TLS/SSL flags
         self.use_tls = os.getenv('SMTP_USE_TLS') or os.getenv('MAIL_USE_TLS') or 'true'
         self.use_ssl = os.getenv('SMTP_USE_SSL') or os.getenv('MAIL_USE_SSL') or 'false'
@@ -34,7 +40,7 @@ class EmailService:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
+            msg['From'] = formataddr((self.from_name, self.from_email))
             msg['To'] = to_email
             
             # Add text version if provided
@@ -48,12 +54,16 @@ class EmailService:
             
             # Send email
             if self.smtp_username and self.smtp_password:
+                context = ssl.create_default_context()
                 if self.use_ssl:
-                    server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port)
+                    server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, context=context)
+                    server.ehlo()
                 else:
                     server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+                    server.ehlo()
                     if self.use_tls:
-                        server.starttls()
+                        server.starttls(context=context)
+                        server.ehlo()
                 server.login(self.smtp_username, self.smtp_password)
                 server.send_message(msg)
                 server.quit()
