@@ -9,17 +9,30 @@ import secrets
 import string
 from flask import current_app, url_for
 from dotenv import load_dotenv
+from email.utils import parseaddr, formataddr
+import ssl
 
 load_dotenv()
 
 class EmailService:
     def __init__(self):
-        self.smtp_server = os.getenv('SMTP_SERVER', 'smtp.gmail.com')
-        self.smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        self.smtp_username = os.getenv('SMTP_USERNAME', '')
-        self.smtp_password = os.getenv('SMTP_PASSWORD', '')
-        self.from_email = os.getenv('FROM_EMAIL', 'noreply@reviewhub.com')
-        self.from_name = os.getenv('FROM_NAME', 'ReviewHub')
+        # Support both SMTP_* and MAIL_* env vars
+        self.smtp_server = os.getenv('SMTP_SERVER') or os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+        # Prefer explicit SMTP_PORT, else MAIL_PORT, default 587 (STARTTLS)
+        self.smtp_port = int(os.getenv('SMTP_PORT') or os.getenv('MAIL_PORT', '587'))
+        self.smtp_username = os.getenv('SMTP_USERNAME') or os.getenv('MAIL_USERNAME', '')
+        self.smtp_password = os.getenv('SMTP_PASSWORD') or os.getenv('MAIL_PASSWORD', '')
+        raw_sender = os.getenv('FROM_EMAIL') or os.getenv('MAIL_DEFAULT_SENDER', 'noreply@reviewhub.com')
+        # Parse possible "Name <email>" format
+        parsed_name, parsed_email = parseaddr(raw_sender)
+        self.from_email = parsed_email or raw_sender
+        # Prefer explicit name if provided, else name from MAIL_DEFAULT_SENDER, else default
+        self.from_name = os.getenv('FROM_NAME', os.getenv('MAIL_DEFAULT_SENDER_NAME', parsed_name or 'ReviewHub'))
+        # TLS/SSL flags
+        self.use_tls = os.getenv('SMTP_USE_TLS') or os.getenv('MAIL_USE_TLS') or 'true'
+        self.use_ssl = os.getenv('SMTP_USE_SSL') or os.getenv('MAIL_USE_SSL') or 'false'
+        self.use_tls = str(self.use_tls).lower() in ['1', 'true', 'yes', 'on']
+        self.use_ssl = str(self.use_ssl).lower() in ['1', 'true', 'yes', 'on']
         
     def send_email(self, to_email, subject, html_content, text_content=None):
         """Send an email with HTML content"""
@@ -27,7 +40,7 @@ class EmailService:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
+            msg['From'] = formataddr((self.from_name, self.from_email))
             msg['To'] = to_email
             
             # Add text version if provided
@@ -41,8 +54,16 @@ class EmailService:
             
             # Send email
             if self.smtp_username and self.smtp_password:
-                server = smtplib.SMTP(self.smtp_server, self.smtp_port)
-                server.starttls()
+                context = ssl.create_default_context()
+                if self.use_ssl:
+                    server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, context=context)
+                    server.ehlo()
+                else:
+                    server = smtplib.SMTP(self.smtp_server, self.smtp_port)
+                    server.ehlo()
+                    if self.use_tls:
+                        server.starttls(context=context)
+                        server.ehlo()
                 server.login(self.smtp_username, self.smtp_password)
                 server.send_message(msg)
                 server.quit()
@@ -55,12 +76,33 @@ class EmailService:
                 return True
                 
         except Exception as e:
-            print(f"Error sending email: {str(e)}")
+            # Mask credentials in logs and provide detailed context
+            try:
+                masked_user = (self.smtp_username[:2] + "***@***" if "@" in self.smtp_username else self.smtp_username[:2] + "***") if self.smtp_username else ""
+                details = {
+                    'server': self.smtp_server,
+                    'port': self.smtp_port,
+                    'use_tls': self.use_tls,
+                    'use_ssl': self.use_ssl,
+                    'username': masked_user,
+                    'from': f"{self.from_name} <{self.from_email}>",
+                }
+                current_app.logger.error(f"Email send failure: {e}; context={details}")
+            except Exception:
+                pass
             return False
     
     def send_verification_email(self, user_email, username, verification_token):
         """Send email verification email"""
-        verification_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/verify-email?token={verification_token}"
+        app_base = os.getenv('APP_BASE_URL') or os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        app_base = app_base.rstrip('/')
+        verification_url = f"{app_base}/verify-email?token={verification_token}"
+        # Optional debug logging to aid verification during setup
+        try:
+            if str(os.getenv('EMAIL_DEBUG_LOG', '0')).lower() in ['1', 'true', 'yes', 'on']:
+                current_app.logger.info(f"EMAIL_DEBUG: Verification URL for {user_email}: {verification_url}")
+        except Exception:
+            pass
         
         subject = "Verify Your ReviewHub Account"
         
@@ -131,7 +173,9 @@ class EmailService:
     
     def send_password_reset_email(self, user_email, username, reset_token):
         """Send password reset email"""
-        reset_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/reset-password?token={reset_token}"
+        app_base = os.getenv('APP_BASE_URL') or os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        app_base = app_base.rstrip('/')
+        reset_url = f"{app_base}/reset-password?token={reset_token}"
         
         subject = "Reset Your ReviewHub Password"
         

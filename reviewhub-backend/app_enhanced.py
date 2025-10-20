@@ -7,6 +7,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
+from urllib.parse import urlparse
 from email_service import email_service, generate_token
 from search_service import search_service
 from image_upload_routes import register_image_routes
@@ -35,18 +36,52 @@ db = SQLAlchemy(app)
 jwt = JWTManager(app)
 migrate = Migrate(app, db, directory="migrations")
 
-# CORS configuration (standardize env var name)
-cors_origins = os.getenv(
-    'CORS_ALLOWED_ORIGINS',
-    'http://localhost:3000,http://localhost:5173'
-).split(',')
-CORS(app, origins=[o.strip() for o in cors_origins if o.strip()], supports_credentials=True)
+# CORS configuration (standardize env var name and include APP_BASE_URL/FRONTEND_URL)
+def _normalize_origin(value: str) -> str:
+    value = (value or '').strip().rstrip('/')
+    if not value:
+        return ''
+    parsed = urlparse(value)
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return value
+
+raw_list = os.getenv('CORS_ALLOWED_ORIGINS') or os.getenv('CORS_ORIGINS') or ''
+extra_urls = [
+    os.getenv('APP_BASE_URL', ''),
+    os.getenv('FRONTEND_URL', ''),
+]
+defaults = 'http://localhost:3000,http://localhost:5173'
+combined = ','.join(filter(None, [raw_list, ','.join(extra_urls), defaults]))
+cors_origins = list({
+    _normalize_origin(item)
+    for item in combined.split(',')
+    if _normalize_origin(item)
+})
+CORS(
+    app,
+    origins=cors_origins,
+    supports_credentials=True,
+    methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["Content-Type", "Authorization"],
+    expose_headers=["Content-Type", "Authorization"],
+)
 
 
 # --- Health checks ---
+def build_health_payload():
+    return {
+        "status": "ok",
+        "service": "reviewhub-backend",
+        "version": os.getenv("BACKEND_VERSION", None),
+        "revision": os.getenv("RENDER_GIT_COMMIT", os.getenv("GIT_SHA", None)),
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "environment": os.getenv("ENVIRONMENT", os.getenv("FLASK_ENV", None)),
+    }
+
 @app.get("/api/health")
 def api_health():
-    return jsonify({"status": "ok"}), 200
+    return jsonify(build_health_payload()), 200
 
 @app.get("/healthz")
 def healthz():
@@ -482,6 +517,37 @@ def resend_verification():
         
     except Exception as e:
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+# --- Debug endpoint (temporary) to fetch verification link for a user
+@app.route('/api/auth/debug/verification-link', methods=['GET'])
+def debug_verification_link():
+    try:
+        admin_secret = os.getenv('ADMIN_DEBUG_SECRET', None)
+        provided = request.headers.get('X-Admin-Debug-Secret') or request.args.get('admin_secret')
+        if not admin_secret or provided != admin_secret:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        email = request.args.get('email')
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Ensure token exists; generate if missing/expired
+        if not user.email_verification_token or not user.is_email_verification_valid():
+            token = user.generate_email_verification_token()
+            db.session.commit()
+        else:
+            token = user.email_verification_token
+
+        app_base = os.getenv('APP_BASE_URL') or os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        app_base = app_base.rstrip('/')
+        verification_url = f"{app_base}/verify-email?token={token}"
+        return jsonify({'verification_url': verification_url}), 200
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/login', methods=['POST'])
