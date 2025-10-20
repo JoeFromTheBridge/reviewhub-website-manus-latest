@@ -84,6 +84,12 @@ class EmailService:
         app_base = os.getenv('APP_BASE_URL') or os.getenv('FRONTEND_URL', 'http://localhost:3000')
         app_base = app_base.rstrip('/')
         verification_url = f"{app_base}/verify-email?token={verification_token}"
+        # Optional debug logging to aid verification during setup
+        try:
+            if str(os.getenv('EMAIL_DEBUG_LOG', '0')).lower() in ['1', 'true', 'yes', 'on']:
+                current_app.logger.info(f"EMAIL_DEBUG: Verification URL for {user_email}: {verification_url}")
+        except Exception:
+            pass
         
         subject = "Verify Your ReviewHub Account"
         
