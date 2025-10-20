@@ -519,6 +519,37 @@ def resend_verification():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+# --- Debug endpoint (temporary) to fetch verification link for a user
+@app.route('/api/auth/debug/verification-link', methods=['GET'])
+def debug_verification_link():
+    try:
+        admin_secret = os.getenv('ADMIN_DEBUG_SECRET', None)
+        provided = request.headers.get('X-Admin-Debug-Secret') or request.args.get('admin_secret')
+        if not admin_secret or provided != admin_secret:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        email = request.args.get('email')
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Ensure token exists; generate if missing/expired
+        if not user.email_verification_token or not user.is_email_verification_valid():
+            token = user.generate_email_verification_token()
+            db.session.commit()
+        else:
+            token = user.email_verification_token
+
+        app_base = os.getenv('APP_BASE_URL') or os.getenv('FRONTEND_URL', 'http://localhost:3000')
+        app_base = app_base.rstrip('/')
+        verification_url = f"{app_base}/verify-email?token={token}"
+        return jsonify({'verification_url': verification_url}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/auth/login', methods=['POST'])
 def login():
     try:

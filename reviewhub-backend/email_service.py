@@ -76,7 +76,20 @@ class EmailService:
                 return True
                 
         except Exception as e:
-            print(f"Error sending email: {str(e)}")
+            # Mask credentials in logs and provide detailed context
+            try:
+                masked_user = (self.smtp_username[:2] + "***@***" if "@" in self.smtp_username else self.smtp_username[:2] + "***") if self.smtp_username else ""
+                details = {
+                    'server': self.smtp_server,
+                    'port': self.smtp_port,
+                    'use_tls': self.use_tls,
+                    'use_ssl': self.use_ssl,
+                    'username': masked_user,
+                    'from': f"{self.from_name} <{self.from_email}>",
+                }
+                current_app.logger.error(f"Email send failure: {e}; context={details}")
+            except Exception:
+                pass
             return False
     
     def send_verification_email(self, user_email, username, verification_token):
