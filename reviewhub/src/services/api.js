@@ -3,10 +3,14 @@
  * Handles all HTTP requests to the backend
  */
 
-// Use Vite env; fallback to same-origin /api (good for proxies) or localhost in dev
-const API_BASE_URL =
+// ---- Base URL (Vite) ----
+// In Vercel set: VITE_API_URL=/api
+const RAW_BASE =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
-  (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'https://reviewhub-website-manus-latest.onrender.com');
+  (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'https://reviewhub-website-manus-latest.onrender.com/api');
+
+// normalize: remove trailing slashes
+const API_BASE_URL = String(RAW_BASE).replace(/\/+$/, '');
 
 class ApiService {
   constructor() {
@@ -20,32 +24,39 @@ class ApiService {
   }
 
   async handleResponse(response) {
+    const text = await response.text();
+    let data;
+    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      const msg = (data && (data.error || data.message)) || `HTTP error! status: ${response.status}`;
+      const err = new Error(msg);
+      err.status = response.status;
+      err.body = data;
+      throw err;
     }
-    return response.json();
+    return data;
   }
 
   async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
+    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const url = `${this.baseURL}${path}`;
+
     const defaultHeaders = { 'Content-Type': 'application/json', ...this.getAuthHeaders() };
     const config = {
+      method: 'GET',
       ...options,
       headers: { ...defaultHeaders, ...(options.headers || {}) },
     };
 
     // If body is FormData, let the browser set Content-Type
-    const isFormData = config.body instanceof FormData;
-    if (isFormData) {
-      delete config.headers['Content-Type'];
-    }
+    const isFormData = typeof FormData !== 'undefined' && config.body instanceof FormData;
+    if (isFormData) delete config.headers['Content-Type'];
 
     try {
       const response = await fetch(url, config);
       return await this.handleResponse(response);
     } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
+      console.error(`API request failed: ${path}`, error);
       throw error;
     }
   }
@@ -135,7 +146,6 @@ class ApiService {
     });
   }
 
-  // (Alias methods you also defined later)
   async voteReview(reviewId, isHelpful) {
     return this.voteOnReview(reviewId, isHelpful);
   }
@@ -167,7 +177,6 @@ class ApiService {
     return this.request('/analytics/user', { headers: this.getAuthHeaders() });
   }
 
-  // Track interaction
   async trackInteraction(productId, interactionType, rating = null) {
     return this.request('/interactions/track', {
       method: 'POST',
@@ -434,7 +443,8 @@ class ApiService {
   }
 
   async downloadExport(requestId) {
-    const response = await fetch(`${this.baseURL}/data-export/download/${requestId}`, {
+    const path = `/data-export/download/${requestId}`;
+    const response = await fetch(`${this.baseURL}${path}`, {
       method: 'GET',
       headers: this.getAuthHeaders(),
     });
