@@ -12,6 +12,7 @@ import AdminUsers from './components/admin/AdminUsers'
 import AdminPerformance from './components/admin/AdminPerformance'
 import AdminVoiceSearch from './components/admin/AdminVoiceSearch'
 import { useAuth } from './contexts/AuthContext'
+import EmailVerification from './components/auth/EmailVerification';
 // ❌ removed: import './App.css'
 
 // Admin route wrapper to check admin permissions
@@ -90,6 +91,12 @@ function App() {
               <AdminRoute>
                 <AdminPerformance />
               </AdminRoute>
+            } />
+            <Route path="/verify-email" element={
+              <>
+                <Header />
+                <EmailVerification />
+              </>
             } />
           </Routes>
         </div>
