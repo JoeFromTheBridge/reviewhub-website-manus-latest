@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '../../contexts/AuthContext';
 
-export function EmailVerification() {
+export default function EmailVerification() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { verifyEmail, resendVerificationEmail, loading, error, emailVerificationStatus } = useAuth();
