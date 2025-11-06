@@ -69,6 +69,14 @@ export function Header() {
               <Link to="/about" className="text-gray-700 hover:text-primary transition-colors">
                 About
               </Link>
+              {isAuthenticated && (
+                <Link
+                  to="/profile"
+                  className="text-gray-700 hover:text-primary transition-colors"
+                >
+                  Profile
+                </Link>
+              )}
             </nav>
 
             {/* Search Icon (linking to SearchPage) */}
@@ -190,7 +198,7 @@ export function Header() {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Toggle menu"
               >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {isMenuOpen ? <X className="h-5 w-5 /> : <Menu className="h-5 w-5" />}
               </Button>
             </div>
           </div>
