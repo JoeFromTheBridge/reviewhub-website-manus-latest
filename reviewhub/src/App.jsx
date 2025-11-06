@@ -3,21 +3,21 @@ import { AuthProvider } from './contexts/AuthContext'
 import { Header } from './components/Header'
 import { HomePage } from './components/HomePage'
 import { ProductPage } from './components/ProductPage'
-import SearchPage from './components/search/SearchPage';
-import UserAnalyticsPage from './components/profile/UserAnalyticsPage';
-import PrivacyPage from './components/privacy/PrivacyPage';
+import SearchPage from './components/search/SearchPage'
+import UserAnalyticsPage from './components/profile/UserAnalyticsPage'
+import PrivacyPage from './components/privacy/PrivacyPage'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminDashboard from './components/admin/AdminDashboard'
 import AdminUsers from './components/admin/AdminUsers'
 import AdminPerformance from './components/admin/AdminPerformance'
 import AdminVoiceSearch from './components/admin/AdminVoiceSearch'
 import { useAuth } from './contexts/AuthContext'
-import EmailVerification from './components/auth/EmailVerification';
-// ❌ removed: import './App.css'
+import EmailVerification from './components/auth/EmailVerification'
+import ProfilePage from './components/profile/ProfilePage'
 
 // Admin route wrapper to check admin permissions
 const AdminRoute = ({ children }) => {
-  const { user } = useAuth();
+  const { user } = useAuth()
   
   if (!user?.is_admin) {
     return (
@@ -27,11 +27,34 @@ const AdminRoute = ({ children }) => {
           <p className="text-gray-600">You don't have permission to access the admin panel.</p>
         </div>
       </div>
-    );
+    )
   }
   
-  return <AdminLayout>{children}</AdminLayout>;
-};
+  return <AdminLayout>{children}</AdminLayout>
+}
+
+// Auth-protected route wrapper for regular user pages
+const PrivateRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Sign in required</h1>
+          <p className="text-gray-600">You need to be signed in to view this page.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <Header />
+      {children}
+    </>
+  )
+}
 
 function App() {
   return (
@@ -40,64 +63,104 @@ function App() {
         <div className="min-h-screen bg-gray-50">
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={
-              <>
-                <Header />
-                <HomePage />
-              </>
-            } />
-            <Route path="/product/:id" element={
-              <>
-                <Header />
-                <ProductPage />
-              </>
-            } />
-            <Route path="/search" element={
-              <>
-                <Header />
-                <SearchPage />
-              </>
-            } />
-            <Route path="/analytics" element={
-              <>
-                <Header />
-                <UserAnalyticsPage />
-              </>
-            } />
-            <Route path="/privacy" element={
-              <>
-                <Header />
-                <PrivacyPage />
-              </>
-            } />
-            
+            <Route
+              path="/"
+              element={
+                <>
+                  <Header />
+                  <HomePage />
+                </>
+              }
+            />
+            <Route
+              path="/product/:id"
+              element={
+                <>
+                  <Header />
+                  <ProductPage />
+                </>
+              }
+            />
+            <Route
+              path="/search"
+              element={
+                <>
+                  <Header />
+                  <SearchPage />
+                </>
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
+                <>
+                  <Header />
+                  <UserAnalyticsPage />
+                </>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <>
+                  <Header />
+                  <PrivacyPage />
+                </>
+              }
+            />
+            <Route
+              path="/verify-email"
+              element={
+                <>
+                  <Header />
+                  <EmailVerification />
+                </>
+              }
+            />
+
+            {/* Auth-protected profile route */}
+            <Route
+              path="/profile"
+              element={
+                <PrivateRoute>
+                  <ProfilePage />
+                </PrivateRoute>
+              }
+            />
+
             {/* Admin routes */}
-            <Route path="/admin" element={
-              <AdminRoute>
-                <AdminDashboard />
-              </AdminRoute>
-            } />
-            <Route path="/admin/users" element={
-              <AdminRoute>
-                <AdminUsers />
-              </AdminRoute>
-            } />
-            <Route path="/admin/voice-search" element={
-              <AdminRoute>
-                <AdminVoiceSearch />
-              </AdminRoute>
-            } />
-            <Route path="/admin/performance" element={
-              <AdminRoute>
-                <AdminPerformance />
-              </AdminRoute>
-            } />
-            <Route path="/verify-email" element={
-              <>
-                <Header />
-                <EmailVerification />
-              </>
-            } />
+            <Route
+              path="/admin"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <AdminRoute>
+                  <AdminUsers />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/voice-search"
+              element={
+                <AdminRoute>
+                  <AdminVoiceSearch />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/admin/performance"
+              element={
+                <AdminRoute>
+                  <AdminPerformance />
+                </AdminRoute>
+              }
+            />
           </Routes>
         </div>
       </Router>
