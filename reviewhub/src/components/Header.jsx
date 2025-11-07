@@ -84,7 +84,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate("/search")}
+                onClick={() => navigate('/search')}
                 className="text-gray-700 hover:text-primary"
                 aria-label="Search"
               >
@@ -198,7 +198,11 @@ export function Header() {
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Toggle menu"
               >
-                {isMenuOpen ? <X className="h-5 w-5 /> : <Menu className="h-5 w-5" />}
+                {isMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
               </Button>
             </div>
           </div>
@@ -213,7 +217,7 @@ export function Header() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  navigate("/search")
+                  navigate('/search')
                   setIsMenuOpen(false)
                 }}
                 className="w-full justify-start text-gray-700 hover:text-primary"
@@ -320,3 +324,4 @@ export function Header() {
     </>
   )
 }
+
