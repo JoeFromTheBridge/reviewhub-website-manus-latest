@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Star, Edit2, Trash2, Loader2, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +14,7 @@ export function MyReviews() {
   const [deletingId, setDeletingId] = useState(null);
 
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -120,7 +122,7 @@ export function MyReviews() {
               <p className="text-gray-600 mb-4">
                 You haven't written any reviews yet. Start by browsing products and sharing your experiences!
               </p>
-              <Button onClick={() => window.location.href = '/'}>
+              <Button onClick={() => navigate('/')}>
                 Browse Products
               </Button>
             </div>
@@ -195,7 +197,7 @@ export function MyReviews() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => window.location.href = `/product/${review.product?.id}`}
+                      onClick={() => navigate(`/product/${review.product?.id}`)}
                     >
                       View Product
                     </Button>
@@ -209,4 +211,5 @@ export function MyReviews() {
     </div>
   );
 }
+
 
