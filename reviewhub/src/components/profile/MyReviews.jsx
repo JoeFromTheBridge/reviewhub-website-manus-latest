@@ -13,21 +13,24 @@ export function MyReviews() {
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState(null);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user?.id) {
       fetchMyReviews();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user?.id]);
 
   const fetchMyReviews = async () => {
     try {
       setLoading(true);
       setError('');
-      const response = await apiService.getMyReviews();
-      setReviews(response.reviews || []);
+      // Use existing endpoint: /users/:id/reviews
+      const response = await apiService.getUserReviews(user.id);
+      // response shape may be { reviews: [...] } or just [...]
+      const reviewsData = Array.isArray(response) ? response : (response.reviews || []);
+      setReviews(reviewsData);
     } catch (error) {
       setError('Failed to load your reviews');
       console.error('Error fetching reviews:', error);
@@ -211,5 +214,6 @@ export function MyReviews() {
     </div>
   );
 }
+
 
 
