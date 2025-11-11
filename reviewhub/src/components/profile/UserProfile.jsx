@@ -5,6 +5,39 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '../../contexts/AuthContext';
 
+function extractApiErrorMessage(error, fallback) {
+  if (!error) return fallback;
+
+  const body = error.body;
+
+  if (body) {
+    if (typeof body === 'string') {
+      return body;
+    }
+    if (body.error) {
+      return body.error;
+    }
+    if (body.message) {
+      return body.message;
+    }
+    if (body.errors && typeof body.errors === 'object') {
+      const parts = [];
+      for (const [field, val] of Object.entries(body.errors)) {
+        if (Array.isArray(val)) {
+          parts.push(`${field}: ${val.join(', ')}`);
+        } else {
+          parts.push(`${field}: ${val}`);
+        }
+      }
+      if (parts.length) {
+        return parts.join(' ');
+      }
+    }
+  }
+
+  return error.message || fallback;
+}
+
 export function UserProfile() {
   const { user, updateProfile, changePassword } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -63,8 +96,10 @@ export function UserProfile() {
       await updateProfile(profileData);
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
-    } catch (error) {
-      setError(error.message);
+    } catch (err) {
+      console.error('Profile update failed', err);
+      const msg = extractApiErrorMessage(err, 'Failed to update profile');
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -99,8 +134,10 @@ export function UserProfile() {
         new_password: '',
         confirm_password: '',
       });
-    } catch (error) {
-      setError(error.message);
+    } catch (err) {
+      console.error('Password change failed', err);
+      const msg = extractApiErrorMessage(err, 'Failed to change password');
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -404,4 +441,3 @@ export function UserProfile() {
     </div>
   );
 }
-
