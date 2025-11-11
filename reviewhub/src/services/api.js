@@ -19,23 +19,38 @@ class ApiService {
 
   // ---- Helpers ----
   getAuthHeaders() {
-    const token = localStorage.getItem('access_token');
+    if (typeof window === 'undefined') return {};
+    const token =
+      localStorage.getItem('access_token') ||
+      localStorage.getItem('accessToken') ||
+      localStorage.getItem('token');
+
     return token ? { Authorization: `Bearer ${token}` } : {};
   }
 
   async handleResponse(response) {
     const text = await response.text();
     let data;
-    try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text;
+    }
+
     if (!response.ok) {
-      const msg = (data && (data.error || data.message)) || `HTTP error! status: ${response.status}`;
+      let msg = (data && (data.error || data.message)) || `HTTP error! status: ${response.status}`;
+      if (response.status === 401 && (!msg || msg.startsWith('HTTP error!'))) {
+        msg = 'You are not authorized. Please sign in again.';
+      }
       const err = new Error(msg);
       err.status = response.status;
       err.body = data;
       throw err;
     }
+
     return data;
   }
+
 
   async request(endpoint, options = {}) {
     const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
