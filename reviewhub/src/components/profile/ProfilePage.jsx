@@ -1,5 +1,5 @@
 // src/components/profile/ProfilePage.jsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { UserProfile } from './UserProfile'
 import { MyReviews } from './MyReviews'
 import UserAnalyticsPage from './UserAnalyticsPage'
@@ -10,8 +10,13 @@ const TABS = {
   ANALYTICS: 'analytics',
 }
 
-export default function ProfilePage() {
-  const [activeTab, setActiveTab] = useState(TABS.PROFILE)
+export default function ProfilePage({ initialTab = TABS.PROFILE }) {
+  const [activeTab, setActiveTab] = useState(initialTab)
+
+  // Sync if route passes a different initialTab
+  useEffect(() => {
+    setActiveTab(initialTab)
+  }, [initialTab])
 
   const renderContent = () => {
     switch (activeTab) {
