@@ -34,14 +34,46 @@ class ApiService {
     try {
       data = text ? JSON.parse(text) : null;
     } catch {
-      data = text;
+      // not JSON, keep raw string if present
+      data = text || null;
     }
 
     if (!response.ok) {
-      let msg = (data && (data.error || data.message)) || `HTTP error! status: ${response.status}`;
+      let msg;
+
+      // JSON body with error/message/errors
+      if (data && typeof data === 'object') {
+        msg = data.error || data.message;
+        if (!msg && data.errors && typeof data.errors === 'object') {
+          const parts = [];
+          for (const [field, val] of Object.entries(data.errors)) {
+            if (Array.isArray(val)) {
+              parts.push(`${field}: ${val.join(', ')}`);
+            } else {
+              parts.push(`${field}: ${val}`);
+            }
+          }
+          if (parts.length) {
+            msg = parts.join(' ');
+          }
+        }
+      }
+
+      // Plain text body
+      if (!msg && typeof data === 'string' && data.trim()) {
+        msg = data.trim();
+      }
+
+      // Fallback
+      if (!msg) {
+        msg = `HTTP error! status: ${response.status}`;
+      }
+
+      // Special-case auth
       if (response.status === 401 && (!msg || msg.startsWith('HTTP error!'))) {
         msg = 'You are not authorized. Please sign in again.';
       }
+
       const err = new Error(msg);
       err.status = response.status;
       err.body = data;
@@ -50,7 +82,6 @@ class ApiService {
 
     return data;
   }
-
 
   async request(endpoint, options = {}) {
     const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
@@ -260,7 +291,16 @@ class ApiService {
     });
   }
 
-  async getAdminReviews(page = 1, perPage = 20, search = '', productId = null, userId = null, rating = null, sortBy = 'created_at', order = 'desc') {
+  async getAdminReviews(
+    page = 1,
+    perPage = 20,
+    search = '',
+    productId = null,
+    userId = null,
+    rating = null,
+    sortBy = 'created_at',
+    order = 'desc'
+  ) {
     const params = new URLSearchParams({
       page: String(page),
       per_page: String(perPage),
@@ -587,3 +627,4 @@ const api = new ApiService();
 export default api;
 export { api };
 export { api as apiService };
+
