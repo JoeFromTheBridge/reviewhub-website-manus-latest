@@ -33,6 +33,29 @@ const AdminRoute = ({ children }) => {
   return <AdminLayout>{children}</AdminLayout>
 }
 
+// Auth-protected route wrapper for regular user pages
+const PrivateRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth()
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Sign in required</h1>
+          <p className="text-gray-600">You need to be signed in to view this page.</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <Header />
+      {children}
+    </>
+  )
+}
+
 function App() {
   return (
     <AuthProvider>
@@ -95,14 +118,21 @@ function App() {
               }
             />
 
-            {/* Profile route (uses tabbed ProfilePage) */}
+            {/* Auth-protected profile routes */}
             <Route
               path="/profile"
               element={
-                <>
-                  <Header />
-                  <ProfilePage />
-                </>
+                <PrivateRoute>
+                  <ProfilePage initialTab="profile" />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/my-reviews"
+              element={
+                <PrivateRoute>
+                  <ProfilePage initialTab="reviews" />
+                </PrivateRoute>
               }
             />
 
