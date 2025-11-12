@@ -5,47 +5,95 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '../../contexts/AuthContext';
 
-function extractApiErrorMessage(error, fallback) {
-  if (!error) return fallback;
-
-  const body = error.body;
-
-  // Prefer specific messages from server when available
-  if (body) {
-    if (typeof body === 'string') {
-      return body;
+/**
+ * Safely parse a Response into JSON or text.
+ */
+async function parseResponseSafe(res) {
+  try {
+    const cloned = res.clone();
+    const text = await cloned.text();
+    try {
+      return { asJson: JSON.parse(text), asText: text };
+    } catch {
+      return { asJson: null, asText: text };
     }
-    if (typeof body === 'object') {
-      if (body.detail && typeof body.detail === 'string') {
-        return body.detail;
+  } catch {
+    return { asJson: null, asText: null };
+  }
+}
+
+/**
+ * Try to derive a human message from various error shapes.
+ */
+function deriveMessageFromPayload(payload) {
+  if (!payload) return null;
+  if (typeof payload === 'string') return payload;
+
+  if (typeof payload === 'object') {
+    // Common API shapes
+    if (typeof payload.detail === 'string') return payload.detail;
+    if (typeof payload.error === 'string') return payload.error;
+    if (typeof payload.message === 'string') return payload.message;
+
+    // Errors dict: { field: [..] } or { field: "..." }
+    if (payload.errors && typeof payload.errors === 'object') {
+      const parts = [];
+      for (const [field, val] of Object.entries(payload.errors)) {
+        if (Array.isArray(val)) parts.push(`${field}: ${val.join(', ')}`);
+        else if (val && typeof val === 'object') parts.push(`${field}: ${val.message ?? JSON.stringify(val)}`);
+        else parts.push(`${field}: ${val}`);
       }
-      if (body.error && typeof body.error === 'string') {
-        return body.error;
-      }
-      if (body.message && typeof body.message === 'string') {
-        return body.message;
-      }
-      if (body.errors && typeof body.errors === 'object') {
-        const parts = [];
-        for (const [field, val] of Object.entries(body.errors)) {
-          if (Array.isArray(val)) {
-            parts.push(`${field}: ${val.join(', ')}`);
-          } else if (typeof val === 'object' && val !== null) {
-            const vmsg = val.message || JSON.stringify(val);
-            parts.push(`${field}: ${vmsg}`);
-          } else {
-            parts.push(`${field}: ${val}`);
-          }
-        }
-        if (parts.length) {
-          return parts.join(' ');
-        }
-      }
+      if (parts.length) return parts.join(' ');
     }
   }
 
-  // Fall back to generic error fields
-  return error.message || fallback;
+  return null;
+}
+
+/**
+ * Best-effort extraction of server details from thrown error.
+ * - Supports patterns where ApiService throws Error("HTTP error! status: 422") without body.
+ * - Also supports shapes with { body }, { data }, { response } (fetch/axios-like).
+ */
+async function extractServerError(err) {
+  // Fast paths
+  const directBody = err?.body ?? err?.data ?? null;
+  const msgFromDirect = deriveMessageFromPayload(directBody);
+
+  if (msgFromDirect) {
+    return {
+      status: err?.status ?? err?.code ?? null,
+      message: msgFromDirect,
+      details: directBody ?? null,
+    };
+  }
+
+  // If the error carries a Response (typical when a service attaches it)
+  const res = err?.response ?? err?.res ?? null;
+  if (res && typeof res === 'object' && typeof res.status === 'number') {
+    const { asJson, asText } = await parseResponseSafe(res);
+    const message = deriveMessageFromPayload(asJson) || deriveMessageFromPayload(asText) || err?.message;
+    // Prefer JSON object for details; otherwise keep raw text
+    const details = asJson ?? (asText ? { raw: asText } : null);
+    return {
+      status: res.status,
+      message: message || `HTTP ${res.status}`,
+      details,
+    };
+  }
+
+  // Last resort: try common nested fields
+  const maybeDetail =
+    err?.detail ||
+    err?.message ||
+    (typeof err === 'string' ? err : null) ||
+    (typeof directBody === 'string' ? directBody : null);
+
+  return {
+    status: err?.status ?? null,
+    message: maybeDetail || 'Request failed',
+    details: directBody ?? null,
+  };
 }
 
 export function UserProfile() {
@@ -58,9 +106,10 @@ export function UserProfile() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Extra diagnostics for 422 and other API validation errors
-  const [errorStatus, setErrorStatus] = useState(null); // e.g., 422
-  const [errorDetails, setErrorDetails] = useState(null); // raw server body
+  // Extra diagnostics
+  const [errorStatus, setErrorStatus] = useState(null);   // e.g., 422
+  const [errorDetails, setErrorDetails] = useState(null); // raw server body or parsed json
+  const [lastSubmitted, setLastSubmitted] = useState(null); // snapshot of last payload for debugging
 
   const [profileData, setProfileData] = useState({
     first_name: '',
@@ -94,18 +143,18 @@ export function UserProfile() {
   };
 
   const handleProfileChange = (e) => {
-    setProfileData({
-      ...profileData,
+    setProfileData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
     if (error) clearMessages();
   };
 
   const handlePasswordChange = (e) => {
-    setPasswordData({
-      ...passwordData,
+    setPasswordData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
     if (error) clearMessages();
   };
 
@@ -114,16 +163,20 @@ export function UserProfile() {
     setIsLoading(true);
     clearMessages();
 
+    const payload = { ...profileData };
+    setLastSubmitted({ type: 'profile', payload });
+
     try {
-      await updateProfile(profileData);
+      await updateProfile(payload);
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
     } catch (err) {
+      // Attempt to enrich the generic "HTTP error! status: 422" with actual server detail
       console.error('Profile update failed', err);
-      const msg = extractApiErrorMessage(err, 'Failed to update profile');
-      setError(msg);
-      setErrorStatus(err?.status ?? null);
-      setErrorDetails(err?.body ?? null);
+      const enriched = await extractServerError(err);
+      setError(enriched?.message || 'Failed to update profile');
+      setErrorStatus(enriched?.status ?? null);
+      setErrorDetails(enriched?.details ?? null);
     } finally {
       setIsLoading(false);
     }
@@ -149,11 +202,14 @@ export function UserProfile() {
     setIsLoading(true);
     clearMessages();
 
+    const payload = {
+      current_password: passwordData.current_password,
+      new_password: passwordData.new_password,
+    };
+    setLastSubmitted({ type: 'password', payload: { ...payload, confirm_password: passwordData.confirm_password } });
+
     try {
-      await changePassword({
-        current_password: passwordData.current_password,
-        new_password: passwordData.new_password,
-      });
+      await changePassword(payload);
       setSuccess('Password changed successfully!');
       setIsChangingPassword(false);
       setPasswordData({
@@ -163,10 +219,10 @@ export function UserProfile() {
       });
     } catch (err) {
       console.error('Password change failed', err);
-      const msg = extractApiErrorMessage(err, 'Failed to change password');
-      setError(msg);
-      setErrorStatus(err?.status ?? null);
-      setErrorDetails(err?.body ?? null);
+      const enriched = await extractServerError(err);
+      setError(enriched?.message || 'Failed to change password');
+      setErrorStatus(enriched?.status ?? null);
+      setErrorDetails(enriched?.details ?? null);
     } finally {
       setIsLoading(false);
     }
@@ -175,7 +231,6 @@ export function UserProfile() {
   const cancelEdit = () => {
     setIsEditing(false);
     clearMessages();
-    // Reset to original user data
     if (user) {
       setProfileData({
         first_name: user.first_name || '',
@@ -199,7 +254,6 @@ export function UserProfile() {
   const renderValidationList = () => {
     if (!errorDetails || typeof errorDetails !== 'object') return null;
 
-    // Common Flask/Marshmallow/Pydantic shapes
     const errorsObj =
       (errorDetails.errors && typeof errorDetails.errors === 'object' && errorDetails.errors) ||
       (errorDetails.field_errors && typeof errorDetails.field_errors === 'object' && errorDetails.field_errors) ||
@@ -231,18 +285,26 @@ export function UserProfile() {
   const renderDebugDetails = () => {
     if (!error) return null;
     return (
-      <div className="mt-2">
+      <div className="mt-2 space-y-2">
         {errorStatus ? (
           <p className="text-xs text-red-700">
             Status: <span className="font-mono">{errorStatus}</span>
           </p>
         ) : null}
         {errorStatus === 422 ? renderValidationList() : null}
+        {lastSubmitted ? (
+          <details className="text-xs">
+            <summary className="cursor-pointer text-red-700 underline">Show submitted payload</summary>
+            <pre className="mt-1 max-h-64 overflow-auto rounded bg-gray-50 p-2 text-[11px] text-gray-800 border border-gray-200">
+{JSON.stringify(lastSubmitted, null, 2)}
+            </pre>
+          </details>
+        ) : null}
         {errorDetails ? (
-          <details className="mt-2">
-            <summary className="cursor-pointer text-xs text-red-700 underline">Show server response</summary>
-            <pre className="mt-2 max-h-64 overflow-auto rounded bg-red-50 p-2 text-xs text-red-800 border border-red-200">
-{JSON.stringify(errorDetails, null, 2)}
+          <details className="text-xs">
+            <summary className="cursor-pointer text-red-700 underline">Show server response</summary>
+            <pre className="mt-1 max-h-64 overflow-auto rounded bg-red-50 p-2 text-[11px] text-red-800 border border-red-200">
+{typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails, null, 2)}
             </pre>
           </details>
         ) : null}
@@ -307,14 +369,14 @@ export function UserProfile() {
                   <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
                     First Name
                   </label>
-                    <Input
-                      id="first_name"
-                      name="first_name"
-                      type="text"
-                      value={profileData.first_name}
-                      onChange={handleProfileChange}
-                      disabled={isLoading}
-                    />
+                  <Input
+                    id="first_name"
+                    name="first_name"
+                    type="text"
+                    value={profileData.first_name}
+                    onChange={handleProfileChange}
+                    disabled={isLoading}
+                  />
                 </div>
                 <div>
                   <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
