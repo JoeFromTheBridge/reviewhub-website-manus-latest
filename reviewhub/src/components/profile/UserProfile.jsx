@@ -1,6 +1,3 @@
-Add 422-aware error detail capture and display (status, field errors, full server payload) to UserProfile; preserve existing logic and styling
-
-```jsx
 import { useState, useEffect } from 'react';
 import { User, Mail, Calendar, Edit2, Save, X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,7 +31,6 @@ function extractApiErrorMessage(error, fallback) {
           if (Array.isArray(val)) {
             parts.push(`${field}: ${val.join(', ')}`);
           } else if (typeof val === 'object' && val !== null) {
-            // e.g. { message: '...' } shapes
             const vmsg = val.message || JSON.stringify(val);
             parts.push(`${field}: ${vmsg}`);
           } else {
@@ -217,7 +213,11 @@ export function UserProfile() {
     return (
       <ul className="mt-2 list-disc list-inside space-y-1 text-sm text-red-700">
         {entries.map(([field, val]) => {
-          const msg = Array.isArray(val) ? val.join(', ') : typeof val === 'object' ? JSON.stringify(val) : String(val);
+          const msg = Array.isArray(val)
+            ? val.join(', ')
+            : typeof val === 'object'
+              ? JSON.stringify(val)
+              : String(val);
           return (
             <li key={field}>
               <span className="font-medium">{field}:</span> {msg}
@@ -238,7 +238,6 @@ export function UserProfile() {
           </p>
         ) : null}
         {errorStatus === 422 ? renderValidationList() : null}
-        {/* Collapsible raw payload for deeper diagnosis */}
         {errorDetails ? (
           <details className="mt-2">
             <summary className="cursor-pointer text-xs text-red-700 underline">Show server response</summary>
@@ -308,14 +307,14 @@ export function UserProfile() {
                   <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 mb-1">
                     First Name
                   </label>
-                  <Input
-                    id="first_name"
-                    name="first_name"
-                    type="text"
-                    value={profileData.first_name}
-                    onChange={handleProfileChange}
-                    disabled={isLoading}
-                  />
+                    <Input
+                      id="first_name"
+                      name="first_name"
+                      type="text"
+                      value={profileData.first_name}
+                      onChange={handleProfileChange}
+                      disabled={isLoading}
+                    />
                 </div>
                 <div>
                   <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -526,4 +525,3 @@ export function UserProfile() {
     </div>
   );
 }
-```
