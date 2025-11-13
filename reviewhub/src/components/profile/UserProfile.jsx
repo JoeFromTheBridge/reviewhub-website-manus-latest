@@ -30,10 +30,10 @@ function deriveMessageFromPayload(payload) {
   if (typeof payload === 'string') return payload;
 
   if (typeof payload === 'object') {
-    // Common API shapes
     if (typeof payload.detail === 'string') return payload.detail;
     if (typeof payload.error === 'string') return payload.error;
     if (typeof payload.message === 'string') return payload.message;
+    if (typeof payload.msg === 'string') return payload.msg; // flask-jwt-extended often returns { msg: "..." }
 
     // Errors dict: { field: [..] } or { field: "..." }
     if (payload.errors && typeof payload.errors === 'object') {
@@ -73,7 +73,6 @@ async function extractServerError(err) {
   if (res && typeof res === 'object' && typeof res.status === 'number') {
     const { asJson, asText } = await parseResponseSafe(res);
     const message = deriveMessageFromPayload(asJson) || deriveMessageFromPayload(asText) || err?.message;
-    // Prefer JSON object for details; otherwise keep raw text
     const details = asJson ?? (asText ? { raw: asText } : null);
     return {
       status: res.status,
@@ -111,6 +110,9 @@ export function UserProfile() {
   const [errorDetails, setErrorDetails] = useState(null); // raw server body or parsed json
   const [lastSubmitted, setLastSubmitted] = useState(null); // snapshot of last payload for debugging
 
+  // Hint for a specific JWT issue ("Subject must be a string")
+  const [sessionHint, setSessionHint] = useState('');
+
   const [profileData, setProfileData] = useState({
     first_name: '',
     last_name: '',
@@ -140,6 +142,7 @@ export function UserProfile() {
     setSuccess('');
     setErrorStatus(null);
     setErrorDetails(null);
+    setSessionHint('');
   };
 
   const handleProfileChange = (e) => {
@@ -158,6 +161,19 @@ export function UserProfile() {
     if (error) clearMessages();
   };
 
+  const handleServerErrorUI = (enriched) => {
+    const msgLower =
+      (enriched?.message || '').toString().toLowerCase() ||
+      (typeof enriched?.details === 'object' && typeof enriched.details.msg === 'string' ? enriched.details.msg.toLowerCase() : '');
+
+    // Detect the Flask-JWT-Extended / PyJWT error
+    if (msgLower.includes('subject must be a string')) {
+      setSessionHint(
+        'Session issue detected. Please log out and log back in, then retry. If it persists, the backend must issue JWTs with a string "sub" (e.g., create_access_token(identity=str(user.id))).'
+      );
+    }
+  };
+
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -171,12 +187,12 @@ export function UserProfile() {
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
     } catch (err) {
-      // Attempt to enrich the generic "HTTP error! status: 422" with actual server detail
       console.error('Profile update failed', err);
       const enriched = await extractServerError(err);
       setError(enriched?.message || 'Failed to update profile');
       setErrorStatus(enriched?.status ?? null);
       setErrorDetails(enriched?.details ?? null);
+      handleServerErrorUI(enriched);
     } finally {
       setIsLoading(false);
     }
@@ -223,6 +239,7 @@ export function UserProfile() {
       setError(enriched?.message || 'Failed to change password');
       setErrorStatus(enriched?.status ?? null);
       setErrorDetails(enriched?.details ?? null);
+      handleServerErrorUI(enriched);
     } finally {
       setIsLoading(false);
     }
@@ -283,30 +300,39 @@ export function UserProfile() {
   };
 
   const renderDebugDetails = () => {
-    if (!error) return null;
+    if (!error && !sessionHint) return null;
     return (
       <div className="mt-2 space-y-2">
-        {errorStatus ? (
-          <p className="text-xs text-red-700">
-            Status: <span className="font-mono">{errorStatus}</span>
-          </p>
+        {sessionHint ? (
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
+            <p className="text-xs text-amber-800">{sessionHint}</p>
+          </div>
         ) : null}
-        {errorStatus === 422 ? renderValidationList() : null}
-        {lastSubmitted ? (
-          <details className="text-xs">
-            <summary className="cursor-pointer text-red-700 underline">Show submitted payload</summary>
-            <pre className="mt-1 max-h-64 overflow-auto rounded bg-gray-50 p-2 text-[11px] text-gray-800 border border-gray-200">
+        {error ? (
+          <>
+            {errorStatus ? (
+              <p className="text-xs text-red-700">
+                Status: <span className="font-mono">{errorStatus}</span>
+              </p>
+            ) : null}
+            {errorStatus === 422 ? renderValidationList() : null}
+            {lastSubmitted ? (
+              <details className="text-xs">
+                <summary className="cursor-pointer text-red-700 underline">Show submitted payload</summary>
+                <pre className="mt-1 max-h-64 overflow-auto rounded bg-gray-50 p-2 text-[11px] text-gray-800 border border-gray-200">
 {JSON.stringify(lastSubmitted, null, 2)}
-            </pre>
-          </details>
-        ) : null}
-        {errorDetails ? (
-          <details className="text-xs">
-            <summary className="cursor-pointer text-red-700 underline">Show server response</summary>
-            <pre className="mt-1 max-h-64 overflow-auto rounded bg-red-50 p-2 text-[11px] text-red-800 border border-red-200">
+                </pre>
+              </details>
+            ) : null}
+            {errorDetails ? (
+              <details className="text-xs">
+                <summary className="cursor-pointer text-red-700 underline">Show server response</summary>
+                <pre className="mt-1 max-h-64 overflow-auto rounded bg-red-50 p-2 text-[11px] text-red-800 border border-red-200">
 {typeof errorDetails === 'string' ? errorDetails : JSON.stringify(errorDetails, null, 2)}
-            </pre>
-          </details>
+                </pre>
+              </details>
+            ) : null}
+          </>
         ) : null}
       </div>
     );
@@ -347,18 +373,23 @@ export function UserProfile() {
           )}
         </CardHeader>
         <CardContent>
-          {(error || success) && (
+          {(error || success || sessionHint) && (
             <div
               className={`mb-4 p-3 rounded-md ${
                 error
                   ? 'bg-red-50 border border-red-200'
+                  : sessionHint
+                  ? 'bg-amber-50 border border-amber-200'
                   : 'bg-green-50 border border-green-200'
               }`}
             >
-              <p className={`text-sm ${error ? 'text-red-600' : 'text-green-600'}`}>
-                {error || success}
-              </p>
-              {error ? renderDebugDetails() : null}
+              {success ? (
+                <p className="text-sm text-green-600">{success}</p>
+              ) : null}
+              {error ? (
+                <p className="text-sm text-red-600">{error}</p>
+              ) : null}
+              {renderDebugDetails()}
             </div>
           )}
 
@@ -587,3 +618,4 @@ export function UserProfile() {
     </div>
   );
 }
+
