@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Mail, Calendar, Edit2, Save, X, Loader2 } from 'lucide-react';
+import { User, Calendar, Edit2, Save, X, Loader2, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,7 +96,7 @@ async function extractServerError(err) {
 }
 
 export function UserProfile() {
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile, changePassword, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -112,6 +112,7 @@ export function UserProfile() {
 
   // Hint for a specific JWT issue ("Subject must be a string")
   const [sessionHint, setSessionHint] = useState('');
+  const [offerLogout, setOfferLogout] = useState(false);
 
   const [profileData, setProfileData] = useState({
     first_name: '',
@@ -143,6 +144,7 @@ export function UserProfile() {
     setErrorStatus(null);
     setErrorDetails(null);
     setSessionHint('');
+    setOfferLogout(false);
   };
 
   const handleProfileChange = (e) => {
@@ -171,6 +173,7 @@ export function UserProfile() {
       setSessionHint(
         'Session issue detected. Please log out and log back in, then retry. If it persists, the backend must issue JWTs with a string "sub" (e.g., create_access_token(identity=str(user.id))).'
       );
+      setOfferLogout(true);
     }
   };
 
@@ -187,7 +190,6 @@ export function UserProfile() {
       setSuccess('Profile updated successfully!');
       setIsEditing(false);
     } catch (err) {
-      console.error('Profile update failed', err);
       const enriched = await extractServerError(err);
       setError(enriched?.message || 'Failed to update profile');
       setErrorStatus(enriched?.status ?? null);
@@ -234,7 +236,6 @@ export function UserProfile() {
         confirm_password: '',
       });
     } catch (err) {
-      console.error('Password change failed', err);
       const enriched = await extractServerError(err);
       setError(enriched?.message || 'Failed to change password');
       setErrorStatus(enriched?.status ?? null);
@@ -306,6 +307,33 @@ export function UserProfile() {
         {sessionHint ? (
           <div className="rounded-md border border-amber-200 bg-amber-50 p-2">
             <p className="text-xs text-amber-800">{sessionHint}</p>
+            {offerLogout ? (
+              <div className="mt-2 flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      if (typeof logout === 'function') {
+                        await logout();
+                      } else {
+                        // Fallback: navigate user to login page
+                        window.location.href = '/login';
+                      }
+                    } catch {
+                      window.location.href = '/login';
+                    }
+                  }}
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Log out now
+                </Button>
+                <span className="text-[11px] text-amber-700">
+                  Then sign back in to refresh your session.
+                </span>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {error ? (
