@@ -469,8 +469,8 @@ def verify_email():
         # Send welcome email
         email_service.send_welcome_email(user.email, user.username)
         
-        # Create access token
-        access_token = create_access_token(identity=user.id)
+        # Create access token (use string identity for JWT "sub")
+        access_token = create_access_token(identity=str(user.id))
         
         return jsonify({
             'message': 'Email verified successfully',
@@ -583,8 +583,8 @@ def login():
         user.login_count += 1
         db.session.commit()
         
-        # Create access token
-        access_token = create_access_token(identity=user.id)
+        # Create access token (string identity for JWT "sub")
+        access_token = create_access_token(identity=str(user.id))
         
         return jsonify({
             'access_token': access_token,
@@ -2823,3 +2823,4 @@ if __name__ == "__main__":
         visual_search_service.init_app(app)
 
     app.run(host="0.0.0.0", port=5000, debug=True)
+
