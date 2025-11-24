@@ -13,40 +13,54 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+
+  // Global auth bootstrap loading (used by PrivateRoute)
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // UI-only loading for login/register actions
+  const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState(null);
   const [emailVerificationStatus, setEmailVerificationStatus] = useState(null);
 
-  // Check if user is logged in on app start
+  // -------------------------------------------------
+  // INITIAL AUTH BOOTSTRAP: Runs once on app load
+  // -------------------------------------------------
   useEffect(() => {
-    const initializeAuth = async () => {
+    const bootstrap = async () => {
       const token = localStorage.getItem('access_token');
+
       if (token) {
         try {
           const userData = await apiService.getProfile();
           setUser(userData);
         } catch (error) {
-          console.error('Failed to get user profile:', error);
+          console.error('Failed to load user profile:', error);
           localStorage.removeItem('access_token');
+          setUser(null);
         }
       }
-      setLoading(false);
+
+      setAuthLoading(false);
     };
 
-    initializeAuth();
+    bootstrap();
   }, []);
+
+  // -------------------------------------------------
+  // AUTH ACTIONS
+  // -------------------------------------------------
 
   const login = async (credentials) => {
     try {
       setError(null);
       setLoading(true);
-      
+
       const response = await apiService.login(credentials);
-      
-      // Store token and user data
+
       localStorage.setItem('access_token', response.access_token);
       setUser(response.user);
-      
+
       return response;
     } catch (error) {
       setError(error.message);
@@ -60,12 +74,10 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      
+
       const response = await apiService.register(userData);
-      
-      // For enhanced registration, don't auto-login until email is verified
       setEmailVerificationStatus('pending');
-      
+
       return response;
     } catch (error) {
       setError(error.message);
@@ -79,14 +91,13 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      
+
       const response = await apiService.verifyEmail(token);
-      
-      // Store token and user data after successful verification
+
       localStorage.setItem('access_token', response.access_token);
       setUser(response.user);
       setEmailVerificationStatus('verified');
-      
+
       return response;
     } catch (error) {
       setError(error.message);
@@ -101,10 +112,10 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      
+
       const response = await apiService.resendVerificationEmail(email);
       setEmailVerificationStatus('resent');
-      
+
       return response;
     } catch (error) {
       setError(error.message);
@@ -118,9 +129,8 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      
+
       const response = await apiService.forgotPassword(email);
-      
       return response;
     } catch (error) {
       setError(error.message);
@@ -134,9 +144,8 @@ export const AuthProvider = ({ children }) => {
     try {
       setError(null);
       setLoading(true);
-      
+
       const response = await apiService.resetPassword(token, newPassword);
-      
       return response;
     } catch (error) {
       setError(error.message);
@@ -152,7 +161,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Always clear local state and token
       localStorage.removeItem('access_token');
       setUser(null);
       setError(null);
@@ -182,19 +190,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const clearError = () => {
-    setError(null);
-  };
-
-  const clearEmailVerificationStatus = () => {
-    setEmailVerificationStatus(null);
-  };
+  const clearError = () => setError(null);
+  const clearEmailVerificationStatus = () => setEmailVerificationStatus(null);
 
   const value = {
     user,
+
+    // Exposed for PrivateRoute
+    authLoading,
+
+    // UI-only loading
     loading,
+
     error,
     emailVerificationStatus,
+
     login,
     register,
     verifyEmail,
@@ -204,8 +214,10 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     changePassword,
+
     clearError,
     clearEmailVerificationStatus,
+
     isAuthenticated: !!user,
     isEmailVerified: user?.email_verified || false,
   };
@@ -216,4 +228,3 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
-
