@@ -9,11 +9,14 @@ import { LoginModal } from './auth/LoginModal'
 import { RegisterModal } from './auth/RegisterModal'
 import logoImage from '../assets/reviewhub_logo.png'
 
-export function Header() {
+export function Header({
+  initialLoginOpen = false,
+  initialRegisterOpen = false,
+}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [showRegisterModal, setShowRegisterModal] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(initialLoginOpen)
+  const [showRegisterModal, setShowRegisterModal] = useState(initialRegisterOpen)
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const navigate = useNavigate()
@@ -324,4 +327,3 @@ export function Header() {
     </>
   )
 }
-
