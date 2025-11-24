@@ -18,8 +18,19 @@ import ProfilePage from './components/profile/ProfilePage'
 
 // Admin route wrapper to check admin permissions
 const AdminRoute = ({ children }) => {
-  const { user } = useAuth()
-  
+  const { user, authLoading } = useAuth()
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Loading...</h1>
+          <p className="text-gray-600">Checking your admin access.</p>
+        </div>
+      </div>
+    )
+  }
+
   if (!user?.is_admin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -30,14 +41,25 @@ const AdminRoute = ({ children }) => {
       </div>
     )
   }
-  
+
   return <AdminLayout>{children}</AdminLayout>
 }
 
 // Auth-protected route wrapper for regular user pages
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, authLoading } = useAuth()
   const navigate = useNavigate()
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-xl font-semibold text-gray-900 mb-2">Loading...</h1>
+          <p className="text-gray-600">Verifying your session.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!isAuthenticated) {
     return (
@@ -113,30 +135,30 @@ function App() {
               }
             />
             <Route
-              path="/analytics"
-              element={
-                <>
-                  <Header />
-                  <UserAnalyticsPage />
-                </>
-              }
-            />
-            <Route
-              path="/privacy"
-              element={
-                <>
-                  <Header />
-                  <PrivacyPage />
-                </>
-              }
-            />
-            <Route
               path="/verify-email"
               element={
                 <>
                   <Header />
                   <EmailVerification />
                 </>
+              }
+            />
+
+            {/* Auth-protected analytics & privacy routes */}
+            <Route
+              path="/analytics"
+              element={
+                <PrivateRoute>
+                  <UserAnalyticsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <PrivateRoute>
+                  <PrivacyPage />
+                </PrivateRoute>
               }
             />
 
