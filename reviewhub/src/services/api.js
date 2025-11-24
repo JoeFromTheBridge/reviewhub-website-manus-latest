@@ -146,22 +146,12 @@ class ApiService {
   }
 
   async changePassword({ current_password, new_password }) {
-  const res = await fetch(`${this.baseURL}/auth/change-password`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${this.getToken()}`, // or however you attach the JWT
-    },
-    body: JSON.stringify({ current_password, new_password }),
-  });
-
-  if (!res.ok) {
-    const errorBody = await res.json().catch(() => ({}));
-    throw new Error(errorBody.error || `HTTP error! status: ${res.status}`);
+    // Uses shared request helper so JWT headers and error handling are consistent
+    return this.request('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password, new_password }),
+    });
   }
-
-  return res.json();
-}
 
   // ---- Products / Categories ----
   async getProducts(params = {}) {
@@ -641,4 +631,3 @@ const api = new ApiService();
 export default api;
 export { api };
 export { api as apiService };
-
