@@ -1,6 +1,6 @@
 // src/components/Header.jsx
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Search, User, Menu, X, LogOut, Settings, TrendingUp, Shield } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,18 +9,28 @@ import { LoginModal } from './auth/LoginModal'
 import { RegisterModal } from './auth/RegisterModal'
 import logoImage from '../assets/reviewhub_logo.png'
 
-export function Header({
-  initialLoginOpen = false,
-  initialRegisterOpen = false,
-}) {
+export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [showLoginModal, setShowLoginModal] = useState(initialLoginOpen)
-  const [showRegisterModal, setShowRegisterModal] = useState(initialRegisterOpen)
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const navigate = useNavigate()
+  const location = useLocation()
   const { user, logout, isAuthenticated } = useAuth()
+
+  // Open login modal when redirected from a protected route with ?login=1
+  useEffect(() => {
+    if (!isAuthenticated) {
+      const params = new URLSearchParams(location.search)
+      if (params.get('login') === '1') {
+        setShowLoginModal(true)
+        // Clean up URL so refreshing doesn't keep triggering the modal
+        navigate('/', { replace: true })
+      }
+    }
+  }, [location.search, isAuthenticated, navigate])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -84,15 +94,24 @@ export function Header({
 
             {/* Search Icon (linking to SearchPage) */}
             <div className="hidden md:flex items-center">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate('/search')}
-                className="text-gray-700 hover:text-primary"
-                aria-label="Search"
-              >
-                <Search className="h-5 w-5" />
-              </Button>
+              <form onSubmit={handleSearch} className="flex items-center">
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-48 mr-2"
+                />
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-700 hover:text-primary"
+                  aria-label="Search"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+              </form>
             </div>
 
             {/* Desktop Auth Buttons */}
@@ -215,19 +234,34 @@ export function Header({
         {isMenuOpen && (
           <div className="md:hidden border-t bg-white">
             <div className="px-4 py-4 space-y-4">
-              {/* Mobile search icon */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  navigate('/search')
-                  setIsMenuOpen(false)
+              {/* Mobile search */}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (searchQuery.trim()) {
+                    navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
+                    setIsMenuOpen(false)
+                  }
                 }}
-                className="w-full justify-start text-gray-700 hover:text-primary"
+                className="flex items-center mb-2"
               >
-                <Search className="h-4 w-4 mr-2" />
-                Search
-              </Button>
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="mr-2"
+                />
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  size="sm"
+                  className="text-gray-700 hover:text-primary w-10"
+                  aria-label="Search"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </form>
 
               <nav className="space-y-2">
                 <Link
@@ -272,6 +306,20 @@ export function Header({
                       onClick={() => setIsMenuOpen(false)}
                     >
                       My Reviews
+                    </Link>
+                    <Link
+                      to="/analytics"
+                      className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Analytics
+                    </Link>
+                    <Link
+                      to="/privacy"
+                      className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Privacy &amp; Data
                     </Link>
                     <button
                       onClick={() => {
