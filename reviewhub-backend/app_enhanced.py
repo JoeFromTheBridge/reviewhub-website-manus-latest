@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from email_service import email_service, generate_token
 from search_service import search_service
 from image_upload_routes import register_image_routes
-from PIL import Image # Add this line to import Image from Pillow
+from PIL import Image  # Add this line to import Image from Pillow
 from recommendation_engine import get_recommendation_engine
 from admin_service import get_admin_service
 from performance_service import get_performance_service
@@ -469,7 +469,7 @@ def verify_email():
         # Send welcome email
         email_service.send_welcome_email(user.email, user.username)
         
-        # Create access token (use string identity for JWT "sub")
+        # Create access token (identity must be a string)
         access_token = create_access_token(identity=str(user.id))
         
         return jsonify({
@@ -583,7 +583,7 @@ def login():
         user.login_count += 1
         db.session.commit()
         
-        # Create access token (string identity for JWT "sub")
+        # Create access token (identity must be a string)
         access_token = create_access_token(identity=str(user.id))
         
         return jsonify({
@@ -707,6 +707,47 @@ def update_profile():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/auth/change-password', methods=['POST'])
+@jwt_required()
+def change_password():
+    """
+    Change the current user's password.
+    Expected JSON payload:
+    {
+        "current_password": "...",
+        "new_password": "..."
+    }
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        data = request.get_json() or {}
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+
+        if not current_password or not new_password:
+            return jsonify({'error': 'Current password and new password are required'}), 400
+
+        if not user.check_password(current_password):
+            return jsonify({'error': 'Current password is incorrect'}), 400
+
+        if len(new_password) < 6:
+            return jsonify({'error': 'New password must be at least 6 characters long'}), 400
+
+        user.set_password(new_password)
+        db.session.commit()
+
+        return jsonify({'message': 'Password changed successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route("/api/search/products", methods=["GET"])
 def search_products():
     query = request.args.get("q", "")
@@ -776,7 +817,7 @@ def search_reviews():
 @app.route("/api/search/suggestions", methods=["GET"])
 def search_suggestions():
     query = request.args.get("q", "")
-    suggestion_type = request.args.get("type", "products") # products or users
+    suggestion_type = request.args.get("type", "products")  # products or users
     suggestions = search_service.get_suggestions(query, suggestion_type)
     return jsonify({"suggestions": suggestions})
 
@@ -2823,4 +2864,3 @@ if __name__ == "__main__":
         visual_search_service.init_app(app)
 
     app.run(host="0.0.0.0", port=5000, debug=True)
-
