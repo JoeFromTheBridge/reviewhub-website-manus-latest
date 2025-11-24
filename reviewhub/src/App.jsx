@@ -1,42 +1,44 @@
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
-import { Header } from './components/Header'
-import { HomePage } from './components/HomePage'
-import { ProductPage } from './components/ProductPage'
-import SearchPage from './components/search/SearchPage'
-import UserAnalyticsPage from './components/profile/UserAnalyticsPage'
-import PrivacyPage from './components/privacy/PrivacyPage'
-import AdminLayout from './components/admin/AdminLayout'
-import AdminDashboard from './components/admin/AdminDashboard'
-import AdminUsers from './components/admin/AdminUsers'
-import AdminPerformance from './components/admin/AdminPerformance'
-import AdminVoiceSearch from './components/admin/AdminVoiceSearch'
-import { useAuth } from './contexts/AuthContext'
-import EmailVerification from './components/auth/EmailVerification'
-import ProfilePage from './components/profile/ProfilePage'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { Header } from './components/Header';
+import { HomePage } from './components/HomePage';
+import { ProductPage } from './components/ProductPage';
+import SearchPage from './components/search/SearchPage';
+import UserAnalyticsPage from './components/profile/UserAnalyticsPage';
+import PrivacyPage from './components/privacy/PrivacyPage';
+import AdminLayout from './components/admin/AdminLayout';
+import AdminDashboard from './components/admin/AdminDashboard';
+import AdminUsers from './components/admin/AdminUsers';
+import AdminPerformance from './components/admin/AdminPerformance';
+import AdminVoiceSearch from './components/admin/AdminVoiceSearch';
+import { useAuth } from './contexts/AuthContext';
+import EmailVerification from './components/auth/EmailVerification';
+import ProfilePage from './components/profile/ProfilePage';
 
 // Admin route wrapper to check admin permissions
 const AdminRoute = ({ children }) => {
-  const { user } = useAuth()
-  
+  const { user } = useAuth();
+
   if (!user?.is_admin) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access the admin panel.</p>
+          <p className="text-gray-600">
+            You don&apos;t have permission to access the admin panel.
+          </p>
         </div>
       </div>
-    )
+    );
   }
-  
-  return <AdminLayout>{children}</AdminLayout>
-}
+
+  return <AdminLayout>{children}</AdminLayout>;
+};
 
 // Auth-protected route wrapper for regular user pages
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth()
-  const navigate = useNavigate()
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   if (!isAuthenticated) {
     return (
@@ -57,8 +59,9 @@ const PrivateRoute = ({ children }) => {
               Go to Homepage
             </button>
 
+            {/* Send user to home, where they can click the normal Sign In button */}
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/')}
               className="w-full sm:w-auto px-4 py-2 bg-blue-600 rounded-md text-white hover:bg-blue-700 transition"
             >
               Sign In
@@ -66,7 +69,7 @@ const PrivateRoute = ({ children }) => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -74,8 +77,8 @@ const PrivateRoute = ({ children }) => {
       <Header />
       {children}
     </>
-  )
-}
+  );
+};
 
 function App() {
   return (
@@ -121,7 +124,7 @@ function App() {
               }
             />
 
-            {/* Auth-protected user routes */}
+            {/* Auth-protected routes */}
             <Route
               path="/analytics"
               element={
@@ -192,7 +195,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;
