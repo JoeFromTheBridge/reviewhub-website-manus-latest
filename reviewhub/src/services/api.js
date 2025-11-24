@@ -145,9 +145,23 @@ class ApiService {
     return this.request('/auth/profile', { method: 'PUT', body: JSON.stringify(profileData) });
   }
 
-  async changePassword(passwordData) {
-    return this.request('/change-password', { method: 'POST', body: JSON.stringify(passwordData) });
+  async changePassword({ current_password, new_password }) {
+  const res = await fetch(`${this.baseURL}/auth/change-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${this.getToken()}`, // or however you attach the JWT
+    },
+    body: JSON.stringify({ current_password, new_password }),
+  });
+
+  if (!res.ok) {
+    const errorBody = await res.json().catch(() => ({}));
+    throw new Error(errorBody.error || `HTTP error! status: ${res.status}`);
   }
+
+  return res.json();
+}
 
   // ---- Products / Categories ----
   async getProducts(params = {}) {
