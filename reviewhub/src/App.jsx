@@ -14,6 +14,8 @@ import AdminVoiceSearch from './components/admin/AdminVoiceSearch'
 import { useAuth } from './contexts/AuthContext'
 import EmailVerification from './components/auth/EmailVerification'
 import ProfilePage from './components/profile/ProfilePage'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+
 
 // Admin route wrapper to check admin permissions
 const AdminRoute = ({ children }) => {
@@ -35,17 +37,38 @@ const AdminRoute = ({ children }) => {
 
 // Auth-protected route wrapper for regular user pages
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Sign in required</h1>
-          <p className="text-gray-600">You need to be signed in to view this page.</p>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
+        <div className="text-center max-w-md mx-auto">
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">
+            Sign in required
+          </h1>
+          <p className="text-gray-600 mb-6">
+            You need to be signed in to view this page.
+          </p>
+
+          <div className="flex flex-col sm:flex-row justify-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="w-full sm:w-auto px-4 py-2 bg-gray-200 rounded-md text-gray-800 hover:bg-gray-300 transition"
+            >
+              Go to Homepage
+            </button>
+
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 rounded-md text-white hover:bg-blue-700 transition"
+            >
+              Sign In
+            </button>
+          </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -53,8 +76,9 @@ const PrivateRoute = ({ children }) => {
       <Header />
       {children}
     </>
-  )
-}
+  );
+};
+
 
 function App() {
   return (
