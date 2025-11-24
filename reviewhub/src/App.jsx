@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { Header } from './components/Header'
 import { HomePage } from './components/HomePage'
@@ -14,8 +14,6 @@ import AdminVoiceSearch from './components/admin/AdminVoiceSearch'
 import { useAuth } from './contexts/AuthContext'
 import EmailVerification from './components/auth/EmailVerification'
 import ProfilePage from './components/profile/ProfilePage'
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-
 
 // Admin route wrapper to check admin permissions
 const AdminRoute = ({ children }) => {
@@ -37,8 +35,8 @@ const AdminRoute = ({ children }) => {
 
 // Auth-protected route wrapper for regular user pages
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth()
+  const navigate = useNavigate()
 
   if (!isAuthenticated) {
     return (
@@ -68,7 +66,7 @@ const PrivateRoute = ({ children }) => {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -76,9 +74,8 @@ const PrivateRoute = ({ children }) => {
       <Header />
       {children}
     </>
-  );
-};
-
+  )
+}
 
 function App() {
   return (
@@ -115,24 +112,6 @@ function App() {
               }
             />
             <Route
-              path="/analytics"
-              element={
-                <>
-                  <Header />
-                  <UserAnalyticsPage />
-                </>
-              }
-            />
-            <Route
-              path="/privacy"
-              element={
-                <>
-                  <Header />
-                  <PrivacyPage />
-                </>
-              }
-            />
-            <Route
               path="/verify-email"
               element={
                 <>
@@ -142,7 +121,23 @@ function App() {
               }
             />
 
-            {/* Auth-protected profile routes */}
+            {/* Auth-protected user routes */}
+            <Route
+              path="/analytics"
+              element={
+                <PrivateRoute>
+                  <UserAnalyticsPage />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <PrivateRoute>
+                  <PrivacyPage />
+                </PrivateRoute>
+              }
+            />
             <Route
               path="/profile"
               element={
