@@ -1,14 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
 import { User, Star, MessageSquare, Eye, Calendar, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { api } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const UserAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Get hydrated user from AuthContext (for Member Since fallback)
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchAnalytics();
@@ -64,7 +79,7 @@ const UserAnalytics = () => {
     count: count
   }));
 
-  const categoryData = (analytics.category_preferences || []).slice(0, 5).map(item => ({
+  const categoryData = (analytics.category_preferences || []).slice(0, 5).map((item) => ({
     name: item.category,
     value: item.count
   }));
@@ -75,6 +90,24 @@ const UserAnalytics = () => {
   }));
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  // --- Member Since: prefer analytics.member_since, fall back to user fields ---
+  const memberSinceRaw =
+    analytics.member_since ||
+    user?.created_at ||
+    user?.createdAt ||
+    user?.created ||
+    user?.joined_at ||
+    user?.joinedAt ||
+    null;
+
+  let memberSinceDisplay = 'N/A';
+  if (memberSinceRaw) {
+    const date = new Date(memberSinceRaw);
+    if (!isNaN(date.getTime())) {
+      memberSinceDisplay = date.toLocaleDateString();
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -132,7 +165,7 @@ const UserAnalytics = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Member Since</p>
                 <p className="text-sm font-bold text-gray-900">
-                  {analytics.member_since ? new Date(analytics.member_since).toLocaleDateString() : 'N/A'}
+                  {memberSinceDisplay}
                 </p>
               </div>
             </div>
@@ -222,7 +255,10 @@ const UserAnalytics = () => {
           <CardContent>
             <div className="space-y-4">
               {analytics.recent_activity.slice(0, 5).map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                >
                   <div className="flex items-center space-x-3">
                     <Badge variant="outline">
                       {activity.type}
@@ -251,4 +287,3 @@ const UserAnalytics = () => {
 };
 
 export default UserAnalytics;
-
