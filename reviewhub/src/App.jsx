@@ -18,9 +18,9 @@ import ProfilePage from './components/profile/ProfilePage'
 
 // Admin route wrapper to check admin permissions
 const AdminRoute = ({ children }) => {
-  const { user, authLoading } = useAuth()
+  const { user, loading } = useAuth()
 
-  if (authLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -47,10 +47,11 @@ const AdminRoute = ({ children }) => {
 
 // Auth-protected route wrapper for regular user pages
 const PrivateRoute = ({ children }) => {
-  const { isAuthenticated, authLoading } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
 
-  if (authLoading) {
+  // While AuthContext is bootstrapping (and during auth actions), block render
+  if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
