@@ -838,18 +838,18 @@ Review.image_records = db.relationship('Image',
     lazy='dynamic')
 
 
-# Product and Review Routes (from original app.py)
+# Product and Review Routes (from original app.py) - unified/enhanced
 @app.route("/api/products/<int:product_id>", methods=["GET"])
 def get_product(product_id):
     """Enhanced product detail with view tracking and similar products."""
     try:
         product = Product.query.get_or_404(product_id)
-
+        
         # Increment view count
         product.view_count += 1
         db.session.commit()
-
-        # Track user interaction if authenticated (best-effort, don't break on failure)
+        
+        # Track user interaction if authenticated (best-effort)
         try:
             user_id = get_jwt_identity()
             if user_id:
@@ -857,11 +857,11 @@ def get_product(product_id):
                 rec_engine.track_user_interaction(user_id, product_id, 'view')
         except Exception:
             pass  # Ignore tracking errors
-
+        
         # Get similar products
         rec_engine = get_recommendation_engine(db)
         similar_products = rec_engine.get_similar_products(product_id, 4)
-
+        
         return jsonify({
             "product": product.to_dict(),
             "similar_products": similar_products
@@ -869,19 +869,18 @@ def get_product(product_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/api/products", methods=["POST"])
 @jwt_required()
 def create_product():
     try:
         data = request.get_json()
-
+        
         # Basic validation
         required_fields = ['name', 'category_id']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({"error": f"{field} is required"}), 400
-
+        
         product = Product(
             name=data["name"],
             brand=data.get("brand"),
@@ -893,30 +892,29 @@ def create_product():
             price_max=data.get("price_max"),
             specifications=data.get("specifications")
         )
-
+        
         db.session.add(product)
         db.session.commit()
-
+        
         # Index the product in Elasticsearch
         if search_service.is_available:
             search_service.index_product(product.to_dict())
-
+        
         return jsonify({"message": "Product created successfully", "product": product.to_dict()}), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/api/products/<int:product_id>/reviews", methods=["GET"])
 def get_product_reviews(product_id):
-    """Reviews for a single product (existing behavior)."""
+    """Reviews for a single product."""
     try:
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         sort_by = request.args.get('sort_by', 'newest')  # newest, oldest, highest_rated, lowest_rated, most_helpful
-
+        
         query = Review.query.filter_by(product_id=product_id, is_active=True)
-
+        
         # Apply sorting
         if sort_by == 'newest':
             query = query.order_by(Review.created_at.desc())
@@ -929,13 +927,13 @@ def get_product_reviews(product_id):
         elif sort_by == 'most_helpful':
             # This would require a more complex query with vote counts
             query = query.order_by(Review.created_at.desc())
-
+        
         reviews = query.paginate(
-            page=page,
-            per_page=per_page,
+            page=page, 
+            per_page=per_page, 
             error_out=False
         )
-
+        
         return jsonify({
             "reviews": [review.to_dict() for review in reviews.items],
             "total": reviews.total,
@@ -945,29 +943,46 @@ def get_product_reviews(product_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
+# Global reviews listing for homepage / recent reviews
 @app.route("/api/reviews", methods=["GET"])
-def get_reviews():
+def list_reviews():
     """
-    Public reviews feed.
+    List reviews across all products.
 
-    Supports:
-      - limit: items per page (default 10, max 50)
-      - page: page number (default 1)
-      - sort: 'created_at' (default) or 'rating'
-      - order: 'desc' (default) or 'asc'
-      - product_id: optional filter
-      - user_id: optional filter
+    Supported query params:
+    - limit:      max number of reviews to return (per_page, capped at 50)
+    - page:       page number (default 1)
+    - per_page:   explicit page size (overrides limit, capped at 50)
+    - sort / sort_by:
+          'created_at' or 'newest'      -> newest first (default)
+          'oldest'                      -> oldest first
+          'highest_rated' / 'rating_desc'
+          'lowest_rated'  / 'rating_asc'
+    - product_id: optional filter by product
+    - user_id:    optional filter by author
     """
     try:
-        page = request.args.get('page', 1, type=int)
-        limit = request.args.get('limit', 10, type=int)
-        limit = min(limit if limit > 0 else 10, 50)
+        page = request.args.get("page", 1, type=int)
 
-        sort = request.args.get('sort', 'created_at')
-        order = request.args.get('order', 'desc')
-        product_id = request.args.get('product_id', type=int)
-        user_id = request.args.get('user_id', type=int)
+        # Allow both limit and per_page, with sane caps
+        limit = request.args.get("limit", type=int)
+        per_page = request.args.get("per_page", type=int)
+
+        if per_page is None:
+            if limit is not None:
+                per_page = limit
+            else:
+                per_page = 10
+
+        per_page = max(1, min(per_page, 50))
+
+        sort = request.args.get("sort")
+        sort_by = request.args.get("sort_by")
+
+        sort_mode = (sort or sort_by or "created_at").lower()
+
+        product_id = request.args.get("product_id", type=int)
+        user_id = request.args.get("user_id", type=int)
 
         query = Review.query.filter_by(is_active=True)
 
@@ -976,31 +991,29 @@ def get_reviews():
         if user_id:
             query = query.filter_by(user_id=user_id)
 
-        # Sorting
-        if sort == 'rating':
-            if order == 'asc':
-                query = query.order_by(Review.rating.asc(), Review.created_at.desc())
-            else:
-                query = query.order_by(Review.rating.desc(), Review.created_at.desc())
+        if sort_mode in ("created_at", "newest"):
+            query = query.order_by(Review.created_at.desc())
+        elif sort_mode == "oldest":
+            query = query.order_by(Review.created_at.asc())
+        elif sort_mode in ("highest_rated", "rating_desc"):
+            query = query.order_by(Review.rating.desc(), Review.created_at.desc())
+        elif sort_mode in ("lowest_rated", "rating_asc"):
+            query = query.order_by(Review.rating.asc(), Review.created_at.desc())
         else:
-            # Default: created_at
-            if order == 'asc':
-                query = query.order_by(Review.created_at.asc())
-            else:
-                query = query.order_by(Review.created_at.desc())
+            query = query.order_by(Review.created_at.desc())
 
-        reviews_page = query.paginate(page=page, per_page=limit, error_out=False)
+        reviews_page = query.paginate(page=page, per_page=per_page, error_out=False)
 
         return jsonify({
-            "reviews": [r.to_dict() for r in reviews_page.items],
+            "reviews": [review.to_dict() for review in reviews_page.items],
             "total": reviews_page.total,
             "pages": reviews_page.pages,
             "current_page": reviews_page.page,
             "per_page": reviews_page.per_page
         }), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/api/reviews", methods=["POST"])
 @jwt_required()
@@ -1012,7 +1025,7 @@ def create_review():
         data = request.get_json() or {}
         product_id = data.get("product_id")
         user_id = get_jwt_identity()
-
+        
         # Basic validation
         if not product_id or not data.get("rating") or not data.get("content"):
             return jsonify({"error": "Product ID, rating, and content are required"}), 400
@@ -1070,25 +1083,24 @@ def create_review():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-
 @app.route("/api/reviews/<int:review_id>/vote", methods=["POST"])
 @jwt_required()
 def vote_review(review_id):
     try:
         data = request.get_json() or {}
         is_helpful = data.get("is_helpful")
-
+        
         if is_helpful is None:
             return jsonify({"error": "is_helpful field is required"}), 400
-
+        
         user_id = get_jwt_identity()
-
+        
         # Check if user already voted
         existing_vote = ReviewVote.query.filter_by(
-            user_id=user_id,
+            user_id=user_id, 
             review_id=review_id
         ).first()
-
+        
         if existing_vote:
             # Update existing vote
             existing_vote.is_helpful = is_helpful
@@ -1100,9 +1112,9 @@ def vote_review(review_id):
                 is_helpful=is_helpful
             )
             db.session.add(vote)
-
+        
         db.session.commit()
-
+        
         return jsonify({"message": "Vote recorded successfully"}), 200
     except Exception as e:
         db.session.rollback()
@@ -1271,96 +1283,6 @@ def track_interaction():
         
         return jsonify({"message": "Interaction tracked successfully"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# Update existing routes to track interactions
-@app.route("/api/products/<int:product_id>", methods=["GET"])
-def get_product_enhanced(product_id):
-    try:
-        product = Product.query.get_or_404(product_id)
-        
-        # Increment view count
-        product.view_count += 1
-        db.session.commit()
-        
-        # Track user interaction if authenticated
-        try:
-            user_id = get_jwt_identity()
-            if user_id:
-                rec_engine = get_recommendation_engine(db)
-                rec_engine.track_user_interaction(user_id, product_id, 'view')
-        except:
-            pass  # User not authenticated, skip tracking
-        
-        # Get similar products
-        rec_engine = get_recommendation_engine(db)
-        similar_products = rec_engine.get_similar_products(product_id, 4)
-        
-        return jsonify({
-            "product": product.to_dict(),
-            "similar_products": similar_products
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# Update create_review route to track interaction
-@app.route("/api/reviews", methods=["POST"])
-@jwt_required()
-def create_review_enhanced():
-    try:
-        data = request.get_json()
-        product_id = data.get("product_id")
-        user_id = get_jwt_identity()
-        
-        # Basic validation
-        if not product_id or not data.get("rating") or not data.get("content"):
-            return jsonify({"error": "Product ID, rating, and content are required"}), 400
-
-        review = Review(
-            user_id=user_id,
-            product_id=product_id,
-            rating=data["rating"],
-            title=data.get("title"),
-            content=data["content"],
-            pros=data.get("pros"),
-            cons=data.get("cons"),
-            verified_purchase=data.get("verified_purchase", False)
-        )
-        db.session.add(review)
-        db.session.commit()
-
-        # Track user interaction
-        rec_engine = get_recommendation_engine(db)
-        rec_engine.track_user_interaction(user_id, product_id, 'review', data["rating"])
-
-        # Index the review in Elasticsearch
-        if search_service.is_available:
-            product = Product.query.get(product_id)
-            user = User.query.get(user_id)
-            search_service.index_review({
-                "id": review.id,
-                "user_id": review.user_id,
-                "product_id": review.product_id,
-                "product_name": product.name if product else None,
-                "user_username": user.username if user else None,
-                "rating": review.rating,
-                "title": review.title,
-                "content": review.content,
-                "pros": review.pros,
-                "cons": review.cons,
-                "verified_purchase": review.verified_purchase,
-                "helpful_votes": review.helpful_votes,
-                "total_votes": review.total_votes,
-                "has_images": len(review.image_records.all()) > 0,
-                "image_count": len(review.image_records.all()),
-                "created_at": review.created_at.isoformat(),
-                "updated_at": review.updated_at.isoformat(),
-                "is_active": review.is_active
-            })
-
-        return jsonify({"message": "Review created successfully", "review": review.to_dict()}), 201
-    except Exception as e:
-        db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
 
