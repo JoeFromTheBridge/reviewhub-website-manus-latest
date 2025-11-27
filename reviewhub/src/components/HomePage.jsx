@@ -1,10 +1,12 @@
 // src/components/HomePage.jsx
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Star, Users, Shield, Loader2 } from 'lucide-react'
+import { Search, Star, TrendingUp, Users, Shield, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import RecommendationSection from './recommendations/RecommendationSection'
+import LazyLoading, { useLazyLoading } from './ui/lazy-loading'
 import ImageOptimizer from './ui/image-optimizer'
 import { useAuth } from '../contexts/AuthContext'
 import apiService from '../services/api'
@@ -19,6 +21,9 @@ export function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [categories, setCategories] = useState([])
   const [featuredReviews, setFeaturedReviews] = useState([])
+  const [reviewCount, setReviewCount] = useState(0)
+  const [productCount, setProductCount] = useState(0)
+  const [categoryCount, setCategoryCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -26,19 +31,39 @@ export function HomePage() {
 
   useEffect(() => {
     fetchHomePageData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchHomePageData = async () => {
     try {
       setLoading(true)
       setError('')
-      const [categoriesResponse, reviewsResponse] = await Promise.all([
+
+      const [categoriesResponse, reviewsResponse, productsResponse] = await Promise.all([
         apiService.getCategories(),
-        apiService.getReviews({ limit: 6, sort: 'created_at' })
+        apiService.getReviews({ limit: 6, sort: 'created_at' }),
+        apiService.getProducts({ per_page: 1 }) // only need the total count
       ])
-      setCategories(categoriesResponse?.categories || [])
-      setFeaturedReviews(reviewsResponse?.reviews || [])
+
+      // Categories
+      const categoriesData = categoriesResponse?.categories || []
+      setCategories(categoriesData)
+      setCategoryCount(categoriesData.length)
+
+      // Reviews (recent list + total count)
+      const reviewsData = reviewsResponse?.reviews || []
+      setFeaturedReviews(reviewsData)
+      const totalReviews =
+        typeof reviewsResponse?.total === 'number'
+          ? reviewsResponse.total
+          : reviewsData.length
+      setReviewCount(totalReviews)
+
+      // Products (total count from paginated endpoint)
+      const totalProducts =
+        typeof productsResponse?.total === 'number'
+          ? productsResponse.total
+          : (productsResponse?.products?.length || 0)
+      setProductCount(totalProducts)
     } catch (error) {
       setError('Failed to load homepage data')
       console.error('Error fetching homepage data:', error)
@@ -67,11 +92,15 @@ export function HomePage() {
 
   // Static fallback tiles for Phase 0 when API returns empty
   const STATIC_CATEGORIES = [
-    { id: 'electronics', name: 'Electronics',      img: electronicsIcon, href: '/search?category=Electronics' },
-    { id: 'automotive',  name: 'Automotive',       img: automotiveIcon,  href: '/search?category=Automotive' },
-    { id: 'home',        name: 'Home & Garden',    img: homeIcon,        href: '/search?category=Home%20%26%20Garden' },
-    { id: 'beauty',      name: 'Beauty & Health',  img: beautyIcon,      href: '/search?category=Beauty%20%26%20Health' },
+    { id: 'electronics', name: 'Electronics', name: 'Electronics', img: electronicsIcon, href: '/search?category=Electronics' },
+    { id: 'automotive', name: 'Automotive', img: automotiveIcon, href: '/search?category=Automotive' },
+    { id: 'home', name: 'Home & Garden', img: homeIcon, href: '/search?category=Home%20%26%20Garden' },
+    { id: 'beauty', name: 'Beauty & Health', img: beautyIcon, href: '/search?category=Beauty%20%26%20Health' },
   ]
+
+  const formatCount = (value) => {
+    return Number(value || 0).toLocaleString()
+  }
 
   const renderStars = (rating) => {
     return (
@@ -110,12 +139,7 @@ export function HomePage() {
                 <Button size="lg" variant="secondary" onClick={() => navigate('/search')}>
                   Explore Reviews
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="text-white border-white hover:bg-white hover:text-blue-600"
-                  onClick={() => navigate('/create-review')}
-                >
+                <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
                   Write a Review
                 </Button>
               </div>
@@ -134,34 +158,42 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="flex flex-col items-center">
-              <div className="bg-primary/10 p-4 rounded-full mb-4">
-                <Users className="h-8 w-8 text-primary" />
+      {/* Stats (live from API) */}
+      {!loading && !error && (
+        <section className="py-16 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+              <div className="flex flex-col items-center">
+                <div className="bg-primary/10 p-4 rounded-full mb-4">
+                  <Star className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                  {formatCount(reviewCount)}
+                </h3>
+                <p className="text-gray-600">Total Reviews</p>
               </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-2">50K+</h3>
-              <p className="text-gray-600">Active Reviewers</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="bg-primary/10 p-4 rounded-full mb-4">
-                <Star className="h-8 w-8 text-primary" />
+              <div className="flex flex-col items-center">
+                <div className="bg-primary/10 p-4 rounded-full mb-4">
+                  <TrendingUp className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                  {formatCount(productCount)}
+                </h3>
+                <p className="text-gray-600">Products Listed</p>
               </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-2">2.5M+</h3>
-              <p className="text-gray-600">Product Reviews</p>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="bg-primary/10 p-4 rounded-full mb-4">
-                <Shield className="h-8 w-8 text-primary" />
+              <div className="flex flex-col items-center">
+                <div className="bg-primary/10 p-4 rounded-full mb-4">
+                  <Users className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                  {formatCount(categoryCount)}
+                </h3>
+                <p className="text-gray-600">Categories Covered</p>
               </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-2">99.9%</h3>
-              <p className="text-gray-600">Verified Reviews</p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Categories Section */}
       <section className="py-16 bg-gray-50">
@@ -320,15 +352,10 @@ export function HomePage() {
             Share your experiences and help others make better purchasing decisions
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary" onClick={() => navigate('/create-review')}>
+            <Button size="lg" variant="secondary">
               Write Your First Review
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-white border-white hover:bg-white hover:text-primary"
-              onClick={() => navigate('/about')}
-            >
+            <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-primary">
               Learn More
             </Button>
           </div>
