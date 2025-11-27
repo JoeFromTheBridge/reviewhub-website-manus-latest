@@ -1,12 +1,10 @@
 // src/components/HomePage.jsx
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, Star, TrendingUp, Users, Shield, Loader2 } from 'lucide-react'
+import { Star, Users, Shield, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import RecommendationSection from './recommendations/RecommendationSection'
-import LazyLoading, { useLazyLoading } from './ui/lazy-loading'
 import ImageOptimizer from './ui/image-optimizer'
 import { useAuth } from '../contexts/AuthContext'
 import apiService from '../services/api'
@@ -28,6 +26,7 @@ export function HomePage() {
 
   useEffect(() => {
     fetchHomePageData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const fetchHomePageData = async () => {
@@ -68,10 +67,10 @@ export function HomePage() {
 
   // Static fallback tiles for Phase 0 when API returns empty
   const STATIC_CATEGORIES = [
-    { id: 'electronics', name: 'Electronics', img: electronicsIcon, href: '/search?category=Electronics' },
-    { id: 'automotive', name: 'Automotive',  img: automotiveIcon,  href: '/search?category=Automotive' },
-    { id: 'home',       name: 'Home & Garden', img: homeIcon,      href: '/search?category=Home%20%26%20Garden' },
-    { id: 'beauty',     name: 'Beauty & Health', img: beautyIcon,  href: '/search?category=Beauty%20%26%20Health' },
+    { id: 'electronics', name: 'Electronics',      img: electronicsIcon, href: '/search?category=Electronics' },
+    { id: 'automotive',  name: 'Automotive',       img: automotiveIcon,  href: '/search?category=Automotive' },
+    { id: 'home',        name: 'Home & Garden',    img: homeIcon,        href: '/search?category=Home%20%26%20Garden' },
+    { id: 'beauty',      name: 'Beauty & Health',  img: beautyIcon,      href: '/search?category=Beauty%20%26%20Health' },
   ]
 
   const renderStars = (rating) => {
@@ -111,7 +110,12 @@ export function HomePage() {
                 <Button size="lg" variant="secondary" onClick={() => navigate('/search')}>
                   Explore Reviews
                 </Button>
-                <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-white border-white hover:bg-white hover:text-blue-600"
+                  onClick={() => navigate('/create-review')}
+                >
                   Write a Review
                 </Button>
               </div>
@@ -316,10 +320,15 @@ export function HomePage() {
             Share your experiences and help others make better purchasing decisions
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary">
+            <Button size="lg" variant="secondary" onClick={() => navigate('/create-review')}>
               Write Your First Review
             </Button>
-            <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-primary">
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-white border-white hover:bg-white hover:text-primary"
+              onClick={() => navigate('/about')}
+            >
               Learn More
             </Button>
           </div>
