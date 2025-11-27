@@ -10,6 +10,7 @@ import LazyLoading, { useLazyLoading } from './ui/lazy-loading'
 import ImageOptimizer from './ui/image-optimizer'
 import { useAuth } from '../contexts/AuthContext'
 import apiService from '../services/api'
+import HealthStatusBanner from '@/components/HealthStatusBanner'
 
 import heroImage from '../assets/hero_image.png'
 import electronicsIcon from '../assets/category_electronics.png'
@@ -92,10 +93,10 @@ export function HomePage() {
 
   // Static fallback tiles for Phase 0 when API returns empty
   const STATIC_CATEGORIES = [
-    { id: 'electronics', name: 'Electronics', name: 'Electronics', img: electronicsIcon, href: '/search?category=Electronics' },
+    { id: 'electronics', name: 'Electronics', img: electronicsIcon, href: '/search?category=Electronics' },
     { id: 'automotive', name: 'Automotive', img: automotiveIcon, href: '/search?category=Automotive' },
     { id: 'home', name: 'Home & Garden', img: homeIcon, href: '/search?category=Home%20%26%20Garden' },
-    { id: 'beauty', name: 'Beauty & Health', img: beautyIcon, href: '/search?category=Beauty%20%26%20Health' },
+    { id: 'beauty', name: 'Beauty & Health', img: beautyIcon, href: '/search?category=Beauty%20%26%20Health' }
   ]
 
   const formatCount = (value) => {
@@ -121,8 +122,13 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Health status banner (Phase 0 verification) */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <HealthStatusBanner />
+      </div>
+
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 to-purple-700 text-white overflow-hidden">
+      <section className="relative bg-gradient-to-r from-blue-600 to-purple-700 text-white overflow-hidden mt-4">
         <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
