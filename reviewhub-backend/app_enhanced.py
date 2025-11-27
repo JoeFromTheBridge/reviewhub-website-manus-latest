@@ -16,7 +16,7 @@ from recommendation_engine import get_recommendation_engine
 from admin_service import get_admin_service
 from performance_service import get_performance_service
 from gdpr_service import get_gdpr_service
-from data_export_service import data_export_service
+from data_export_service import get_data_export_service
 from visual_search_service import visual_search_service
 
 # Load environment variables
@@ -594,6 +594,15 @@ def login():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/auth/logout', methods=['POST'])
+@jwt_required(optional=True)
+def logout():
+    """
+    Stateless logout endpoint to satisfy frontend api.logout().
+    Frontend should still clear tokens in localStorage.
+    """
+    return jsonify({'message': 'Logged out successfully'}), 200
+
 @app.route('/api/auth/forgot-password', methods=['POST'])
 def forgot_password():
     try:
@@ -1083,6 +1092,174 @@ def create_review():
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
+# --- NEW: Single review detail/update/delete to match api.js ---
+@app.route("/api/reviews/<int:review_id>", methods=["GET"])
+def get_review(review_id):
+    try:
+        review = Review.query.filter_by(id=review_id, is_active=True).first()
+        if not review:
+            return jsonify({"error": "Review not found"}), 404
+        return jsonify({"review": review.to_dict()}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/reviews/<int:review_id>", methods=["PUT"])
+@jwt_required()
+def update_review(review_id):
+    try:
+        current_user_id = get_jwt_identity()
+        review = Review.query.get(review_id)
+        if not review or not review.is_active:
+            return jsonify({"error": "Review not found"}), 404
+
+        current_user = User.query.get(current_user_id)
+        if not current_user or (review.user_id != int(current_user_id) and not current_user.is_admin):
+            return jsonify({"error": "Not authorized to update this review"}), 403
+
+        data = request.get_json() or {}
+
+        updatable_fields = ["rating", "title", "content", "pros", "cons", "verified_purchase"]
+        for field in updatable_fields:
+            if field in data:
+                setattr(review, field, data[field])
+
+        db.session.commit()
+
+        # Best-effort search index update
+        try:
+            if search_service.is_available:
+                product = Product.query.get(review.product_id)
+                user = User.query.get(review.user_id)
+                search_service.index_review({
+                    "id": review.id,
+                    "user_id": review.user_id,
+                    "product_id": review.product_id,
+                    "product_name": product.name if product else None,
+                    "user_username": user.username if user else None,
+                    "rating": review.rating,
+                    "title": review.title,
+                    "content": review.content,
+                    "pros": review.pros,
+                    "cons": review.cons,
+                    "verified_purchase": review.verified_purchase,
+                    "helpful_votes": review.helpful_votes,
+                    "total_votes": review.total_votes,
+                    "has_images": len(review.image_records.all()) > 0,
+                    "image_count": len(review.image_records.all()),
+                    "created_at": review.created_at.isoformat(),
+                    "updated_at": review.updated_at.isoformat(),
+                    "is_active": review.is_active
+                })
+        except Exception:
+            pass
+
+        return jsonify({"message": "Review updated successfully", "review": review.to_dict()}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/reviews/<int:review_id>", methods=["DELETE"])
+@jwt_required()
+def delete_review(review_id):
+    try:
+        current_user_id = get_jwt_identity()
+        review = Review.query.get(review_id)
+        if not review or not review.is_active:
+            return jsonify({"error": "Review not found"}), 404
+
+        current_user = User.query.get(current_user_id)
+        if not current_user or (review.user_id != int(current_user_id) and not current_user.is_admin):
+            return jsonify({"error": "Not authorized to delete this review"}), 403
+
+        # Soft delete
+        review.is_active = False
+        db.session.commit()
+
+        # Best-effort: de-index or update in search
+        try:
+            if search_service.is_available:
+                product = Product.query.get(review.product_id)
+                user = User.query.get(review.user_id)
+                search_service.index_review({
+                    "id": review.id,
+                    "user_id": review.user_id,
+                    "product_id": review.product_id,
+                    "product_name": product.name if product else None,
+                    "user_username": user.username if user else None,
+                    "rating": review.rating,
+                    "title": review.title,
+                    "content": review.content,
+                    "pros": review.pros,
+                    "cons": review.cons,
+                    "verified_purchase": review.verified_purchase,
+                    "helpful_votes": review.helpful_votes,
+                    "total_votes": review.total_votes,
+                    "has_images": len(review.image_records.all()) > 0,
+                    "image_count": len(review.image_records.all()),
+                    "created_at": review.created_at.isoformat(),
+                    "updated_at": review.updated_at.isoformat(),
+                    "is_active": review.is_active
+                })
+        except Exception:
+            pass
+
+        return jsonify({"message": "Review deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# --- User-specific reviews, to match api.getUserReviews(userId, params) ---
+@app.route("/api/users/<int:user_id>/reviews", methods=["GET"])
+def get_user_reviews(user_id):
+    """
+    List reviews authored by a specific user (public, only active reviews).
+    Supports page, per_page, sort/sort_by same as list_reviews.
+    """
+    try:
+        page = request.args.get("page", 1, type=int)
+        limit = request.args.get("limit", type=int)
+        per_page = request.args.get("per_page", type=int)
+
+        if per_page is None:
+            if limit is not None:
+                per_page = limit
+            else:
+                per_page = 10
+
+        per_page = max(1, min(per_page, 50))
+
+        sort = request.args.get("sort")
+        sort_by = request.args.get("sort_by")
+        sort_mode = (sort or sort_by or "created_at").lower()
+
+        query = Review.query.filter_by(user_id=user_id, is_active=True)
+
+        if sort_mode in ("created_at", "newest"):
+            query = query.order_by(Review.created_at.desc())
+        elif sort_mode == "oldest":
+            query = query.order_by(Review.created_at.asc())
+        elif sort_mode in ("highest_rated", "rating_desc"):
+            query = query.order_by(Review.rating.desc(), Review.created_at.desc())
+        elif sort_mode in ("lowest_rated", "rating_asc"):
+            query = query.order_by(Review.rating.asc(), Review.created_at.desc())
+        else:
+            query = query.order_by(Review.created_at.desc())
+
+        reviews_page = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        return jsonify({
+            "reviews": [review.to_dict() for review in reviews_page.items],
+            "total": reviews_page.total,
+            "pages": reviews_page.pages,
+            "current_page": reviews_page.page,
+            "per_page": reviews_page.per_page
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/reviews/<int:review_id>/vote", methods=["POST"])
 @jwt_required()
 def vote_review(review_id):
@@ -1116,6 +1293,22 @@ def vote_review(review_id):
         db.session.commit()
         
         return jsonify({"message": "Vote recorded successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+# --- NEW: remove vote to match api.removeVote(reviewId) ---
+@app.route("/api/reviews/<int:review_id>/vote", methods=["DELETE"])
+@jwt_required()
+def remove_vote(review_id):
+    try:
+        user_id = get_jwt_identity()
+        vote = ReviewVote.query.filter_by(user_id=user_id, review_id=review_id).first()
+        if not vote:
+            return jsonify({"message": "No vote to remove"}), 200
+        db.session.delete(vote)
+        db.session.commit()
+        return jsonify({"message": "Vote removed successfully"}), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
@@ -2450,7 +2643,7 @@ def visual_search_products():
                             'features': product_features
                         }
                 except Exception as e:
-                    logger.warning(f"Could not extract features for product {product.id}: {e}")
+                    app.logger.warning(f"Could not extract features for product {product.id}: {e}")
                     continue
             
             if features:
@@ -2481,7 +2674,7 @@ def visual_search_products():
                     'name': product.name,
                     'brand': product.brand,
                     'category': product.category,
-                    'price': product.price,
+                    'price': product.price_min,  # or price_max/combined
                     'image_url': product_image.file_url if product_image else None,
                     'average_rating': round(avg_rating, 1),
                     'review_count': len(reviews),
@@ -2554,7 +2747,7 @@ def get_visually_similar_products(product_id):
                             'product_id': other_product.id,
                             'features': other_product_features
                         }
-                except Exception as e:
+                except Exception:
                     continue
             
             if other_features:
@@ -2585,7 +2778,7 @@ def get_visually_similar_products(product_id):
                     'name': similar_product.name,
                     'brand': similar_product.brand,
                     'category': similar_product.category,
-                    'price': similar_product.price,
+                    'price': similar_product.price_min,
                     'image_url': similar_image.file_url if similar_image else None,
                     'average_rating': round(avg_rating, 1),
                     'review_count': len(reviews),
@@ -2644,7 +2837,7 @@ def admin_reindex_visual_features():
                 else:
                     error_count += 1
             except Exception as e:
-                logger.error(f"Error processing product {product.id}: {e}")
+                app.logger.error(f"Error processing product {product.id}: {e}")
                 error_count += 1
         
         return jsonify({
@@ -2740,16 +2933,10 @@ def get_voice_search_suggestions():
 
 @app.route('/api/voice-search/analytics', methods=['GET'])
 @jwt_required()
+@admin_required
 def get_voice_search_analytics():
     """Get voice search analytics (admin only)"""
     try:
-        # Check if user is admin
-        current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
-        
-        if not user or user.role != 'admin':
-            return jsonify({'error': 'Admin access required'}), 403
-        
         days = min(int(request.args.get('days', 30)), 365)
         
         from voice_search_service import voice_search_service
@@ -2837,7 +3024,7 @@ def invalidate_cache_on_mutations(response):
             elif '/categories' in request.path:
                 performance_svc.invalidate_cache_group('categories')
         except Exception as e:
-            logger.warning(f"Cache invalidation error: {e}")
+            app.logger.warning(f"Cache invalidation error: {e}")
     return response
 
 
