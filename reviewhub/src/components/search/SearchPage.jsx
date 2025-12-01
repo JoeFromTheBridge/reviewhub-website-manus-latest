@@ -22,28 +22,35 @@ const SearchPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const query = params.get('q') || '';
+    const tab = params.get('tab'); // optional: 'products' or 'reviews'
+
     const initialFilters = {};
     for (let [key, value] of params.entries()) {
-      if (key !== 'q') {
+      if (key !== 'q' && key !== 'tab') {
         initialFilters[key] = value;
       }
     }
 
-    if (query) {
+    const wantsReviewsTab = tab === 'reviews';
+    const hasFilters = Object.keys(initialFilters).length > 0;
+
+    if (query || hasFilters || wantsReviewsTab) {
       setSearchQuery(query);
-      performSearch(query, initialFilters);
+      performSearch(query, initialFilters, wantsReviewsTab ? 'reviews' : 'products');
     } else {
-      // Clear results if there is no query in the URL
+      // Clear results if there is no query, filters, or explicit tab
       setSearchResults({ products: [], reviews: [] });
       setError(null);
+      setActiveResultsTab('products');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
-  const performSearch = async (query, filters = {}) => {
+  const performSearch = async (query, filters = {}, initialResultsTab = 'products') => {
     setLoading(true);
     setError(null);
     setSearchType('text');
+    setActiveResultsTab(initialResultsTab);
 
     try {
       const baseParams = { ...filters };
@@ -121,8 +128,9 @@ const SearchPage = () => {
       }
     }
 
+    // Default text search: products tab is primary
     window.history.pushState({}, '', `/search?${params.toString()}`);
-    performSearch(query, filters);
+    performSearch(query, filters, 'products');
   };
 
   const handleFiltersChange = () => {
