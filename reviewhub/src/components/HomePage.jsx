@@ -1,4 +1,4 @@
-// src/components/HomePage.jsx
+// reviewhub/src/components/HomePage.jsx
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, Star, TrendingUp, Users, Shield, Loader2 } from 'lucide-react'
@@ -303,23 +303,25 @@ export function HomePage() {
                 // Try multiple possible shapes from the API
                 const productId =
                   review.product?.id ??
+                  review.product?.product_id ??
                   review.product_id ??
                   review.productId ??
-                  review.product?.product_id ??
                   null
 
                 const productName =
                   review.product?.name ??
+                  review.product?.product_name ??
                   review.product_name ??
                   review.productTitle ??
                   review.product_title ??
                   review.productName ??
                   review.product ??
-                  // As a last resort, show the review title instead of literal "Product"
+                  // As a last resort, use a more descriptive title instead of literal "Product"
                   (review.title && review.title !== 'Review' ? review.title : 'Product')
 
                 const productBrand =
                   review.product?.brand ??
+                  review.product?.manufacturer ??
                   review.brand ??
                   review.product_brand ??
                   null
@@ -359,13 +361,13 @@ export function HomePage() {
 
                       <h4 className="font-medium text-gray-900 mb-2">{reviewTitle}</h4>
                       <p className="text-gray-700 text-sm mb-4 line-clamp-3">
-                        {review.comment}
+                        {review.comment || review.content}
                       </p>
 
                       <div className="flex items-center justify-between text-xs text-gray-500">
                         <div className="flex items-center space-x-2">
-                          <span>By {review.user?.username || 'Anonymous'}</span>
-                          {review.is_verified && (
+                          <span>By {review.user?.username || review.user_username || review.user_name || 'Anonymous'}</span>
+                          {(review.is_verified || review.verified_purchase) && (
                             <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
                               Verified
                             </span>
