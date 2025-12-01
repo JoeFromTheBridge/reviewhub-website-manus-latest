@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import RecommendationSection from './recommendations/RecommendationSection';
 import SimilarProducts from './search/SimilarProducts';
-import { api } from '../services/api';
+import apiService from '../services/api';
 
 export function ProductPage() {
   const { id } = useParams();
@@ -24,7 +24,7 @@ export function ProductPage() {
   // Track product view interaction
   useEffect(() => {
     if (numericId) {
-      api.trackInteraction(numericId, 'view').catch(console.error);
+      apiService.trackInteraction?.(numericId, 'view').catch?.(console.error);
     }
   }, [numericId]);
 
@@ -45,9 +45,9 @@ export function ProductPage() {
         setLoading(true);
         setError('');
 
-        const [productData, reviewsResponse] = await Promise.all([
-          api.getProduct(numericId),
-          api.getReviews({
+        const [productDataRaw, reviewsResponse] = await Promise.all([
+          apiService.getProduct(numericId),
+          apiService.getReviews({
             product_id: numericId,
             sort: 'created_at',
             order: 'desc',
@@ -57,7 +57,10 @@ export function ProductPage() {
 
         if (!isMounted) return;
 
-        setProduct(productData || null);
+        // Some backends wrap the product in { product: {...} }
+        const productData = productDataRaw?.product || productDataRaw || null;
+
+        setProduct(productData);
         setReviews(reviewsResponse?.reviews || []);
       } catch (err) {
         if (!isMounted) return;
@@ -181,18 +184,39 @@ export function ProductPage() {
     );
   }
 
+  const productName =
+    product.name ||
+    product.title ||
+    product.product_name ||
+    product.productTitle ||
+    'Product';
+
+  const productBrand =
+    product.brand ||
+    product.manufacturer ||
+    product.maker ||
+    '';
+
   const imageUrl =
     product.image_url ||
+    product.image ||
+    product.hero_image_url ||
+    product.main_image_url ||
     'https://via.placeholder.com/800x400?text=No+image+available';
 
-  const specs =
-    Array.isArray(product.specifications) ||
-    typeof product.specifications === 'string'
-      ? product.specifications
-      : [];
+  let specs = [];
+  if (Array.isArray(product.specifications)) {
+    specs = product.specifications;
+  } else if (typeof product.specifications === 'string') {
+    specs = product.specifications.split('\n').filter(Boolean);
+  } else if (Array.isArray(product.specs)) {
+    specs = product.specs;
+  }
 
   const description =
     product.description ||
+    product.summary ||
+    product.short_description ||
     'No detailed description has been provided for this product yet.';
 
   return (
@@ -202,7 +226,7 @@ export function ProductPage() {
         <div>
           <img
             src={imageUrl}
-            alt={product.name}
+            alt={productName}
             className="w-full h-96 object-cover rounded-lg shadow-lg"
           />
         </div>
@@ -210,10 +234,10 @@ export function ProductPage() {
         <div>
           <div className="mb-4">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {product.name}
+              {productName}
             </h1>
-            {product.brand && (
-              <p className="text-lg text-gray-600">{product.brand}</p>
+            {productBrand && (
+              <p className="text-lg text-gray-600">{productBrand}</p>
             )}
           </div>
 
@@ -376,7 +400,10 @@ export function ProductPage() {
                         <div>
                           <div className="flex items-center space-x-2 mb-2">
                             <span className="font-semibold">
-                              {review.user?.username || 'Anonymous'}
+                              {review.user?.username ||
+                                review.user_username ||
+                                review.user_name ||
+                                'Anonymous'}
                             </span>
                             {isVerified && (
                               <Badge
@@ -474,3 +501,5 @@ export function ProductPage() {
     </div>
   );
 }
+
+export default ProductPage;
