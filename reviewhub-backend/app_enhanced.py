@@ -3043,6 +3043,198 @@ def run_auto_migrations_if_enabled(app):
         except Exception as e:
             app.logger.error(f"Auto migration failed: {e}")
 
+# ----------------------------------------------------------------------
+# TEMPORARY ADMIN SEED ENDPOINT (DELETE AFTER RUNNING)
+# ----------------------------------------------------------------------
+@app.route("/api/admin/seed", methods=["POST"])
+def admin_seed():
+    """
+    Temporary endpoint to seed categories, products, users, and reviews.
+    Requires ?secret=SEED_SECRET to run.
+    Safe: does NOT drop tables and avoids duplicates.
+    DELETE THIS ENDPOINT after seeding.
+    """
+    from sqlalchemy import text
+
+    seed_secret = os.getenv("SEED_SECRET")
+    provided = request.args.get("secret")
+
+    if not seed_secret:
+        return jsonify({"error": "SEED_SECRET not set in environment"}), 500
+
+    if provided != seed_secret:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        # --- Safe helpers ---------------------------------------------------
+
+        def get_or_create(model, defaults=None, **kwargs):
+            obj = model.query.filter_by(**kwargs).first()
+            if obj:
+                return obj, False
+            params = dict(kwargs)
+            if defaults:
+                params.update(defaults)
+            obj = model(**params)
+            db.session.add(obj)
+            return obj, True
+
+        created = {
+            "categories": 0,
+            "products": 0,
+            "users": 0,
+            "reviews": 0
+        }
+
+        # --- Seed Categories -------------------------------------------------
+        categories = [
+            ("Electronics", "electronics", "/assets/category_electronics.png"),
+            ("Automotive", "automotive", "/assets/category_automotive.png"),
+            ("Home & Garden", "home-garden", "/assets/category_home.png"),
+            ("Beauty & Health", "beauty-health", "/assets/category_beauty.png"),
+        ]
+
+        for name, slug, icon in categories:
+            _, was_created = get_or_create(
+                Category,
+                name=name,
+                slug=slug,
+                defaults={
+                    "description": name + " category",
+                    "icon_url": icon
+                }
+            )
+            if was_created:
+                created["categories"] += 1
+
+        db.session.commit()
+
+        # Lookup category IDs
+        cat_map = {c.slug: c.id for c in Category.query.all()}
+
+        # --- Seed Products ---------------------------------------------------
+        products = [
+            {
+                "name": "iPhone 15 Pro",
+                "brand": "Apple",
+                "category_slug": "electronics",
+                "image_url": "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400",
+                "price_min": 999,
+                "price_max": 1199,
+                "description": "Titanium design + A17 Pro chip",
+                "specifications": {"chip": "A17 Pro", "display": "6.1-inch"},
+            },
+            {
+                "name": "Samsung Galaxy S24",
+                "brand": "Samsung",
+                "category_slug": "electronics",
+                "image_url": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400",
+                "price_min": 799,
+                "price_max": 999,
+                "description": "Android flagship with AI features",
+                "specifications": {"chip": "Snapdragon 8 Gen 3"},
+            },
+            {
+                "name": "Dyson V15 Detect",
+                "brand": "Dyson",
+                "category_slug": "home-garden",
+                "image_url": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400",
+                "price_min": 649,
+                "price_max": 749,
+                "description": "Laser dust detection vacuum",
+                "specifications": {"runtime": "60 minutes"},
+            },
+        ]
+
+        for p in products:
+            cat_id = cat_map.get(p["category_slug"])
+            if not cat_id:
+                continue
+
+            _, was_created = get_or_create(
+                Product,
+                name=p["name"],
+                defaults={
+                    "brand": p["brand"],
+                    "category_id": cat_id,
+                    "description": p["description"],
+                    "image_url": p["image_url"],
+                    "price_min": p["price_min"],
+                    "price_max": p["price_max"],
+                    "specifications": p["specifications"],
+                },
+            )
+            if was_created:
+                created["products"] += 1
+
+        db.session.commit()
+
+        # --- Seed Users ------------------------------------------------------
+        user_list = [
+            ("john_doe", "john@example.com"),
+            ("jane_smith", "jane@example.com"),
+            ("alex_brown", "alex@example.com"),
+        ]
+
+        for username, email in user_list:
+            user, was_created = get_or_create(
+                User,
+                username=username,
+                defaults={
+                    "email": email,
+                    "first_name": username.split("_")[0].title(),
+                    "last_name": username.split("_")[1].title() if "_" in username else "",
+                },
+            )
+            if was_created:
+                user.set_password("password123")
+                created["users"] += 1
+
+        db.session.commit()
+
+        # --- Seed Reviews ----------------------------------------------------
+        users = User.query.all()
+        products = Product.query.all()
+
+        sample_sentences = [
+            "Excellent quality.",
+            "Great value.",
+            "Exceeded expectations.",
+            "Would buy again.",
+        ]
+
+        for product in products:
+            for _ in range(2):
+                user = random.choice(users)
+
+                exists = Review.query.filter_by(
+                    user_id=user.id, product_id=product.id
+                ).first()
+                if exists:
+                    continue
+
+                review = Review(
+                    user_id=user.id,
+                    product_id=product.id,
+                    rating=random.randint(4, 5),
+                    title="Review",
+                    content=random.choice(sample_sentences),
+                    verified_purchase=random.choice([True, False]),
+                )
+                db.session.add(review)
+                created["reviews"] += 1
+
+        db.session.commit()
+
+        return jsonify({
+            "message": "Seed completed",
+            "created": created
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     # Run migrations first (so schema is current before any create_all())
