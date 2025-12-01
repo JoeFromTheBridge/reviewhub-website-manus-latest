@@ -1,102 +1,199 @@
-
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Star, ThumbsUp, Shield, Filter, ChevronDown, Eye } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import RecommendationSection from './recommendations/RecommendationSection'
-import SimilarProducts from './search/SimilarProducts'
-import { api } from '../services/api'
+// reviewhub/src/components/ProductPage.jsx
+import { useState, useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
+import { Star, ThumbsUp, Shield, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import RecommendationSection from './recommendations/RecommendationSection';
+import SimilarProducts from './search/SimilarProducts';
+import { api } from '../services/api';
 
 export function ProductPage() {
-  const { id } = useParams()
-  const [sortBy, setSortBy] = useState('helpful')
-  const [filterRating, setFilterRating] = useState('all')
+  const { id } = useParams();
+  const numericId = id ? parseInt(id, 10) : null;
 
+  const [product, setProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
+  const [sortBy, setSortBy] = useState('helpful');
+  const [filterRating, setFilterRating] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Track product view interaction
   useEffect(() => {
-    // Track product view interaction
-    if (id) {
-      api.trackInteraction(parseInt(id), 'view').catch(console.error);
+    if (numericId) {
+      api.trackInteraction(numericId, 'view').catch(console.error);
     }
-  }, [id]);
+  }, [numericId]);
 
-  // Mock product data
-  const product = {
-    id: 1,
-    name: 'iPhone 15 Pro',
-    brand: 'Apple',
-    image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400',
-    rating: 4.5,
-    totalReviews: 1247,
-    specifications: [
-      '6.1-inch Display',
-      '128GB Storage',
-      '48MP Main Camera',
-      'A17 Pro Chip',
-      'Titanium Build'
-    ],
-    priceRange: '$999 - $1,199',
-    description: 'The iPhone 15 Pro features a titanium design, advanced camera system, and the powerful A17 Pro chip for exceptional performance.'
-  }
-
-  const ratingDistribution = [
-    { stars: 5, count: 623, percentage: 50 },
-    { stars: 4, count: 374, percentage: 30 },
-    { stars: 3, count: 125, percentage: 10 },
-    { stars: 2, count: 75, percentage: 6 },
-    { stars: 1, count: 50, percentage: 4 }
-  ]
-
-  const reviews = [
-    {
-      id: 1,
-      user: 'John D.',
-      rating: 5,
-      title: 'Great phone!',
-      content: 'I\'ve been using this phone for 3 months now and I\'m really impressed with the camera quality and performance. The titanium build feels premium and the battery life is excellent.',
-      date: '2 weeks ago',
-      verified: true,
-      helpful: 12,
-      images: ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200']
-    },
-    {
-      id: 2,
-      user: 'Sarah M.',
-      rating: 4,
-      title: 'Solid upgrade',
-      content: 'Coming from iPhone 13, this is a nice upgrade. The camera improvements are noticeable and the new Action Button is useful. Only downside is the price.',
-      date: '1 month ago',
-      verified: true,
-      helpful: 8,
-      images: []
-    },
-    {
-      id: 3,
-      user: 'Mike R.',
-      rating: 5,
-      title: 'Best iPhone yet',
-      content: 'The A17 Pro chip makes everything incredibly smooth. Gaming performance is outstanding and the phone doesn\'t get hot like my previous Android.',
-      date: '3 weeks ago',
-      verified: false,
-      helpful: 15,
-      images: []
+  // Fetch product + reviews from real API
+  useEffect(() => {
+    if (!numericId) {
+      setProduct(null);
+      setReviews([]);
+      setLoading(false);
+      setError('Invalid product id.');
+      return;
     }
-  ]
+
+    let isMounted = true;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const [productData, reviewsResponse] = await Promise.all([
+          api.getProduct(numericId),
+          api.getReviews({
+            product_id: numericId,
+            sort: 'created_at',
+            order: 'desc',
+            limit: 50,
+          }),
+        ]);
+
+        if (!isMounted) return;
+
+        setProduct(productData || null);
+        setReviews(reviewsResponse?.reviews || []);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to load product page data', err);
+        setError('Failed to load product details.');
+        setProduct(null);
+        setReviews([]);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [numericId]);
+
+  const filteredAndSortedReviews = useMemo(() => {
+    let result = [...reviews];
+
+    if (filterRating !== 'all') {
+      const target = parseInt(filterRating, 10);
+      result = result.filter((r) => Number(r.rating) === target);
+    }
+
+    if (sortBy === 'recent') {
+      result.sort((a, b) => {
+        const da = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const db = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return db - da;
+      });
+    } else if (sortBy === 'rating') {
+      result.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+    } else if (sortBy === 'helpful') {
+      result.sort(
+        (a, b) =>
+          Number(b.helpful_count || 0) - Number(a.helpful_count || 0),
+      );
+    }
+
+    return result;
+  }, [reviews, sortBy, filterRating]);
+
+  const ratingStats = useMemo(() => {
+    if (!reviews || reviews.length === 0) {
+      return {
+        average: 0,
+        total: 0,
+        distribution: [5, 4, 3, 2, 1].map((stars) => ({
+          stars,
+          count: 0,
+          percentage: 0,
+        })),
+      };
+    }
+
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sum = 0;
+
+    for (const r of reviews) {
+      const rating = Number(r.rating) || 0;
+      if (rating >= 1 && rating <= 5) {
+        counts[rating] += 1;
+        sum += rating;
+      }
+    }
+
+    const total = counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
+    const average = total ? sum / total : 0;
+
+    const distribution = [5, 4, 3, 2, 1].map((stars) => {
+      const count = counts[stars];
+      const percentage = total ? Math.round((count / total) * 100) : 0;
+      return { stars, count, percentage };
+    });
+
+    return {
+      average,
+      total,
+      distribution,
+    };
+  }, [reviews]);
 
   const renderStars = (rating) => {
+    const value = Number(rating) || 0;
     return [...Array(5)].map((_, i) => (
       <Star
         key={i}
         className={`h-4 w-4 ${
-          i < Math.floor(rating)
+          i < Math.round(value)
             ? 'text-yellow-400 fill-current'
             : 'text-gray-300'
         }`}
       />
-    ))
+    ));
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <p className="text-center text-gray-600">Loading product details…</p>
+      </div>
+    );
   }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <p className="text-center text-red-600">{error}</p>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <p className="text-center text-gray-600">Product not found.</p>
+      </div>
+    );
+  }
+
+  const imageUrl =
+    product.image_url ||
+    'https://via.placeholder.com/800x400?text=No+image+available';
+
+  const specs =
+    Array.isArray(product.specifications) ||
+    typeof product.specifications === 'string'
+      ? product.specifications
+      : [];
+
+  const description =
+    product.description ||
+    'No detailed description has been provided for this product yet.';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -104,43 +201,70 @@ export function ProductPage() {
       <div className="grid lg:grid-cols-2 gap-8 mb-12">
         <div>
           <img
-            src={product.image}
+            src={imageUrl}
             alt={product.name}
             className="w-full h-96 object-cover rounded-lg shadow-lg"
           />
         </div>
-        
+
         <div>
           <div className="mb-4">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
-            <p className="text-lg text-gray-600">{product.brand}</p>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {product.name}
+            </h1>
+            {product.brand && (
+              <p className="text-lg text-gray-600">{product.brand}</p>
+            )}
           </div>
-          
+
           <div className="flex items-center space-x-4 mb-6">
             <div className="flex items-center space-x-1">
-              {renderStars(product.rating)}
-              <span className="text-lg font-semibold ml-2">{product.rating}</span>
+              {renderStars(ratingStats.average || product.average_rating)}
+              <span className="text-lg font-semibold ml-2">
+                {ratingStats.total
+                  ? ratingStats.average.toFixed(1)
+                  : product.average_rating?.toFixed?.(1) || 'N/A'}
+              </span>
             </div>
-            <span className="text-gray-600">({product.totalReviews} reviews)</span>
+            <span className="text-gray-600">
+              ({ratingStats.total || product.review_count || 0} reviews)
+            </span>
           </div>
-          
+
+          {specs && Array.isArray(specs) && specs.length > 0 && (
+            <div className="mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Specifications
+              </h3>
+              <ul className="space-y-2">
+                {specs.map((spec, index) => (
+                  <li key={index} className="text-gray-700">
+                    • {spec}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="mb-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Specifications</h3>
-            <ul className="space-y-2">
-              {product.specifications.map((spec, index) => (
-                <li key={index} className="text-gray-700">• {spec}</li>
-              ))}
-            </ul>
+            <p className="text-gray-700">{description}</p>
           </div>
-          
-          <div className="mb-6">
-            <p className="text-gray-700">{product.description}</p>
-          </div>
-          
-          <div className="mb-6">
-            <p className="text-lg font-semibold text-gray-900">Price Range: {product.priceRange}</p>
-          </div>
-          
+
+          {product.price_min != null || product.price_max != null ? (
+            <div className="mb-6">
+              <p className="text-lg font-semibold text-gray-900">
+                Price Range:{' '}
+                {product.price_min != null && product.price_max != null
+                  ? `$${product.price_min} - $${product.price_max}`
+                  : product.price_min != null
+                  ? `$${product.price_min}+`
+                  : product.price_max != null
+                  ? `Up to $${product.price_max}`
+                  : 'N/A'}
+              </p>
+            </div>
+          ) : null}
+
           <div className="flex space-x-4">
             <Button size="lg" className="flex-1">
               Compare Prices
@@ -162,19 +286,27 @@ export function ProductPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center mb-6">
-                <div className="text-4xl font-bold text-gray-900 mb-2">{product.rating}</div>
-                <div className="flex justify-center mb-2">
-                  {renderStars(product.rating)}
+                <div className="text-4xl font-bold text-gray-900 mb-2">
+                  {ratingStats.total
+                    ? ratingStats.average.toFixed(1)
+                    : product.average_rating?.toFixed?.(1) || 'N/A'}
                 </div>
-                <p className="text-gray-600">{product.totalReviews} total reviews</p>
+                <div className="flex justify-center mb-2">
+                  {renderStars(ratingStats.average || product.average_rating)}
+                </div>
+                <p className="text-gray-600">
+                  {ratingStats.total || product.review_count || 0} total reviews
+                </p>
               </div>
-              
+
               <div className="space-y-3">
-                {ratingDistribution.map((item) => (
+                {ratingStats.distribution.map((item) => (
                   <div key={item.stars} className="flex items-center space-x-3">
                     <span className="text-sm w-6">{item.stars}★</span>
                     <Progress value={item.percentage} className="flex-1" />
-                    <span className="text-sm text-gray-600 w-12">{item.count}</span>
+                    <span className="text-sm text-gray-600 w-12">
+                      {item.count}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -199,7 +331,7 @@ export function ProductPage() {
                 <option value="rating">Highest Rating</option>
               </select>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <span className="text-sm font-medium">Rating:</span>
               <select
@@ -219,82 +351,126 @@ export function ProductPage() {
 
           {/* Individual Reviews */}
           <div className="space-y-6">
-            {reviews.map((review) => (
-              <Card key={review.id}>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <span className="font-semibold">{review.user}</span>
-                        {review.verified && (
-                          <Badge variant="secondary" className="bg-green-100 text-green-800">
-                            <Shield className="h-3 w-3 mr-1" />
-                            Verified Purchase
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="flex">
-                          {renderStars(review.rating)}
+            {filteredAndSortedReviews.length === 0 ? (
+              <p className="text-gray-600">
+                There are no reviews for this product yet.
+              </p>
+            ) : (
+              filteredAndSortedReviews.map((review) => {
+                const isVerified =
+                  review.verified_purchase || review.is_verified;
+                const helpful = review.helpful_count || 0;
+                const createdAt = review.created_at
+                  ? new Date(review.created_at).toLocaleDateString()
+                  : '';
+
+                const images =
+                  Array.isArray(review.images) && review.images.length > 0
+                    ? review.images
+                    : [];
+
+                return (
+                  <Card key={review.id}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="font-semibold">
+                              {review.user?.username || 'Anonymous'}
+                            </span>
+                            {isVerified && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-green-100 text-green-800"
+                              >
+                                <Shield className="h-3 w-3 mr-1" />
+                                Verified Purchase
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="flex">
+                              {renderStars(review.rating)}
+                            </div>
+                            {createdAt && (
+                              <span className="text-sm text-gray-600">
+                                {createdAt}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-sm text-gray-600">{review.date}</span>
                       </div>
-                    </div>
-                  </div>
-                  
-                  <h4 className="font-semibold text-gray-900 mb-2">{review.title}</h4>
-                  <p className="text-gray-700 mb-4">{review.content}</p>
-                  
-                  {review.images.length > 0 && (
-                    <div className="flex space-x-2 mb-4">
-                      {review.images.map((image, index) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt="Review"
-                          className="w-20 h-20 object-cover rounded"
-                        />
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between">
-                    <Button variant="ghost" size="sm" className="text-gray-600">
-                      <ThumbsUp className="h-4 w-4 mr-2" />
-                      Helpful ({review.helpful})
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-gray-600">
-                      Reply
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+
+                      <h4 className="font-semibold text-gray-900 mb-2">
+                        {review.title || 'Review'}
+                      </h4>
+                      <p className="text-gray-700 mb-4">
+                        {review.content || review.comment}
+                      </p>
+
+                      {images.length > 0 && (
+                        <div className="flex space-x-2 mb-4">
+                          {images.map((image, index) => (
+                            <img
+                              key={index}
+                              src={image}
+                              alt="Review"
+                              className="w-20 h-20 object-cover rounded"
+                            />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-600"
+                        >
+                          <ThumbsUp className="h-4 w-4 mr-2" />
+                          Helpful ({helpful})
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-600"
+                        >
+                          Reply
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
-          
+
           <div className="text-center mt-8">
+            {/* Placeholder for pagination in future */}
             <Button variant="outline">Load More Reviews</Button>
           </div>
         </div>
       </div>
 
       {/* Visual Similar Products Section */}
-      <div className="mt-16">
-        <SimilarProducts productId={parseInt(id)} />
-      </div>
+      {numericId && (
+        <div className="mt-16">
+          <SimilarProducts productId={numericId} />
+        </div>
+      )}
 
       {/* Similar Products Section */}
-      <div className="mt-16">
-        <RecommendationSection
-          title="Similar Products"
-          type="similar"
-          productId={parseInt(id)}
-          limit={6}
-          showReasons={false}
-        />
-      </div>
+      {numericId && (
+        <div className="mt-16">
+          <RecommendationSection
+            title="Similar Products"
+            type="similar"
+            productId={numericId}
+            limit={6}
+            showReasons={false}
+          />
+        </div>
+      )}
     </div>
-  )
+  );
 }
-
-
