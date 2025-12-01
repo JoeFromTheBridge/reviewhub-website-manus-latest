@@ -1,9 +1,9 @@
-# see_data.py
+# seed_data.py
 """
 Seed data script for ReviewHub database (safe + idempotent).
 
 - Uses app_enhanced.py (current backend entrypoint)
-- DOES NOT call db.drop_all() (safe for shared / production DBs)
+- DOES NOT call db.drop_all() (safe for shared / production-like DBs)
 - Can be run multiple times without duplicating records
 - Creates:
     - Categories (Electronics, Automotive, Home & Garden, Beauty & Health)
@@ -12,12 +12,12 @@ Seed data script for ReviewHub database (safe + idempotent).
     - Sample reviews and review votes
 """
 
-from datetime import datetime
 import os
+from datetime import datetime
 
 from dotenv import load_dotenv
 
-# IMPORTANT: this now uses app_enhanced, not app
+# IMPORTANT: use app_enhanced, not the legacy app.py
 from app_enhanced import app, db, User, Category, Product, Review, ReviewVote
 
 load_dotenv()
@@ -150,9 +150,9 @@ def ensure_review_votes(reviews, users):
             if existing_vote:
                 continue
 
-            # Basic pattern: first two non-author users upvote each review
-            # (no need for randomness to keep it deterministic)
-            helpful = user.id % 2 == 0  # some True, some False based on user id parity
+            # Simple deterministic pattern so it's repeatable:
+            # even user IDs vote helpful, odd vote not-helpful.
+            helpful = (user.id % 2 == 0)
 
             vote = ReviewVote(
                 user_id=user.id,
@@ -173,7 +173,7 @@ def create_seed_data():
         print("=== ReviewHub seed: starting ===")
         print(f"Using DB URI: {os.getenv('SQLALCHEMY_DATABASE_URI') or os.getenv('DATABASE_URL')}")
 
-        # Ensure tables exist (safe for local dev; migrations handle prod)
+        # Ensure tables exist (safe for local dev; Alembic handles prod schema)
         db.create_all()
 
         # 1. Categories
@@ -452,7 +452,6 @@ def create_seed_data():
         # 4. Reviews
         print("Seeding reviews...")
 
-        # Map helpers for readability
         products_by_name = {p.name: p for p in product_objects}
         users_by_email = {u.email: u for u in user_objects}
 
@@ -644,9 +643,9 @@ def create_seed_data():
         print(f"Reviews:    {total_reviews}")
         print(f"Votes:      {total_votes}")
         print("\nSample login credentials:")
-        print("  Username: john_doe  | Email: john@example.com  | Password: password123")
-        print("  Username: jane_smith| Email: jane@example.com  | Password: password123")
-        print("  Username: mike_wilson| Email: mike@example.com | Password: password123")
+        print("  Username: john_doe   | Email: john@example.com   | Password: password123")
+        print("  Username: jane_smith | Email: jane@example.com   | Password: password123")
+        print("  Username: mike_wilson| Email: mike@example.com   | Password: password123")
 
 
 if __name__ == "__main__":
