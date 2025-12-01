@@ -299,40 +299,84 @@ export function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredReviews.map((review) => (
-                <Card key={review.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        {/* Clicking the product name goes to /product/:id */}
-                        <Link 
-                          to={`/product/${review.product?.id}`}
-                          className="font-semibold text-gray-900 hover:text-primary transition-colors"
-                        >
-                          {review.product?.name || 'Product'}
-                        </Link>
-                        <p className="text-sm text-gray-600">{review.product?.brand}</p>
-                      </div>
-                      {renderStars(review.rating)}
-                    </div>
+              {featuredReviews.map((review) => {
+                // Try multiple possible shapes from the API
+                const productId =
+                  review.product?.id ??
+                  review.product_id ??
+                  review.productId ??
+                  review.product?.product_id ??
+                  null
 
-                    <h4 className="font-medium text-gray-900 mb-2">{review.title}</h4>
-                    <p className="text-gray-700 text-sm mb-4 line-clamp-3">{review.comment}</p>
+                const productName =
+                  review.product?.name ??
+                  review.product_name ??
+                  review.productTitle ??
+                  review.product_title ??
+                  review.productName ??
+                  review.product ??
+                  // As a last resort, show the review title instead of literal "Product"
+                  (review.title && review.title !== 'Review' ? review.title : 'Product')
 
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center space-x-2">
-                        <span>By {review.user?.username || 'Anonymous'}</span>
-                        {review.is_verified && (
-                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                            Verified
-                          </span>
-                        )}
+                const productBrand =
+                  review.product?.brand ??
+                  review.brand ??
+                  review.product_brand ??
+                  null
+
+                const reviewTitle =
+                  review.title && review.title !== 'Review'
+                    ? review.title
+                    : `Review of ${productName}`
+
+                const ReviewProductWrapper = ({ children }) =>
+                  productId ? (
+                    <Link
+                      to={`/product/${productId}`}
+                      className="font-semibold text-gray-900 hover:text-primary transition-colors"
+                    >
+                      {children}
+                    </Link>
+                  ) : (
+                    <span className="font-semibold text-gray-900">{children}</span>
+                  )
+
+                return (
+                  <Card key={review.id} className="hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          {/* Clicking goes to /product/:id when we have an id */}
+                          <ReviewProductWrapper>
+                            {productName}
+                          </ReviewProductWrapper>
+                          {productBrand && (
+                            <p className="text-sm text-gray-600">{productBrand}</p>
+                          )}
+                        </div>
+                        {renderStars(review.rating)}
                       </div>
-                      <span>{review.helpful_count || 0} helpful</span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+
+                      <h4 className="font-medium text-gray-900 mb-2">{reviewTitle}</h4>
+                      <p className="text-gray-700 text-sm mb-4 line-clamp-3">
+                        {review.comment}
+                      </p>
+
+                      <div className="flex items-center justify-between text-xs text-gray-500">
+                        <div className="flex items-center space-x-2">
+                          <span>By {review.user?.username || 'Anonymous'}</span>
+                          {review.is_verified && (
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                              Verified
+                            </span>
+                          )}
+                        </div>
+                        <span>{review.helpful_count || 0} helpful</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
 
