@@ -80,6 +80,12 @@ export function HomePage() {
     }
   }
 
+  // When clicking category tiles, send user to search focused on reviews
+  const buildCategoryHref = (name) => {
+    const encodedName = encodeURIComponent(name)
+    return `/search?category=${encodedName}&tab=reviews`
+  }
+
   // More forgiving icon picker: handles "Home", "Home & Garden", "Beauty", etc.
   const getCategoryIcon = (categoryName = '') => {
     const n = String(categoryName).toLowerCase()
@@ -93,10 +99,10 @@ export function HomePage() {
 
   // Static fallback tiles for Phase 0 when API returns empty
   const STATIC_CATEGORIES = [
-    { id: 'electronics', name: 'Electronics', img: electronicsIcon, href: '/search?category=Electronics' },
-    { id: 'automotive', name: 'Automotive', img: automotiveIcon, href: '/search?category=Automotive' },
-    { id: 'home', name: 'Home & Garden', img: homeIcon, href: '/search?category=Home%20%26%20Garden' },
-    { id: 'beauty', name: 'Beauty & Health', img: beautyIcon, href: '/search?category=Beauty%20%26%20Health' }
+    { id: 'electronics', name: 'Electronics', img: electronicsIcon },
+    { id: 'automotive', name: 'Automotive', img: automotiveIcon },
+    { id: 'home', name: 'Home & Garden', img: homeIcon },
+    { id: 'beauty', name: 'Beauty & Health', img: beautyIcon }
   ]
 
   const formatCount = (value) => {
@@ -142,10 +148,19 @@ export function HomePage() {
                 to help others make informed choices.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" variant="secondary" onClick={() => navigate('/search')}>
+                {/* From hero, go to SearchPage showing review results */}
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  onClick={() => navigate('/search?tab=reviews')}
+                >
                   Explore Reviews
                 </Button>
-                <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-white border-white hover:bg-white hover:text-blue-600"
+                >
                   Write a Review
                 </Button>
               </div>
@@ -217,7 +232,11 @@ export function HomePage() {
             // If error, still show static categories so the section isn’t empty
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {STATIC_CATEGORIES.map((category) => (
-                <Link key={category.id} to={category.href} className="group">
+                <Link
+                  key={category.id}
+                  to={buildCategoryHref(category.name)}
+                  className="group"
+                >
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                     <CardContent className="p-6 text-center">
                       <img 
@@ -236,15 +255,15 @@ export function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {(categories.length ? categories : STATIC_CATEGORIES).map((category) => {
                 const name = category.name || category.title || 'Category'
-                const href =
-                  category.id
-                    ? `/search?category=${encodeURIComponent(name)}`
-                    : category.href
-                const img =
-                  category.img || getCategoryIcon(name)
+                const href = buildCategoryHref(name)
+                const img = category.img || getCategoryIcon(name)
 
                 return (
-                  <Link key={category.id || category.slug || name} to={href} className="group">
+                  <Link
+                    key={category.id || category.slug || name}
+                    to={href}
+                    className="group"
+                  >
                     <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                       <CardContent className="p-6 text-center">
                         <img 
@@ -285,6 +304,7 @@ export function HomePage() {
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
+                        {/* Clicking the product name goes to /product/:id */}
                         <Link 
                           to={`/product/${review.product?.id}`}
                           className="font-semibold text-gray-900 hover:text-primary transition-colors"
@@ -317,7 +337,12 @@ export function HomePage() {
           )}
 
           <div className="text-center mt-8">
-            <Button variant="outline" size="lg" onClick={() => navigate('/search')}>
+            {/* From Recent Reviews, go to SearchPage showing reviews */}
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => navigate('/search?tab=reviews')}
+            >
               View All Reviews
             </Button>
           </div>
@@ -361,7 +386,11 @@ export function HomePage() {
             <Button size="lg" variant="secondary">
               Write Your First Review
             </Button>
-            <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-primary">
+            <Button
+              size="lg"
+              variant="outline"
+              className="text-white border-white hover:bg-white hover:text-primary"
+            >
               Learn More
             </Button>
           </div>
@@ -370,3 +399,5 @@ export function HomePage() {
     </div>
   )
 }
+
+export default HomePage
