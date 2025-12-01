@@ -10,7 +10,7 @@ const SearchResultsDisplay = ({
   activeTab,
   loading,
   error,
-  searchType, // 'text' | 'visual' | 'voice' (not strictly needed here but kept for future)
+  searchType, // kept for future use
 }) => {
   const list =
     activeTab === 'products'
@@ -118,20 +118,30 @@ const SearchResultsDisplay = ({
   };
 
   const renderReviewCard = (review) => {
+    // Match review → product using the products array in results
+    const productFromList =
+      results?.products?.find(
+        (p) =>
+          p.id === review.product_id ||
+          p.id === review.productId ||
+          p.id === review.product?.id
+      ) || null;
+
     const productId =
       review.product?.id ??
       review.product?.product_id ??
       review.product_id ??
       review.productId ??
+      productFromList?.id ??
       null;
 
     const productName =
-      review.product?.name ??
-      review.product?.product_name ??
-      review.product_name ??
-      review.productTitle ??
-      review.product_title ??
-      review.product ??
+      productFromList?.name ||
+      productFromList?.title ||
+      productFromList?.product_name ||
+      review.product?.name ||
+      review.product?.product_name ||
+      review.product_name ||
       'Product';
 
     const userName =
@@ -143,7 +153,7 @@ const SearchResultsDisplay = ({
     const title =
       review.title && review.title !== 'Review'
         ? review.title
-        : `Review for ${productName}`;
+        : `Review of ${productName}`;
 
     const body = review.comment || review.content || '';
 
