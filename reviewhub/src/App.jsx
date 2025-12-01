@@ -15,6 +15,7 @@ import AdminVoiceSearch from './components/admin/AdminVoiceSearch'
 import { useAuth } from './contexts/AuthContext'
 import EmailVerification from './components/auth/EmailVerification'
 import ProfilePage from './components/profile/ProfilePage'
+import DevSeedPage from './components/DevSeedPage'
 
 // Admin route wrapper to check admin permissions
 const AdminRoute = ({ children }) => {
@@ -141,6 +142,17 @@ function App() {
                 <>
                   <Header />
                   <EmailVerification />
+                </>
+              }
+            />
+
+            {/* Dev data check route */}
+            <Route
+              path="/dev-seed"
+              element={
+                <>
+                  <Header />
+                  <DevSeedPage />
                 </>
               }
             />
