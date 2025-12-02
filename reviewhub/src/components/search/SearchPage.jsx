@@ -1,8 +1,8 @@
 // reviewhub/src/components/search/SearchPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Search, Filter, SortAsc, Camera, Mic } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
-import AdvancedSearch from './AdvancedSearch';
+import { useLocation, useNavigate } from 'react-router-dom';
+import AdvancedSearch from './EnhancedAdvancedSearch';
 import SearchResultsDisplay from './SearchResultsDisplay';
 import VisualSearch from './VisualSearch';
 import VoiceSearch from './VoiceSearch';
@@ -10,6 +10,7 @@ import apiService from '../../services/api';
 
 const SearchPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [activeSearchTab, setActiveSearchTab] = useState('text'); // 'text', 'visual', or 'voice'
   const [activeResultsTab, setActiveResultsTab] = useState('products'); // 'products' or 'reviews'
@@ -22,38 +23,56 @@ const SearchPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const query = params.get('q') || '';
-    const tab = params.get('tab'); // optional: 'products' or 'reviews'
+    const tabParam = params.get('tab');
+
+    if (tabParam === 'reviews') {
+      setActiveResultsTab('reviews');
+    } else if (tabParam === 'products') {
+      setActiveResultsTab('products');
+    }
 
     const initialFilters = {};
     for (let [key, value] of params.entries()) {
-      if (key !== 'q' && key !== 'tab') {
-        initialFilters[key] = value;
-      }
+      if (key === 'q' || key === 'tab') continue;
+      initialFilters[key] = value;
     }
 
-    const wantsReviewsTab = tab === 'reviews';
-    const hasFilters = Object.keys(initialFilters).length > 0;
-
-    if (query || hasFilters || wantsReviewsTab) {
+    // Run a search if we have a query OR any filters (e.g., category from homepage tiles)
+    if (query || Object.keys(initialFilters).length > 0) {
       setSearchQuery(query);
-      performSearch(query, initialFilters, wantsReviewsTab ? 'reviews' : 'products');
+      performSearch(query, initialFilters);
     } else {
-      // Clear results if there is no query, filters, or explicit tab
+      // Clear results if there is no query or filters in the URL
       setSearchResults({ products: [], reviews: [] });
       setError(null);
-      setActiveResultsTab('products');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
-  const performSearch = async (query, filters = {}, initialResultsTab = 'products') => {
+  const performSearch = async (query, filters = {}) => {
     setLoading(true);
     setError(null);
     setSearchType('text');
-    setActiveResultsTab(initialResultsTab);
 
     try {
-      const baseParams = { ...filters };
+      // Normalize category filters so backend can match by slug/name/id
+      const apiFilters = { ...filters };
+
+      if (apiFilters.category) {
+        if (!apiFilters.category_slug) {
+          apiFilters.category_slug = apiFilters.category;
+        }
+        if (!apiFilters.category_name) {
+          apiFilters.category_name = apiFilters.category;
+        }
+      }
+
+      if (apiFilters.category_id && !apiFilters.categoryId) {
+        apiFilters.categoryId = apiFilters.category_id;
+      }
+
+      const baseParams = { ...apiFilters };
+
       if (query) {
         // Pass text query to the backend; extra params are safely ignored if unsupported
         baseParams.q = query;
@@ -114,7 +133,7 @@ const SearchPage = () => {
         urlParams.set(key, params[key]);
       }
     }
-    window.history.pushState({}, '', `/search?${urlParams.toString()}`);
+    navigate(`/search?${urlParams.toString()}`);
   };
 
   const handleSearch = (query, filters) => {
@@ -128,13 +147,17 @@ const SearchPage = () => {
       }
     }
 
-    // Default text search: products tab is primary
-    window.history.pushState({}, '', `/search?${params.toString()}`);
-    performSearch(query, filters, 'products');
+    // Preserve current results tab in URL (so we can deep-link to reviews)
+    if (activeResultsTab === 'reviews') {
+      params.set('tab', 'reviews');
+    }
+
+    navigate(`/search?${params.toString()}`);
+    performSearch(query, filters);
   };
 
   const handleFiltersChange = () => {
-    // AdvancedSearch manages its own internal state;
+    // EnhancedAdvancedSearch manages its own internal state;
     // we trigger actual searches only via handleSearch on submit.
   };
 
@@ -189,7 +212,9 @@ const SearchPage = () => {
         <AdvancedSearch
           onSearch={handleSearch}
           onFiltersChange={handleFiltersChange}
-          initialQuery={searchQuery}
+          // EnhancedAdvancedSearch ignores unknown props; we keep this for compatibility
+          initialFilters={{}}
+          className=""
         />
       ) : activeSearchTab === 'visual' ? (
         <VisualSearch onResults={handleVisualSearchResults} onError={handleVisualSearchError} />
