@@ -41,7 +41,7 @@ export function HomePage() {
       const [categoriesResponse, reviewsResponse, productsResponse] = await Promise.all([
         apiService.getCategories(),
         apiService.getReviews({ limit: 6, sort: 'created_at' }),
-        // Fetch a reasonable page of products so we can map ids → names/brands
+        // Fetch products so we can map review.product_id → product name/brand
         apiService.getProducts({ per_page: 100 })
       ])
 
@@ -83,10 +83,29 @@ export function HomePage() {
     }
   }
 
-  // When clicking category tiles, send user to search focused on reviews
-  const buildCategoryHref = (name) => {
-    const encodedName = encodeURIComponent(name)
-    return `/search?category=${encodedName}&tab=reviews`
+  // Build a category-specific search URL (using slug + id when available)
+  const buildCategoryHref = (category) => {
+    if (!category) return '/search?tab=reviews'
+
+    const isString = typeof category === 'string'
+    const slug = isString
+      ? category
+      : category.slug || category.name || 'all'
+
+    const params = new URLSearchParams()
+    params.set('tab', 'reviews')
+    params.set('category', slug)
+
+    if (!isString) {
+      if (category.id != null) {
+        params.set('category_id', String(category.id))
+      }
+      if (category.name) {
+        params.set('category_name', category.name)
+      }
+    }
+
+    return `/search?${params.toString()}`
   }
 
   // More forgiving icon picker: handles "Home", "Home & Garden", "Beauty", etc.
@@ -102,10 +121,10 @@ export function HomePage() {
 
   // Static fallback tiles for Phase 0 when API returns empty
   const STATIC_CATEGORIES = [
-    { id: 'electronics', name: 'Electronics', img: electronicsIcon },
-    { id: 'automotive', name: 'Automotive', img: automotiveIcon },
-    { id: 'home', name: 'Home & Garden', img: homeIcon },
-    { id: 'beauty', name: 'Beauty & Health', img: beautyIcon }
+    { id: 'electronics', name: 'Electronics', slug: 'electronics', img: electronicsIcon },
+    { id: 'automotive', name: 'Automotive', slug: 'automotive', img: automotiveIcon },
+    { id: 'home', name: 'Home & Garden', slug: 'home-garden', img: homeIcon },
+    { id: 'beauty', name: 'Beauty & Health', slug: 'beauty-health', img: beautyIcon }
   ]
 
   const formatCount = (value) => {
@@ -131,14 +150,14 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Health status banner */}
+      {/* Health status banner (Phase 0 verification) */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
         <HealthStatusBanner />
       </div>
 
       {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-blue-600 to-purple-700 text-white overflow-hidden mt-4">
-        <div className="absolute inset-0 bg-black opacity-20" />
+        <div className="absolute inset-0 bg-black opacity-20"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
@@ -147,10 +166,11 @@ export function HomePage() {
                 <span className="block text-yellow-300">Purchase Decisions</span>
               </h1>
               <p className="text-xl mb-8 opacity-90">
-                Read authentic reviews from real customers and share your own experiences
+                Read authentic reviews from real customers and share your own experiences 
                 to help others make informed choices.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
+                {/* From hero, go to SearchPage showing review results */}
                 <Button
                   size="lg"
                   variant="secondary"
@@ -181,7 +201,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Stats (live from API) */}
       {!loading && !error && (
         <section className="py-16 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -222,12 +242,8 @@ export function HomePage() {
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Browse by Category
-            </h2>
-            <p className="text-xl text-gray-600">
-              Find reviews for products in every category
-            </p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Browse by Category</h2>
+            <p className="text-xl text-gray-600">Find reviews for products in every category</p>
           </div>
 
           {loading ? (
@@ -235,23 +251,22 @@ export function HomePage() {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : error ? (
+            // If error, still show static categories so the section isn’t empty
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {STATIC_CATEGORIES.map((category) => (
                 <Link
                   key={category.id}
-                  to={buildCategoryHref(category.name)}
+                  to={buildCategoryHref(category)}
                   className="group"
                 >
                   <Card className="hover:shadow-lg transition-shadow cursor-pointer">
                     <CardContent className="p-6 text-center">
-                      <img
-                        src={category.img}
+                      <img 
+                        src={category.img} 
                         alt={category.name}
                         className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform"
                       />
-                      <h3 className="font-semibold text-gray-900 mb-2">
-                        {category.name}
-                      </h3>
+                      <h3 className="font-semibold text-gray-900 mb-2">{category.name}</h3>
                       <p className="text-sm text-gray-600">Explore products</p>
                     </CardContent>
                   </Card>
@@ -260,37 +275,33 @@ export function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {(categories.length ? categories : STATIC_CATEGORIES).map(
-                (category) => {
-                  const name = category.name || category.title || 'Category'
-                  const href = buildCategoryHref(name)
-                  const img = category.img || getCategoryIcon(name)
+              {(categories.length ? categories : STATIC_CATEGORIES).map((category) => {
+                const name = category.name || category.title || 'Category'
+                const href = buildCategoryHref(category)
+                const img = category.img || getCategoryIcon(name)
 
-                  return (
-                    <Link
-                      key={category.id || category.slug || name}
-                      to={href}
-                      className="group"
-                    >
-                      <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-                        <CardContent className="p-6 text-center">
-                          <img
-                            src={img}
-                            alt={name}
-                            className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform"
-                          />
-                          <h3 className="font-semibold text-gray-900 mb-2">
-                            {name}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            {category.product_count ?? 'Explore products'}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  )
-                }
-              )}
+                return (
+                  <Link
+                    key={category.id || category.slug || name}
+                    to={href}
+                    className="group"
+                  >
+                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                      <CardContent className="p-6 text-center">
+                        <img 
+                          src={img}
+                          alt={name}
+                          className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform"
+                        />
+                        <h3 className="font-semibold text-gray-900 mb-2">{name}</h3>
+                        <p className="text-sm text-gray-600">
+                          {category.product_count ?? 'Explore products'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>
@@ -300,9 +311,8 @@ export function HomePage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Recent Reviews
-            </h2>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Recent Reviews</h2>
+            <p className="text-xl text-gray-600">See what our community is saying</p>
           </div>
 
           {loading ? (
@@ -369,18 +379,15 @@ export function HomePage() {
                   )
 
                 return (
-                  <Card
-                    key={review.id}
-                    className="hover:shadow-lg transition-shadow"
-                  >
+                  <Card key={review.id} className="hover:shadow-lg transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <ReviewProductWrapper>{productName}</ReviewProductWrapper>
+                          <ReviewProductWrapper>
+                            {productName}
+                          </ReviewProductWrapper>
                           {productBrand && (
-                            <p className="text-sm text-gray-600">
-                              {productBrand}
-                            </p>
+                            <p className="text-sm text-gray-600">{productBrand}</p>
                           )}
                         </div>
                         {renderStars(review.rating)}
@@ -418,6 +425,7 @@ export function HomePage() {
           )}
 
           <div className="text-center mt-8">
+            {/* From Recent Reviews, go to SearchPage showing reviews */}
             <Button
               variant="outline"
               size="lg"
@@ -429,7 +437,7 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Personalized Recommendations */}
+      {/* Personalized Recommendations (for authenticated users) */}
       {isAuthenticated && (
         <section className="py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
