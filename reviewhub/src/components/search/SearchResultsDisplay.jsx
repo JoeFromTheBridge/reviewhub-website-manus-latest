@@ -5,6 +5,24 @@ import { Badge } from '../ui/badge';
 import { Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+const normalize = (value) => (value || '').toString().toLowerCase();
+
+const matchProductForReview = (review, allProducts) => {
+  const productId =
+    review.product?.id ??
+    review.product?.product_id ??
+    review.product_id ??
+    review.productId ??
+    null;
+
+  if (!productId) return null;
+
+  return (
+    allProducts.find((p) => p.id === productId || p.product_id === productId) ||
+    null
+  );
+};
+
 const SearchResultsDisplay = ({
   results,
   activeTab,
@@ -16,19 +34,11 @@ const SearchResultsDisplay = ({
   const reviews = Array.isArray(results?.reviews) ? results.reviews : [];
 
   if (loading) {
-    return (
-      <div className="text-center py-8 text-gray-600">
-        Searching...
-      </div>
-    );
+    return <div className="text-center py-8 text-gray-600">Searching...</div>;
   }
 
   if (error) {
-    return (
-      <div className="text-center py-8 text-red-600">
-        {error}
-      </div>
-    );
+    return <div className="text-center py-8 text-red-600">{error}</div>;
   }
 
   const list = activeTab === 'products' ? products : reviews;
@@ -44,16 +54,10 @@ const SearchResultsDisplay = ({
 
   const renderProductCard = (product) => {
     const name =
-      product.name ||
-      product.title ||
-      product.product_name ||
-      'Product';
+      product.name || product.title || product.product_name || 'Product';
 
     const brand =
-      product.brand ||
-      product.manufacturer ||
-      product.maker ||
-      '';
+      product.brand || product.manufacturer || product.maker || '';
 
     const description =
       product.description ||
@@ -71,10 +75,7 @@ const SearchResultsDisplay = ({
       >
         <CardHeader>
           <CardTitle className="text-lg">
-            <Link
-              to={`/product/${product.id}`}
-              className="hover:text-primary"
-            >
+            <Link to={`/product/${product.id}`} className="hover:text-primary">
               {name}
             </Link>
           </CardTitle>
@@ -88,9 +89,7 @@ const SearchResultsDisplay = ({
         </CardHeader>
         <CardContent>
           {description && (
-            <p className="text-gray-700 mb-2 line-clamp-2">
-              {description}
-            </p>
+            <p className="text-gray-700 mb-2 line-clamp-2">{description}</p>
           )}
           {avgRating > 0 && (
             <div className="flex items-center mb-2">
@@ -119,16 +118,18 @@ const SearchResultsDisplay = ({
   };
 
   const renderReviewCard = (review) => {
+    const matchedProduct = matchProductForReview(review, products);
+
     const productId =
+      matchedProduct?.id ??
       review.product?.id ??
       review.product?.product_id ??
       review.product_id ??
-      review.productId ??
       null;
 
     const productName =
+      matchedProduct?.name ||
       review.product?.name ||
-      review.product?.product_name ||
       review.product_name ||
       'Product';
 
@@ -144,15 +145,11 @@ const SearchResultsDisplay = ({
         : `Review of ${productName}`;
 
     const body = review.comment || review.content || '';
-
     const rating = Number(review.rating) || 0;
     const createdAt = review.created_at
       ? new Date(review.created_at).toLocaleDateString()
       : '';
-
-    const isVerified =
-      review.is_verified || review.verified_purchase;
-
+    const isVerified = review.is_verified || review.verified_purchase;
     const hasImages = Array.isArray(review.images)
       ? review.images.length > 0
       : !!review.has_images;
@@ -165,10 +162,7 @@ const SearchResultsDisplay = ({
         <CardHeader>
           <CardTitle className="text-lg">
             {productId ? (
-              <Link
-                to={`/product/${productId}`}
-                className="hover:text-primary"
-              >
+              <Link to={`/product/${productId}`} className="hover:text-primary">
                 {title}
               </Link>
             ) : (
@@ -199,13 +193,9 @@ const SearchResultsDisplay = ({
             )}
           </div>
           {body && (
-            <p className="text-gray-700 mb-2 line-clamp-3">
-              {body}
-            </p>
+            <p className="text-gray-700 mb-2 line-clamp-3">{body}</p>
           )}
-          {hasImages && (
-            <Badge variant="outline">Has Images</Badge>
-          )}
+          {hasImages && <Badge variant="outline">Has Images</Badge>}
         </CardContent>
       </Card>
     );
@@ -214,9 +204,9 @@ const SearchResultsDisplay = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {activeTab === 'products' &&
-        products.map(renderProductCard)}
+        products.map((product) => renderProductCard(product))}
       {activeTab === 'reviews' &&
-        reviews.map(renderReviewCard)}
+        reviews.map((review) => renderReviewCard(review))}
     </div>
   );
 };
