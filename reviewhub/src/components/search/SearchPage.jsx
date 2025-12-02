@@ -8,6 +8,135 @@ import VisualSearch from './VisualSearch';
 import VoiceSearch from './VoiceSearch';
 import apiService from '../../services/api';
 
+// --------- helper utilities ---------
+const normalize = (value) => (value || '').toString().toLowerCase();
+
+const matchProductForReview = (review, allProducts) => {
+  const productId =
+    review.product?.id ??
+    review.product?.product_id ??
+    review.product_id ??
+    review.productId ??
+    null;
+
+  if (!productId) return null;
+
+  return (
+    allProducts.find((p) => p.id === productId || p.product_id === productId) ||
+    null
+  );
+};
+
+const buildCategoryMatchers = (filters) => {
+  const categoryFilter = normalize(
+    filters.category_name || filters.category || filters.category_slug || ''
+  );
+  const categoryIdFilter = filters.category_id || filters.categoryId || null;
+
+  const productMatchesCategory = (product) => {
+    if (!categoryFilter && !categoryIdFilter) return true;
+
+    let ok = false;
+
+    const pCat = normalize(
+      product.category || product.category_name || product.category_slug || ''
+    );
+    if (categoryFilter && pCat && pCat.includes(categoryFilter)) {
+      ok = true;
+    }
+
+    const pCatId = product.category_id || product.categoryId;
+    if (
+      categoryIdFilter &&
+      pCatId &&
+      String(pCatId) === String(categoryIdFilter)
+    ) {
+      ok = true;
+    }
+
+    return ok;
+  };
+
+  const reviewMatchesCategory = (review, allProducts) => {
+    if (!categoryFilter && !categoryIdFilter) return true;
+
+    let ok = false;
+
+    const matchedProduct = matchProductForReview(review, allProducts);
+    if (matchedProduct && productMatchesCategory(matchedProduct)) {
+      ok = true;
+    }
+
+    const rCat = normalize(
+      review.category || review.category_name || review.category_slug || ''
+    );
+    if (!ok && categoryFilter && rCat && rCat.includes(categoryFilter)) {
+      ok = true;
+    }
+
+    const rCatId = review.category_id || review.categoryId;
+    if (
+      !ok &&
+      categoryIdFilter &&
+      rCatId &&
+      String(rCatId) === String(categoryIdFilter)
+    ) {
+      ok = true;
+    }
+
+    return ok;
+  };
+
+  return { productMatchesCategory, reviewMatchesCategory };
+};
+
+const productMatchesQuery = (product, q) => {
+  if (!q) return true;
+  const text = normalize(
+    (product.name || product.title || product.product_name || '') +
+      ' ' +
+      (product.brand || product.manufacturer || '') +
+      ' ' +
+      (product.description || product.summary || product.short_description || '')
+  );
+  return text.includes(q);
+};
+
+const reviewMatchesQuery = (review, q, allProducts) => {
+  if (!q) return true;
+
+  const matchedProduct = matchProductForReview(review, allProducts);
+
+  const productName =
+    matchedProduct?.name ||
+    matchedProduct?.title ||
+    matchedProduct?.product_name ||
+    review.product?.name ||
+    review.product?.product_name ||
+    review.product_name ||
+    '';
+
+  const productBrand =
+    matchedProduct?.brand ||
+    matchedProduct?.manufacturer ||
+    review.product?.brand ||
+    review.product?.manufacturer ||
+    '';
+
+  const text = normalize(
+    productName +
+      ' ' +
+      productBrand +
+      ' ' +
+      (review.title || '') +
+      ' ' +
+      (review.comment || review.content || '')
+  );
+
+  return text.includes(q);
+};
+
+// --------- main component ---------
 const SearchPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -16,11 +145,15 @@ const SearchPage = () => {
   const [activeResultsTab, setActiveResultsTab] = useState('products'); // 'products' or 'reviews'
   const [searchQuery, setSearchQuery] = useState('');
   const [urlFilters, setUrlFilters] = useState({});
-  const [searchResults, setSearchResults] = useState({ products: [], reviews: [] });
+  const [initialFilters, setInitialFilters] = useState({});
+
+  const [searchResults, setSearchResults] = useState({
+    products: [],
+    reviews: [],
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchType, setSearchType] = useState('text'); // 'text', 'visual', or 'voice'
-  const [initialFilters, setInitialFilters] = useState({});
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -43,7 +176,6 @@ const SearchPage = () => {
     setUrlFilters(filtersFromUrl);
     setSearchQuery(query);
 
-    // Run a search if we have a query OR any filters (e.g., category from homepage tiles)
     if (query || Object.keys(filtersFromUrl).length > 0) {
       performSearch(query, filtersFromUrl);
     } else {
@@ -74,25 +206,40 @@ const SearchPage = () => {
         apiFilters.categoryId = apiFilters.category_id;
       }
 
-      const baseParams = { ...apiFilters };
-
+      const productParams = { ...apiFilters };
       if (query) {
-        baseParams.q = query;
+        productParams.q = query; // backend may ignore this; we still filter client-side
       }
 
       const [productResults, reviewResults] = await Promise.all([
-        apiService.getProducts(baseParams),
+        apiService.getProducts(productParams),
         apiService.getReviews({
-          ...baseParams,
           limit: 100,
           sort: 'created_at',
           order: 'desc',
         }),
       ]);
 
+      const allProducts = productResults?.products || [];
+      const allReviews = reviewResults?.reviews || [];
+
+      const q = normalize(query);
+      const { productMatchesCategory, reviewMatchesCategory } =
+        buildCategoryMatchers(apiFilters);
+
+      const filteredProducts = allProducts.filter(
+        (p) => productMatchesCategory(p) && productMatchesQuery(p, q)
+      );
+
+      const filteredReviews = allReviews.filter(
+        (r) =>
+          reviewMatchesCategory(r, allProducts) &&
+          reviewMatchesQuery(r, q, allProducts)
+      );
+
       setSearchResults({
-        products: productResults?.products || [],
-        reviews: reviewResults?.reviews || [],
+        products: filteredProducts,
+        reviews: filteredReviews,
       });
     } catch (err) {
       console.error('Search error:', err);
@@ -153,7 +300,6 @@ const SearchPage = () => {
       }
     }
 
-    // Preserve current results tab in URL (so we can deep-link to reviews)
     if (activeResultsTab === 'reviews') {
       params.set('tab', 'reviews');
     }
@@ -163,8 +309,7 @@ const SearchPage = () => {
   };
 
   const handleFiltersChange = () => {
-    // EnhancedAdvancedSearch manages its own internal state;
-    // actual searches happen via handleSearch on submit.
+    // EnhancedAdvancedSearch manages its own internal state; searches happen via handleSearch.
   };
 
   const hasResults =
@@ -238,7 +383,6 @@ const SearchPage = () => {
       {/* Results Section */}
       {hasResults && (
         <>
-          {/* Results Type Tabs */}
           <div className="flex border-b border-gray-200 mb-4 mt-8">
             <button
               className={`py-2 px-4 text-lg font-medium ${
@@ -280,8 +424,6 @@ const SearchPage = () => {
             loading={loading}
             error={error}
             searchType={searchType}
-            searchQuery={searchQuery}
-            filters={urlFilters}
           />
         </>
       )}
