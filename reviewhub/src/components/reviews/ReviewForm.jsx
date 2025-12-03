@@ -1,3 +1,4 @@
+// reviewhub/src/components/reviews/ReviewForm.jsx
 import { useState } from 'react';
 import { Star, Loader2, X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -68,7 +69,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!isAuthenticated) {
       setError('You must be logged in to submit a review');
       return;
@@ -79,15 +80,13 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       return;
     }
 
-    if (!formData.title.trim()) {
-      setError('Please enter a review title');
-      return;
-    }
-
-    if (!formData.comment.trim()) {
+    const comment = formData.comment.trim();
+    if (!comment) {
       setError('Please enter a review comment');
       return;
     }
+
+    const title = formData.title.trim();
 
     setIsSubmitting(true);
     setError('');
@@ -96,9 +95,12 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       const reviewData = {
         product_id: productId,
         rating: formData.rating,
-        title: formData.title.trim(),
-        comment: formData.comment.trim(),
+        content: comment,
       };
+
+      if (title) {
+        reviewData.title = title;
+      }
 
       // Create the review first
       const reviewResponse = await apiService.createReview(reviewData);
@@ -112,10 +114,12 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         } catch (imageError) {
           // Review was created successfully, but image upload failed
           console.error('Image upload failed:', imageError);
-          setError('Review submitted successfully, but some images failed to upload. You can edit your review to add images later.');
+          setError(
+            'Review submitted successfully, but some images failed to upload. You can edit your review to add images later.',
+          );
         }
       }
-      
+
       // Reset form
       setFormData({
         rating: 0,
@@ -123,16 +127,16 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         comment: '',
       });
       setSelectedImages([]);
-      
+
       // Notify parent component
       if (onReviewSubmitted) {
         onReviewSubmitted({
           ...reviewResponse,
-          uploadedImages
+          uploadedImages,
         });
       }
     } catch (error) {
-      setError(error.message);
+      setError(error.message || 'Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -143,7 +147,9 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <p className="text-gray-600 mb-4">You must be logged in to write a review.</p>
+            <p className="text-gray-600 mb-4">
+              You must be logged in to write a review.
+            </p>
             <Button onClick={() => window.location.reload()}>
               Sign In to Write Review
             </Button>
@@ -197,21 +203,26 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
                 </button>
               ))}
               <span className="ml-2 text-sm text-gray-600">
-                {formData.rating > 0 && `${formData.rating} star${formData.rating !== 1 ? 's' : ''}`}
+                {formData.rating > 0 &&
+                  `${formData.rating} star${
+                    formData.rating !== 1 ? 's' : ''
+                  }`}
               </span>
             </div>
           </div>
 
-          {/* Title */}
+          {/* Title (optional) */}
           <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
-              Review Title *
+            <label
+              htmlFor="title"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Review Title (optional)
             </label>
             <Input
               id="title"
               name="title"
               type="text"
-              required
               value={formData.title}
               onChange={handleChange}
               placeholder="Summarize your experience"
@@ -223,9 +234,12 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
             </p>
           </div>
 
-          {/* Comment */}
+          {/* Comment / Body */}
           <div>
-            <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="comment"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Your Review *
             </label>
             <textarea
@@ -252,7 +266,8 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
               Add Photos (Optional)
             </label>
             <p className="text-xs text-gray-500 mb-3">
-              Help others by sharing photos of the product. You can upload up to 5 images.
+              Help others by sharing photos of the product. You can upload up to
+              5 images.
             </p>
             <ImageUpload
               onImagesChange={handleImagesChange}
@@ -293,4 +308,3 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
     </Card>
   );
 }
-
