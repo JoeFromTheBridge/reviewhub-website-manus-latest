@@ -1,11 +1,10 @@
-// reviewhub/src/components/reviews/ReviewForm.jsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Star, Loader2, X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUpload } from '@/components/ui/image-upload';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 
@@ -21,8 +20,14 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();
+  // Login modal state
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  const { isAuthenticated, refreshAuth } = useAuth();
 
   const handleRatingClick = (rating) => {
     setFormData({ ...formData, rating });
@@ -42,7 +47,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   };
 
   const uploadImages = async (reviewId) => {
-    if (selectedImages.length === 0 || !reviewId) return [];
+    if (selectedImages.length === 0) return [];
 
     setUploadingImages(true);
     const uploadedImages = [];
@@ -51,19 +56,19 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       if (selectedImages.length === 1) {
         // Upload single image
         const result = await apiService.uploadReviewImage(selectedImages[0], reviewId);
-        if (result?.image) {
+        // result.image may be a URL or an object
+        if (result && result.image) {
           uploadedImages.push(result.image);
         }
       } else {
         // Upload multiple images
         const result = await apiService.uploadMultipleReviewImages(selectedImages, reviewId);
-        if (result?.images && Array.isArray(result.images)) {
+        if (result && Array.isArray(result.images)) {
           uploadedImages.push(...result.images);
         }
       }
     } catch (error) {
       console.error('Error uploading images:', error);
-      // We rethrow so caller can show a friendly “images failed” message
       throw new Error('Failed to upload images: ' + (error.message || 'Unknown error'));
     } finally {
       setUploadingImages(false);
@@ -76,7 +81,8 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
     e.preventDefault();
 
     if (!isAuthenticated) {
-      setError('You must be logged in to submit a review');
+      // Instead of redirecting, open the login modal
+      setShowLoginDialog(true);
       return;
     }
 
@@ -107,15 +113,15 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         reviewData.title = title;
       }
 
-      // 1) Create the review
+      // Create the review first
       const reviewResponse = await apiService.createReview(reviewData);
-      const createdReview = reviewResponse.review || reviewResponse || null;
-      const reviewId = createdReview?.id;
+      const review = reviewResponse.review || reviewResponse;
+      const reviewId = review?.id;
 
-      // 2) Upload images (if any)
+      let uploadedImages = [];
       if (selectedImages.length > 0 && reviewId) {
         try {
-          await uploadImages(reviewId);
+          uploadedImages = await uploadImages(reviewId);
         } catch (imageError) {
           console.error('Image upload failed:', imageError);
           setError(
@@ -124,16 +130,13 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         }
       }
 
-      // 3) Fetch the fresh review from backend so we get whatever
-      //    image relations/fields the API uses for listing.
-      let finalReviewPayload = createdReview;
-      if (reviewId) {
-        try {
-          const refreshed = await apiService.getReview(reviewId);
-          finalReviewPayload = refreshed.review || refreshed || createdReview;
-        } catch (refreshErr) {
-          console.warn('Could not refresh review after upload:', refreshErr);
-        }
+      // Ensure the review object has images attached for the parent
+      if (review) {
+        review.images = [
+          ...(Array.isArray(review.images) ? review.images : []),
+          ...(Array.isArray(review.review_images) ? review.review_images : []),
+          ...uploadedImages,
+        ];
       }
 
       // Reset form
@@ -144,41 +147,164 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       });
       setSelectedImages([]);
 
-      // Notify parent with the full review object
-      if (onReviewSubmitted && finalReviewPayload) {
-        onReviewSubmitted(finalReviewPayload);
+      // Notify parent component
+      if (onReviewSubmitted) {
+        onReviewSubmitted({
+          review,
+          uploadedImages,
+        });
       }
     } catch (error) {
-      console.error('Failed to submit review:', error);
       setError(error.message || 'Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Not logged in: show sign-in prompt, and send user to "/?auth=login"
-  // so the header can open the sign-in modal.
+  const handleLoginSubmit = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+
+    const email = loginEmail.trim();
+    const password = loginPassword;
+
+    if (!email || !password) {
+      setLoginError('Please enter both email and password.');
+      return;
+    }
+
+    try {
+      setLoginLoading(true);
+
+      const data = await apiService.login({ email, password });
+
+      // Store token in any of the keys the API client looks at
+      if (data.access_token) {
+        localStorage.setItem('access_token', data.access_token);
+      }
+      if (data.accessToken) {
+        localStorage.setItem('accessToken', data.accessToken);
+      }
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+
+      // Let AuthContext refresh if it supports it, otherwise reload
+      if (typeof refreshAuth === 'function') {
+        await refreshAuth();
+      } else {
+        window.location.reload();
+      }
+
+      setShowLoginDialog(false);
+    } catch (err) {
+      console.error('Login failed:', err);
+      setLoginError(err.message || 'Failed to sign in. Please try again.');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // ---------- RENDER ----------
+
+  // Not authenticated: show CTA + login modal
   if (!isAuthenticated) {
     return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center">
-            <p className="text-gray-600 mb-4">
-              You must be logged in to write a review.
-            </p>
-            <Button
-              onClick={() => {
-                navigate('/?auth=login');
-              }}
-            >
-              Sign In to Write Review
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <>
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <p className="text-gray-600 mb-4">
+                You must be logged in to write a review.
+              </p>
+              <Button onClick={() => setShowLoginDialog(true)}>
+                Sign In to Write Review
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Dialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Sign In to Write a Review</DialogTitle>
+              <DialogDescription>
+                Enter your credentials to continue and then submit your review.
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleLoginSubmit} className="space-y-4 mt-2">
+              <div>
+                <label
+                  htmlFor="login-email"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Email
+                </label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  autoComplete="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  disabled={loginLoading}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="login-password"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Password
+                </label>
+                <Input
+                  id="login-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  disabled={loginLoading}
+                />
+              </div>
+
+              {loginError && (
+                <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded">
+                  <p className="text-xs text-red-600">{loginError}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowLoginDialog(false)}
+                  disabled={loginLoading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loginLoading}>
+                  {loginLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing In…
+                    </>
+                  ) : (
+                    'Sign In'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 
+  // Authenticated: full review form
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -311,9 +437,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
             )}
             <Button
               type="submit"
-              disabled={
-                isSubmitting || uploadingImages || formData.rating === 0
-              }
+              disabled={isSubmitting || uploadingImages || formData.rating === 0}
             >
               {isSubmitting ? (
                 <>
