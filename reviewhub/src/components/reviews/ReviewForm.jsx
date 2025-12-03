@@ -1,6 +1,5 @@
 // reviewhub/src/components/reviews/ReviewForm.jsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Star, Loader2, X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +21,6 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   const [uploadingImages, setUploadingImages] = useState(false);
 
   const { isAuthenticated, openAuthModal } = useAuth();
-  const navigate = useNavigate();
 
   const handleRatingClick = (rating) => {
     setFormData({ ...formData, rating });
@@ -49,9 +47,11 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
 
     try {
       if (selectedImages.length === 1) {
+        // Upload single image
         const result = await apiService.uploadReviewImage(selectedImages[0], reviewId);
         uploadedImages.push(result.image);
       } else {
+        // Upload multiple images
         const result = await apiService.uploadMultipleReviewImages(selectedImages, reviewId);
         if (result.images) {
           uploadedImages.push(...result.images);
@@ -102,14 +102,17 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         reviewData.title = title;
       }
 
+      // Create the review first
       const reviewResponse = await apiService.createReview(reviewData);
       const reviewId = reviewResponse.review?.id;
 
+      // Upload images if any are selected
       let uploadedImages = [];
       if (selectedImages.length > 0 && reviewId) {
         try {
           uploadedImages = await uploadImages(reviewId);
         } catch (imageError) {
+          // Review was created successfully, but image upload failed
           console.error('Image upload failed:', imageError);
           setError(
             'Review submitted successfully, but some images failed to upload. You can edit your review to add images later.',
@@ -117,6 +120,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         }
       }
 
+      // Reset form
       setFormData({
         rating: 0,
         title: '',
@@ -124,6 +128,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       });
       setSelectedImages([]);
 
+      // Notify parent component
       if (onReviewSubmitted) {
         onReviewSubmitted({
           ...reviewResponse,
@@ -138,23 +143,20 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   };
 
   const handleSignInClick = () => {
-    // Preferred: open the shared auth modal if the context exposes it
+    // Prefer using the shared auth modal if available
     if (typeof openAuthModal === 'function') {
-      openAuthModal('signin');
+      openAuthModal('login');
       return;
     }
 
-    // Fallback: go to homepage with auth query – should behave like the
-    // existing "Sign In" button on the "Sign in required" screen
-    if (navigate) {
-      navigate('/?auth=signin');
-      return;
+    // Fallback: send to homepage with a query param that Header can read
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.pathname = '/';
+      url.searchParams.set('auth', 'signin');
+      window.location.href = url.toString();
     }
-
-    // Last-resort fallback
-    window.location.href = '/?auth=signin';
   };
-
 
   if (!isAuthenticated) {
     return (
