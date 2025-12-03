@@ -10,50 +10,50 @@ import SimilarProducts from './search/SimilarProducts';
 import { ReviewForm } from './reviews/ReviewForm';
 import apiService from '../services/api';
 
-// Safely normalize any "image-ish" value to a URL string
+// Normalize any review image into a usable URL
 function getReviewImageUrl(image) {
   if (!image) return '';
 
-  // Plain string
-  if (typeof image === 'string') {
-    const trimmed = image.trim();
-    if (!trimmed) return '';
-    if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
-      return trimmed;
-    }
-    return `/${trimmed.replace(/^\/+/, '')}`;
-  }
+  // Pull raw candidate url/string from supported fields
+  let raw = null;
 
-  // If backend nests inside an `image` field
-  if (image.image && typeof image.image === 'string') {
+  if (typeof image === 'string') {
+    raw = image;
+  } else if (image.thumbnail_url) {
+    raw = image.thumbnail_url;
+  } else if (image.file_url) {
+    raw = image.file_url;
+  } else if (image.url) {
+    raw = image.url;
+  } else if (image.image_url) {
+    raw = image.image_url;
+  } else if (image.image) {
+    // Sometimes nested objects
     return getReviewImageUrl(image.image);
   }
-  if (image.image && typeof image.image === 'object') {
-    const nested = getReviewImageUrl(image.image);
-    if (nested) return nested;
+
+  if (!raw) return '';
+
+  raw = String(raw).trim();
+  if (!raw) return '';
+
+  // If backend returns "/uploads/..." → prefix with /api so Vercel proxies to backend
+  if (raw.startsWith('/uploads')) {
+    return `/api${raw}`;
   }
 
-  const candidate =
-    image.thumbnail_url ||
-    image.url ||
-    image.image_url ||
-    image.file_url ||
-    image.file_path ||
-    image.path ||
-    image.location ||
-    image.src ||
-    null;
-
-  if (!candidate) return '';
-
-  const trimmed = String(candidate).trim();
-  if (!trimmed) return '';
-
-  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
-    return trimmed;
+  // Already absolute URL
+  if (/^https?:\/\//i.test(raw)) {
+    return raw;
   }
 
-  return `/${trimmed.replace(/^\/+/, '')}`;
+  // Relative "uploads/xyz.jpg" without leading slash
+  if (raw.startsWith('uploads/')) {
+    return `/api/${raw}`;
+  }
+
+  // Fallback: ensure a single leading slash
+  return raw.startsWith('/') ? raw : `/${raw}`;
 }
 
 // Collect image URLs from all likely fields on the review
