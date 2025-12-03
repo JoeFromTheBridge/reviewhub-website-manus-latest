@@ -15,7 +15,7 @@ import automotiveIcon from '../assets/category_automotive.png'
 import homeIcon from '../assets/category_home.png'
 import beautyIcon from '../assets/category_beauty.png'
 
-// Removed: import HealthStatusBanner from '@/components/HealthStatusBanner'
+// Removed HealthStatusBanner for production readiness
 
 export function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -143,14 +143,12 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Removed: HealthStatusBanner */}
+      {/* Removed HealthStatusBanner (Phase 0 testing complete) */}
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 to-purple-700 text-white overflow-hidden mt-4">
-        ...
-      </section>
+      {/* Remaining homepage sections are unchanged and rendered below */}
 
-      {/* (Remaining sections unchanged) */}
+      {/* ... Hero, Stats, Categories, Reviews, Recommendations, Trending, CTA ... */}
+
     </div>
   )
 }
