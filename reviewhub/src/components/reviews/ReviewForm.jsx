@@ -1,6 +1,6 @@
 // reviewhub/src/components/reviews/ReviewForm.jsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';          // ← NEW
+import { useNavigate } from 'react-router-dom';
 import { Star, Loader2, X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   const [uploadingImages, setUploadingImages] = useState(false);
 
   const { isAuthenticated } = useAuth();
-  const navigate = useNavigate();                       // ← NEW
+  const navigate = useNavigate();
 
   const handleRatingClick = (rating) => {
     setFormData({ ...formData, rating });
@@ -42,7 +42,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   };
 
   const uploadImages = async (reviewId) => {
-    if (selectedImages.length === 0) return [];
+    if (selectedImages.length === 0 || !reviewId) return [];
 
     setUploadingImages(true);
     const uploadedImages = [];
@@ -51,17 +51,20 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       if (selectedImages.length === 1) {
         // Upload single image
         const result = await apiService.uploadReviewImage(selectedImages[0], reviewId);
-        uploadedImages.push(result.image);
+        if (result?.image) {
+          uploadedImages.push(result.image);
+        }
       } else {
         // Upload multiple images
         const result = await apiService.uploadMultipleReviewImages(selectedImages, reviewId);
-        if (result.images) {
+        if (result?.images && Array.isArray(result.images)) {
           uploadedImages.push(...result.images);
         }
       }
     } catch (error) {
       console.error('Error uploading images:', error);
-      throw new Error('Failed to upload images: ' + error.message);
+      // We rethrow so caller can show a friendly “images failed” message
+      throw new Error('Failed to upload images: ' + (error.message || 'Unknown error'));
     } finally {
       setUploadingImages(false);
     }
@@ -104,21 +107,32 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         reviewData.title = title;
       }
 
-      // Create the review first
+      // 1) Create the review
       const reviewResponse = await apiService.createReview(reviewData);
-      const reviewId = reviewResponse.review?.id;
+      const createdReview = reviewResponse.review || reviewResponse || null;
+      const reviewId = createdReview?.id;
 
-      // Upload images if any are selected
-      let uploadedImages = [];
+      // 2) Upload images (if any)
       if (selectedImages.length > 0 && reviewId) {
         try {
-          uploadedImages = await uploadImages(reviewId);
+          await uploadImages(reviewId);
         } catch (imageError) {
-          // Review was created successfully, but image upload failed
           console.error('Image upload failed:', imageError);
           setError(
             'Review submitted successfully, but some images failed to upload. You can edit your review to add images later.',
           );
+        }
+      }
+
+      // 3) Fetch the fresh review from backend so we get whatever
+      //    image relations/fields the API uses for listing.
+      let finalReviewPayload = createdReview;
+      if (reviewId) {
+        try {
+          const refreshed = await apiService.getReview(reviewId);
+          finalReviewPayload = refreshed.review || refreshed || createdReview;
+        } catch (refreshErr) {
+          console.warn('Could not refresh review after upload:', refreshErr);
         }
       }
 
@@ -130,26 +144,20 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       });
       setSelectedImages([]);
 
-      // Notify parent component
-      if (onReviewSubmitted) {
-        onReviewSubmitted({
-          ...reviewResponse,
-          uploadedImages,
-        });
+      // Notify parent with the full review object
+      if (onReviewSubmitted && finalReviewPayload) {
+        onReviewSubmitted(finalReviewPayload);
       }
     } catch (error) {
+      console.error('Failed to submit review:', error);
       setError(error.message || 'Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // NEW: centralized click handler for the logged-out CTA
-  const handleSignInClick = () => {
-    // Reuse your existing protected route flow
-    navigate('/profile?from=write-review');
-  };
-
+  // Not logged in: show sign-in prompt, and send user to "/?auth=login"
+  // so the header can open the sign-in modal.
   if (!isAuthenticated) {
     return (
       <Card>
@@ -158,7 +166,11 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
             <p className="text-gray-600 mb-4">
               You must be logged in to write a review.
             </p>
-            <Button onClick={handleSignInClick}>
+            <Button
+              onClick={() => {
+                navigate('/?auth=login');
+              }}
+            >
               Sign In to Write Review
             </Button>
           </div>
@@ -299,7 +311,9 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
             )}
             <Button
               type="submit"
-              disabled={isSubmitting || uploadingImages || formData.rating === 0}
+              disabled={
+                isSubmitting || uploadingImages || formData.rating === 0
+              }
             >
               {isSubmitting ? (
                 <>
