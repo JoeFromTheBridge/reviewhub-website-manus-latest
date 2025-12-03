@@ -20,7 +20,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, openAuthModal } = useAuth();
 
   const handleRatingClick = (rating) => {
     setFormData({ ...formData, rating });
@@ -72,6 +72,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
 
     if (!isAuthenticated) {
       setError('You must be logged in to submit a review');
+      if (openAuthModal) openAuthModal('signin');
       return;
     }
 
@@ -131,7 +132,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       // Notify parent component
       if (onReviewSubmitted) {
         onReviewSubmitted({
-          ...reviewResponse,
+          ...(reviewResponse.review || reviewResponse),
           uploadedImages,
         });
       }
@@ -147,10 +148,13 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <p className="text-gray-600 mb-4">
+            <p className="mb-4 text-gray-600">
               You must be logged in to write a review.
             </p>
-            <Button onClick={() => window.location.reload()}>
+            <Button
+              type="button"
+              onClick={() => openAuthModal && openAuthModal('signin')}
+            >
               Sign In to Write Review
             </Button>
           </div>
@@ -171,15 +175,15 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       </CardHeader>
       <CardContent>
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-600 text-sm">{error}</p>
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3">
+            <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Rating */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-700">
               Rating *
             </label>
             <div className="flex items-center space-x-1">
@@ -190,7 +194,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
                   onClick={() => handleRatingClick(star)}
                   onMouseEnter={() => setHoveredRating(star)}
                   onMouseLeave={() => setHoveredRating(0)}
-                  className="p-1 hover:scale-110 transition-transform"
+                  className="p-1 transition-transform hover:scale-110"
                   disabled={isSubmitting}
                 >
                   <Star
@@ -215,7 +219,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
           <div>
             <label
               htmlFor="title"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="mb-1 block text-sm font-medium text-gray-700"
             >
               Review Title (optional)
             </label>
@@ -229,7 +233,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
               disabled={isSubmitting}
               maxLength={100}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-gray-500">
               {formData.title.length}/100 characters
             </p>
           </div>
@@ -238,7 +242,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
           <div>
             <label
               htmlFor="comment"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="mb-1 block text-sm font-medium text-gray-700"
             >
               Your Review *
             </label>
@@ -252,20 +256,20 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
               disabled={isSubmitting}
               rows={4}
               maxLength={1000}
-              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
+              className="flex w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-gray-500">
               {formData.comment.length}/1000 characters
             </p>
           </div>
 
           {/* Image Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <Camera className="inline h-4 w-4 mr-1" />
+            <label className="mb-2 block text-sm font-medium text-gray-700">
+              <Camera className="mr-1 inline h-4 w-4" />
               Add Photos (Optional)
             </label>
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="mb-3 text-xs text-gray-500">
               Help others by sharing photos of the product. You can upload up to
               5 images.
             </p>
@@ -273,7 +277,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
               onImagesChange={handleImagesChange}
               maxImages={5}
               disabled={isSubmitting || uploadingImages}
-              className="border-2 border-dashed border-gray-200 rounded-lg"
+              className="rounded-lg border-2 border-dashed border-gray-200"
             />
           </div>
 
