@@ -246,22 +246,91 @@ class Review(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-    
+
     # Image support
     images = db.Column(db.JSON, nullable=True)  # List of image URLs
-    
+
     # Relationships
     votes = db.relationship('ReviewVote', backref='review', lazy=True, cascade='all, delete-orphan')
-    
+
     @property
     def helpful_votes(self):
         return sum(1 for vote in self.votes if vote.is_helpful)
-    
+
     @property
     def total_votes(self):
         return len(self.votes)
-    
+
     def to_dict(self):
+        """
+        Return a dict representation of the review, including any related Image
+        records as a unified `images` list that the frontend can render.
+        """
+
+        # Start from JSON column if present
+        merged_images = []
+
+        # JSON column may be:
+        # - list of strings
+        # - list of objects
+        # - single string
+        if isinstance(self.images, list):
+            merged_images = list(self.images)
+        elif isinstance(self.images, str):
+            merged_images = [self.images]
+
+        # Merge in relational Image records (lazy='dynamic' → .all())
+        try:
+            # Only attempt if relationship is present
+            rel_images = []
+            if hasattr(self, "image_records"):
+                for img in self.image_records.all():
+                    # Image model is defined in image_upload_routes; we only use fields that exist there
+                    img_payload = {
+                        "id": getattr(img, "id", None),
+                        "file_url": getattr(img, "file_url", None),
+                        "thumbnail_url": getattr(img, "thumbnail_url", None),
+                        "alt_text": getattr(img, "alt_text", None),
+                        "caption": getattr(img, "caption", None),
+                    }
+
+                    # Skip if we have neither file_url nor thumbnail_url
+                    if not img_payload["file_url"] and not img_payload["thumbnail_url"]:
+                        continue
+
+                    rel_images.append(img_payload)
+
+            # De-duplicate by (file_url, thumbnail_url) pair
+            seen = set()
+
+            def key_for(item):
+                if isinstance(item, dict):
+                    return (
+                        item.get("file_url")
+                        or item.get("url")
+                        or item.get("image_url")
+                        or item.get("thumbnail_url"),
+                        item.get("thumbnail_url"),
+                    )
+                else:
+                    # plain string
+                    return (str(item), None)
+
+            # Register existing ones
+            for item in merged_images:
+                seen.add(key_for(item))
+
+            # Append new relational ones if not already present
+            for item in rel_images:
+                k = key_for(item)
+                if k not in seen:
+                    merged_images.append(item)
+                    seen.add(k)
+
+        except Exception:
+            # If anything goes wrong, we still return whatever we had in self.images
+            pass
+
         return {
             'id': self.id,
             'user': {
@@ -278,7 +347,7 @@ class Review(db.Model):
             'verified_purchase': self.verified_purchase,
             'helpful_votes': self.helpful_votes,
             'total_votes': self.total_votes,
-            'images': self.images,
+            'images': merged_images,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
