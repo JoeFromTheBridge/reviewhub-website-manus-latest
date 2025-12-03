@@ -11,37 +11,6 @@ import SimilarProducts from './search/SimilarProducts';
 import { ReviewForm } from './reviews/ReviewForm';
 import apiService from '../services/api';
 
-// Helper to normalize review image URLs
-const getReviewImageUrl = (image) => {
-  if (!image) return '';
-
-  let raw = '';
-
-  if (typeof image === 'string') {
-    raw = image;
-  } else if (typeof image === 'object') {
-    raw =
-      image.url ||
-      image.image_url ||
-      image.file_path ||
-      image.path ||
-      image.image ||
-      '';
-  }
-
-  if (!raw) return '';
-
-  // If backend already returns a full URL, use as-is
-  if (raw.startsWith('http://') || raw.startsWith('https://')) {
-    return raw;
-  }
-
-  const base = (apiService.baseURL || '').replace(/\/+$/, '');
-  const path = raw.startsWith('/') ? raw : `/${raw}`;
-
-  return `${base}${path}`;
-};
-
 export function ProductPage() {
   const { id } = useParams();
   const numericId = id ? parseInt(id, 10) : null;
@@ -221,6 +190,43 @@ export function ProductPage() {
     ));
   };
 
+  // Helper to normalize review image URLs
+  const getReviewImageUrl = (image) => {
+    if (!image) return '';
+
+    // If backend gives a plain string
+    if (typeof image === 'string') {
+      const trimmed = image.trim();
+      if (!trimmed) return '';
+      if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+        return trimmed;
+      }
+      // relative path like "uploads/xyz.jpg"
+      return `/${trimmed.replace(/^\/+/, '')}`;
+    }
+
+    // If backend gives an object
+    const candidate =
+      image.url ||
+      image.image_url ||
+      image.file_path ||
+      image.path ||
+      image.location ||
+      image.src ||
+      null;
+
+    if (!candidate) return '';
+
+    const trimmed = String(candidate).trim();
+    if (!trimmed) return '';
+
+    if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+      return trimmed;
+    }
+
+    return `/${trimmed.replace(/^\/+/, '')}`;
+  };
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -338,7 +344,7 @@ export function ProductPage() {
           {product.price_min != null || product.price_max != null ? (
             <div className="mb-6">
               <p className="text-lg font-semibold text-gray-900">
-                Price Range{' '}
+                Price Range:{' '}
                 {product.price_min != null && product.price_max != null
                   ? `$${product.price_min} - $${product.price_max}`
                   : product.price_min != null
@@ -516,18 +522,18 @@ export function ProductPage() {
 
                       {images.length > 0 && (
                         <div className="flex space-x-2 mb-4">
-                          {images.map((image, index) => (
-                            <img
-                              key={index}
-                              src={getReviewImageUrl(image)}
-                              alt={
-                                typeof image === 'object'
-                                  ? image.alt_text || 'Review'
-                                  : 'Review'
-                              }
-                              className="w-20 h-20 object-cover rounded"
-                            />
-                          ))}
+                          {images.map((image, index) => {
+                            const url = getReviewImageUrl(image);
+                            if (!url) return null;
+                            return (
+                              <img
+                                key={index}
+                                src={url}
+                                alt="Review"
+                                className="w-20 h-20 object-cover rounded"
+                              />
+                            );
+                          })}
                         </div>
                       )}
 
