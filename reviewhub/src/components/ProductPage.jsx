@@ -1,4 +1,3 @@
-// reviewhub/src/components/ProductPage.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Star, ThumbsUp, Shield, Filter } from 'lucide-react';
@@ -11,28 +10,27 @@ import SimilarProducts from './search/SimilarProducts';
 import { ReviewForm } from './reviews/ReviewForm';
 import apiService from '../services/api';
 
-/**
- * Safely extract a URL string from any image-like value.
- */
+// Safely normalize any "image-ish" value to a URL string
 function getReviewImageUrl(image) {
-  if (!image) return null;
+  if (!image) return '';
 
-  // Plain string (e.g., "uploads/review_images/abc.jpg" or full URL)
+  // Plain string
   if (typeof image === 'string') {
     const trimmed = image.trim();
-    if (!trimmed) return null;
-
+    if (!trimmed) return '';
     if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
       return trimmed;
     }
-
-    // Treat as relative path from the site root
     return `/${trimmed.replace(/^\/+/, '')}`;
   }
 
-  // Sometimes API nests the actual image object
-  if (image.image) {
+  // If backend nests inside an `image` field
+  if (image.image && typeof image.image === 'string') {
     return getReviewImageUrl(image.image);
+  }
+  if (image.image && typeof image.image === 'object') {
+    const nested = getReviewImageUrl(image.image);
+    if (nested) return nested;
   }
 
   const candidate =
@@ -46,12 +44,19 @@ function getReviewImageUrl(image) {
     image.src ||
     null;
 
-  return candidate ? getReviewImageUrl(String(candidate)) : null;
+  if (!candidate) return '';
+
+  const trimmed = String(candidate).trim();
+  if (!trimmed) return '';
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  return `/${trimmed.replace(/^\/+/, '')}`;
 }
 
-/**
- * Collect all usable image URLs for a review from likely fields.
- */
+// Collect image URLs from all likely fields on the review
 function collectReviewImageUrls(review) {
   if (!review) return [];
 
@@ -64,12 +69,10 @@ function collectReviewImageUrls(review) {
   ].filter(Array.isArray);
 
   const flat = candidates.flat().filter(Boolean);
-
   const urls = flat
     .map((img) => getReviewImageUrl(img))
-    .filter((u) => typeof u === 'string' && u.length > 0);
+    .filter((u) => typeof u === 'string' && u.trim().length > 0);
 
-  // Remove duplicates while preserving order
   return Array.from(new Set(urls));
 }
 
@@ -121,7 +124,6 @@ export function ProductPage() {
 
         if (!isMounted) return;
 
-        // Some backends wrap the product in { product: {...} }
         const productData = productDataRaw?.product || productDataRaw || null;
 
         setProduct(productData);
@@ -152,10 +154,9 @@ export function ProductPage() {
 
     const uploadedImages = result.uploadedImages || [];
 
-    // Merge newly-uploaded images into whatever the backend already returned
     const mergedImages = [
-      ...(baseReview.images || []),
-      ...(baseReview.review_images || []),
+      ...(Array.isArray(baseReview.images) ? baseReview.images : []),
+      ...(Array.isArray(baseReview.review_images) ? baseReview.review_images : []),
       ...uploadedImages,
     ];
 
@@ -375,7 +376,7 @@ export function ProductPage() {
           {product.price_min != null || product.price_max != null ? (
             <div className="mb-6">
               <p className="text-lg font-semibold text-gray-900">
-                Price Range:{' '}
+                Price Range{' '}
                 {product.price_min != null && product.price_max != null
                   ? `$${product.price_min} - $${product.price_max}`
                   : product.price_min != null
@@ -445,7 +446,7 @@ export function ProductPage() {
 
         {/* Reviews List + Form */}
         <div className="lg:col-span-2">
-          {/* Review Form (for logged-in users) */}
+          {/* Review Form */}
           {showReviewForm && (
             <div className="mb-8">
               <ReviewForm
@@ -586,7 +587,6 @@ export function ProductPage() {
           </div>
 
           <div className="text-center mt-8">
-            {/* Placeholder for pagination in future */}
             <Button variant="outline">Load More Reviews</Button>
           </div>
         </div>
