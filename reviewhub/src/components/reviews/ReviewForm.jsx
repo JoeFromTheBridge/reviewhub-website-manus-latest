@@ -1,5 +1,6 @@
 // reviewhub/src/components/reviews/ReviewForm.jsx
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';          // ← NEW
 import { Star, Loader2, X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +21,8 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
 
-  const { isAuthenticated, openAuthModal } = useAuth();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();                       // ← NEW
 
   const handleRatingClick = (rating) => {
     setFormData({ ...formData, rating });
@@ -142,20 +144,10 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
     }
   };
 
+  // NEW: centralized click handler for the logged-out CTA
   const handleSignInClick = () => {
-    // Prefer using the shared auth modal if available
-    if (typeof openAuthModal === 'function') {
-      openAuthModal('login');
-      return;
-    }
-
-    // Fallback: send to homepage with a query param that Header can read
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href);
-      url.pathname = '/';
-      url.searchParams.set('auth', 'signin');
-      window.location.href = url.toString();
-    }
+    // Reuse your existing protected route flow
+    navigate('/profile?from=write-review');
   };
 
   if (!isAuthenticated) {
