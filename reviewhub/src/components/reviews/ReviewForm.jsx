@@ -1,5 +1,6 @@
 // reviewhub/src/components/reviews/ReviewForm.jsx
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Star, Loader2, X, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +22,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   const [uploadingImages, setUploadingImages] = useState(false);
 
   const { isAuthenticated, openAuthModal } = useAuth();
+  const navigate = useNavigate();
 
   const handleRatingClick = (rating) => {
     setFormData({ ...formData, rating });
@@ -47,11 +49,9 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
 
     try {
       if (selectedImages.length === 1) {
-        // Upload single image
         const result = await apiService.uploadReviewImage(selectedImages[0], reviewId);
         uploadedImages.push(result.image);
       } else {
-        // Upload multiple images
         const result = await apiService.uploadMultipleReviewImages(selectedImages, reviewId);
         if (result.images) {
           uploadedImages.push(...result.images);
@@ -72,7 +72,6 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
 
     if (!isAuthenticated) {
       setError('You must be logged in to submit a review');
-      if (openAuthModal) openAuthModal('signin');
       return;
     }
 
@@ -103,17 +102,14 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         reviewData.title = title;
       }
 
-      // Create the review first
       const reviewResponse = await apiService.createReview(reviewData);
       const reviewId = reviewResponse.review?.id;
 
-      // Upload images if any are selected
       let uploadedImages = [];
       if (selectedImages.length > 0 && reviewId) {
         try {
           uploadedImages = await uploadImages(reviewId);
         } catch (imageError) {
-          // Review was created successfully, but image upload failed
           console.error('Image upload failed:', imageError);
           setError(
             'Review submitted successfully, but some images failed to upload. You can edit your review to add images later.',
@@ -121,7 +117,6 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         }
       }
 
-      // Reset form
       setFormData({
         rating: 0,
         title: '',
@@ -129,10 +124,9 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       });
       setSelectedImages([]);
 
-      // Notify parent component
       if (onReviewSubmitted) {
         onReviewSubmitted({
-          ...(reviewResponse.review || reviewResponse),
+          ...reviewResponse,
           uploadedImages,
         });
       }
@@ -143,18 +137,34 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
     }
   };
 
+  const handleSignInClick = () => {
+    // Preferred: open the shared auth modal if available
+    if (typeof openAuthModal === 'function') {
+      // If your modal accepts a mode, this still works;
+      // extra args are ignored if it doesn't.
+      openAuthModal('signin');
+      return;
+    }
+
+    // Fallback: navigate to profile, which should trigger the auth flow
+    if (navigate) {
+      navigate('/profile?from=write-review');
+      return;
+    }
+
+    // Last resort
+    window.location.href = '/profile';
+  };
+
   if (!isAuthenticated) {
     return (
       <Card>
         <CardContent className="p-6">
           <div className="text-center">
-            <p className="mb-4 text-gray-600">
+            <p className="text-gray-600 mb-4">
               You must be logged in to write a review.
             </p>
-            <Button
-              type="button"
-              onClick={() => openAuthModal && openAuthModal('signin')}
-            >
+            <Button onClick={handleSignInClick}>
               Sign In to Write Review
             </Button>
           </div>
@@ -175,15 +185,15 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
       </CardHeader>
       <CardContent>
         {error && (
-          <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Rating */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
               Rating *
             </label>
             <div className="flex items-center space-x-1">
@@ -194,7 +204,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
                   onClick={() => handleRatingClick(star)}
                   onMouseEnter={() => setHoveredRating(star)}
                   onMouseLeave={() => setHoveredRating(0)}
-                  className="p-1 transition-transform hover:scale-110"
+                  className="p-1 hover:scale-110 transition-transform"
                   disabled={isSubmitting}
                 >
                   <Star
@@ -219,7 +229,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
           <div>
             <label
               htmlFor="title"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Review Title (optional)
             </label>
@@ -233,7 +243,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
               disabled={isSubmitting}
               maxLength={100}
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="text-xs text-gray-500 mt-1">
               {formData.title.length}/100 characters
             </p>
           </div>
@@ -242,7 +252,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
           <div>
             <label
               htmlFor="comment"
-              className="mb-1 block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Your Review *
             </label>
@@ -256,20 +266,20 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
               disabled={isSubmitting}
               rows={4}
               maxLength={1000}
-              className="flex w-full resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="text-xs text-gray-500 mt-1">
               {formData.comment.length}/1000 characters
             </p>
           </div>
 
           {/* Image Upload */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              <Camera className="mr-1 inline h-4 w-4" />
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Camera className="inline h-4 w-4 mr-1" />
               Add Photos (Optional)
             </label>
-            <p className="mb-3 text-xs text-gray-500">
+            <p className="text-xs text-gray-500 mb-3">
               Help others by sharing photos of the product. You can upload up to
               5 images.
             </p>
@@ -277,7 +287,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
               onImagesChange={handleImagesChange}
               maxImages={5}
               disabled={isSubmitting || uploadingImages}
-              className="rounded-lg border-2 border-dashed border-gray-200"
+              className="border-2 border-dashed border-gray-200 rounded-lg"
             />
           </div>
 
