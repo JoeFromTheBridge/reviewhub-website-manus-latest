@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import RecommendationSection from './recommendations/RecommendationSection';
 import SimilarProducts from './search/SimilarProducts';
+import { ReviewForm } from './reviews/ReviewForm';
 import apiService from '../services/api';
 
 export function ProductPage() {
@@ -20,6 +21,7 @@ export function ProductPage() {
   const [filterRating, setFilterRating] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
   // Track product view interaction
   useEffect(() => {
@@ -79,6 +81,34 @@ export function ProductPage() {
       isMounted = false;
     };
   }, [numericId]);
+
+  const handleReviewSubmitted = (result) => {
+    if (!result) return;
+
+    const baseReview = result.review || result;
+    if (!baseReview) return;
+
+    const uploadedImages = result.uploadedImages || [];
+    const finalReview = {
+      ...baseReview,
+      images: uploadedImages?.length
+        ? [...(baseReview.images || []), ...uploadedImages]
+        : baseReview.images,
+    };
+
+    setReviews((prev) => [finalReview, ...(prev || [])]);
+    setShowReviewForm(false);
+  };
+
+  const handleWriteReviewClick = () => {
+    setShowReviewForm(true);
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('reviews-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
 
   const filteredAndSortedReviews = useMemo(() => {
     let result = [...reviews];
@@ -293,7 +323,11 @@ export function ProductPage() {
             <Button size="lg" className="flex-1">
               Compare Prices
             </Button>
-            <Button size="lg" variant="outline">
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={handleWriteReviewClick}
+            >
               Write Review
             </Button>
           </div>
@@ -301,7 +335,10 @@ export function ProductPage() {
       </div>
 
       {/* Reviews Section */}
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div
+        id="reviews-section"
+        className="grid lg:grid-cols-3 gap-8"
+      >
         {/* Rating Summary */}
         <div className="lg:col-span-1">
           <Card>
@@ -338,8 +375,19 @@ export function ProductPage() {
           </Card>
         </div>
 
-        {/* Reviews List */}
+        {/* Reviews List + Form */}
         <div className="lg:col-span-2">
+          {/* Review Form (for logged-in users) */}
+          {showReviewForm && (
+            <div className="mb-8">
+              <ReviewForm
+                productId={numericId}
+                onReviewSubmitted={handleReviewSubmitted}
+                onCancel={() => setShowReviewForm(false)}
+              />
+            </div>
+          )}
+
           {/* Filters */}
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="flex items-center space-x-2">
