@@ -138,23 +138,23 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
   };
 
   const handleSignInClick = () => {
-    // Preferred: open the shared auth modal if available
+    // Preferred: open the shared auth modal if the context exposes it
     if (typeof openAuthModal === 'function') {
-      // If your modal accepts a mode, this still works;
-      // extra args are ignored if it doesn't.
       openAuthModal('signin');
       return;
     }
 
-    // Fallback: navigate to profile, which should trigger the auth flow
+    // Fallback: go to homepage with auth query – should behave like the
+    // existing "Sign In" button on the "Sign in required" screen
     if (navigate) {
-      navigate('/profile?from=write-review');
+      navigate('/?auth=signin');
       return;
     }
 
-    // Last resort
-    window.location.href = '/profile';
+    // Last-resort fallback
+    window.location.href = '/?auth=signin';
   };
+
 
   if (!isAuthenticated) {
     return (
