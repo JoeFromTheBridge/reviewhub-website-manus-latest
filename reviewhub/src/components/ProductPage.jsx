@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Star, ThumbsUp, Shield, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -146,6 +146,10 @@ export function ProductPage() {
     currentIndex: 0,
   });
 
+  // Touch tracking for swipe gestures
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
+
   // Track product view interaction
   useEffect(() => {
     if (numericId) {
@@ -153,13 +157,27 @@ export function ProductPage() {
     }
   }, [numericId]);
 
-  // Close lightbox on Escape key
+  // Keyboard navigation: Escape to close, Left/Right arrows to navigate
   useEffect(() => {
     if (!lightbox.open) return;
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setLightbox((prev) => ({ ...prev, open: false }));
+      } else if (e.key === 'ArrowLeft') {
+        setLightbox((prev) => {
+          if (!prev.images.length) return prev;
+          const total = prev.images.length;
+          const nextIndex = (prev.currentIndex - 1 + total) % total;
+          return { ...prev, currentIndex: nextIndex };
+        });
+      } else if (e.key === 'ArrowRight') {
+        setLightbox((prev) => {
+          if (!prev.images.length) return prev;
+          const total = prev.images.length;
+          const nextIndex = (prev.currentIndex + 1) % total;
+          return { ...prev, currentIndex: nextIndex };
+        });
       }
     };
 
@@ -285,6 +303,37 @@ export function ProductPage() {
       const nextIndex = (prev.currentIndex + 1) % total;
       return { ...prev, currentIndex: nextIndex };
     });
+  };
+
+  // Swipe handlers
+  const handleTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = null;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current == null || touchEndX.current == null) return;
+    const delta = touchStartX.current - touchEndX.current;
+
+    const SWIPE_THRESHOLD = 50; // px
+    if (Math.abs(delta) > SWIPE_THRESHOLD) {
+      if (delta > 0) {
+        // swipe left → next image
+        showNextImage();
+      } else {
+        // swipe right → previous image
+        showPrevImage();
+      }
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
   };
 
   const filteredAndSortedReviews = useMemo(() => {
@@ -745,8 +794,13 @@ export function ProductPage() {
               <X className="h-5 w-5" />
             </button>
 
-            {/* Image with centered side arrows */}
-            <div className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
+            {/* Image with centered side arrows + swipe handlers */}
+            <div
+              className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center"
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+            >
               {lightbox.images.length > 1 && (
                 <button
                   type="button"
@@ -778,6 +832,40 @@ export function ProductPage() {
             <div className="mt-3 text-sm text-gray-100 text-center">
               Image {lightbox.currentIndex + 1} of {lightbox.images.length}
             </div>
+
+            {/* Thumbnail strip inside lightbox */}
+            {lightbox.images.length > 1 && (
+              <div className="mt-3 flex justify-center gap-2 overflow-x-auto pb-2">
+                {lightbox.images.map((img, idx) => {
+                  const isActive = idx === lightbox.currentIndex;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() =>
+                        setLightbox((prev) => ({
+                          ...prev,
+                          currentIndex: idx,
+                        }))
+                      }
+                      className={`border rounded ${
+                        isActive
+                          ? 'border-white/80'
+                          : 'border-white/20 hover:border-white/50'
+                      }`}
+                    >
+                      <img
+                        src={img.thumb}
+                        alt={`Thumbnail ${idx + 1}`}
+                        className={`h-14 w-14 object-cover rounded ${
+                          isActive ? 'opacity-100' : 'opacity-70'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       )}
