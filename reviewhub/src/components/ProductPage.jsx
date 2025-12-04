@@ -304,28 +304,26 @@ export function ProductPage() {
     const baseReview = result.review || result;
     if (!baseReview) return;
 
-    const uploadedImages = result.uploadedImages || [];
+    const uploadedImages = Array.isArray(result.uploadedImages)
+      ? result.uploadedImages
+      : [];
 
-    const mergedImagesRaw = [
+    // Prefer images that came back specifically for this submission.
+    // Fall back to any image arrays on the review object if needed.
+    const existingImages = [
       ...(Array.isArray(baseReview.images) ? baseReview.images : []),
       ...(Array.isArray(baseReview.review_images)
         ? baseReview.review_images
         : []),
-      ...uploadedImages,
     ];
 
-    let mergedImages = mergedImagesRaw;
-    if (mergedImagesRaw.length > MAX_REVIEW_IMAGES) {
-      mergedImages = mergedImagesRaw.slice(0, MAX_REVIEW_IMAGES);
-      if (typeof window !== 'undefined') {
-        window.alert(
-          `You can upload a maximum of ${MAX_REVIEW_IMAGES} photos per review. Only the first ${MAX_REVIEW_IMAGES} were saved.`
-        );
-      }
-      // Optional: log for debugging
-      console.warn(
-        'Review had more than max images; extra images dropped:',
-        mergedImagesRaw.length
+    // Combine recent upload + any existing, but enforce a hard cap of MAX_REVIEW_IMAGES
+    const mergedImagesRaw = [...uploadedImages, ...existingImages];
+    let mergedImages = mergedImagesRaw.slice(0, MAX_REVIEW_IMAGES);
+
+    if (mergedImagesRaw.length > MAX_REVIEW_IMAGES && typeof window !== 'undefined') {
+      window.alert(
+        `You can upload a maximum of ${MAX_REVIEW_IMAGES} photos per review. Only the first ${MAX_REVIEW_IMAGES} were kept.`
       );
     }
 
@@ -760,8 +758,7 @@ export function ProductPage() {
                 productId={numericId}
                 onReviewSubmitted={handleReviewSubmitted}
                 onCancel={() => setShowReviewForm(false)}
-                // Optional: if you later add a maxImages prop to ReviewForm/ImageUpload,
-                // you can pass MAX_REVIEW_IMAGES down here.
+                // If your ImageUpload supports it, you can pass this through
                 maxImages={MAX_REVIEW_IMAGES}
               />
             </div>
