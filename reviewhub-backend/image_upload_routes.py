@@ -372,17 +372,18 @@ def register_image_routes(app, db):
     
     # Serve uploaded files for local storage
     if file_storage.storage_type == 'local':
-        # New canonical path used by the app: /api/uploads/...
+        # New canonical path used by stored URLs: /api/uploads/...
         @app.route('/api/uploads/<path:filename>')
         def uploaded_file_api(filename):
             """Serve uploaded files under /api/uploads/..."""
             return send_from_directory(file_storage.upload_folder, filename)
 
-        # Backwards-compatibility path: /uploads/...
+        # Backwards-compatible legacy path: /uploads/...
         @app.route('/uploads/<path:filename>')
         def uploaded_file_legacy(filename):
             """Legacy path for uploaded files"""
             return send_from_directory(file_storage.upload_folder, filename)
+
 
     
     # Return the Image model for use in other parts of the app
