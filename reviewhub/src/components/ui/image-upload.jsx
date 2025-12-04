@@ -24,24 +24,48 @@ export function ImageUpload({
     }
     
     if (file.size > maxFileSize) {
-      errors.push(`${file.name}: File too large. Maximum size is ${maxFileSize / (1024 * 1024)}MB.`);
+      errors.push(
+        `${file.name}: File too large. Maximum size is ${maxFileSize / (1024 * 1024)}MB.`
+      );
     }
     
     return errors;
   };
 
   const handleFiles = (fileList) => {
-    const files = Array.from(fileList);
+    if (disabled) return;
+
+    let files = Array.from(fileList);
     const newErrors = [];
     const validFiles = [];
 
-    // Check total number of images
-    if (images.length + files.length > maxImages) {
-      newErrors.push(`Maximum ${maxImages} images allowed. You can upload ${maxImages - images.length} more.`);
+    const remainingSlots = Math.max(0, maxImages - images.length);
+
+    // No slots left at all
+    if (remainingSlots <= 0) {
+      const msg = `Maximum ${maxImages} images allowed. You already selected ${images.length}.`;
+      newErrors.push(msg);
+      if (typeof window !== 'undefined') {
+        window.alert(msg);
+      }
+      setErrors(newErrors);
       return;
     }
 
-    files.forEach(file => {
+    // Too many files for remaining slots → trim and alert
+    if (files.length > remainingSlots) {
+      const msg = `You can only upload ${remainingSlots} more image${
+        remainingSlots === 1 ? '' : 's'
+      } (maximum ${maxImages} per review). Only the first ${remainingSlots} will be added.`;
+      newErrors.push(msg);
+      if (typeof window !== 'undefined') {
+        window.alert(msg);
+      }
+      files = files.slice(0, remainingSlots);
+    }
+
+    // Per-file validation; collect valid ones and any errors
+    files.forEach((file) => {
       const fileErrors = validateFile(file);
       if (fileErrors.length > 0) {
         newErrors.push(...fileErrors);
@@ -50,51 +74,57 @@ export function ImageUpload({
       }
     });
 
+    // Update errors (but still add valid files if any)
     if (newErrors.length > 0) {
       setErrors(newErrors);
-      return;
+    } else {
+      setErrors([]);
     }
 
-    setErrors([]);
+    if (validFiles.length === 0) {
+      return;
+    }
     
     // Create preview URLs for valid files
-    const newImages = validFiles.map(file => ({
+    const newImages = validFiles.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
-      id: Math.random().toString(36).substr(2, 9)
+      id: Math.random().toString(36).substr(2, 9),
     }));
 
     const updatedImages = [...images, ...newImages];
     setImages(updatedImages);
     
-    // Notify parent component
+    // Notify parent component with the raw File objects
     if (onImagesChange) {
-      onImagesChange(updatedImages.map(img => img.file));
+      onImagesChange(updatedImages.map((img) => img.file));
     }
   };
 
   const removeImage = (imageId) => {
-    const updatedImages = images.filter(img => img.id !== imageId);
+    const updatedImages = images.filter((img) => img.id !== imageId);
     setImages(updatedImages);
     
     // Clean up preview URL
-    const imageToRemove = images.find(img => img.id === imageId);
+    const imageToRemove = images.find((img) => img.id === imageId);
     if (imageToRemove) {
       URL.revokeObjectURL(imageToRemove.preview);
     }
     
     // Notify parent component
     if (onImagesChange) {
-      onImagesChange(updatedImages.map(img => img.file));
+      onImagesChange(updatedImages.map((img) => img.file));
     }
   };
 
   const handleDrag = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === "dragenter" || e.type === "dragover") {
+    if (disabled) return;
+
+    if (e.type === 'dragenter' || e.type === 'dragover') {
       setDragActive(true);
-    } else if (e.type === "dragleave") {
+    } else if (e.type === 'dragleave') {
       setDragActive(false);
     }
   };
@@ -112,6 +142,7 @@ export function ImageUpload({
   };
 
   const handleFileSelect = (e) => {
+    if (disabled) return;
     if (e.target.files && e.target.files[0]) {
       handleFiles(e.target.files);
     }
@@ -126,13 +157,16 @@ export function ImageUpload({
   // Clean up preview URLs when component unmounts
   React.useEffect(() => {
     return () => {
-      images.forEach(img => {
+      images.forEach((img) => {
         if (img.preview) {
           URL.revokeObjectURL(img.preview);
         }
       });
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const remainingSlots = Math.max(0, maxImages - images.length);
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -174,7 +208,7 @@ export function ImageUpload({
               PNG, JPG, GIF, WebP up to {maxFileSize / (1024 * 1024)}MB each
             </p>
             <p className="text-xs text-gray-500">
-              Maximum {maxImages} images ({maxImages - images.length} remaining)
+              Maximum {maxImages} images ({remainingSlots} remaining)
             </p>
           </div>
         </div>
@@ -266,4 +300,3 @@ export function ImageUpload({
     </div>
   );
 }
-
