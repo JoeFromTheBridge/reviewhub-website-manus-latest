@@ -10,54 +10,93 @@ import SimilarProducts from './search/SimilarProducts';
 import { ReviewForm } from './reviews/ReviewForm';
 import apiService from '../services/api';
 
-// Normalize any review image into a usable URL
+// Safely normalize any "image-ish" value to a URL string
 function getReviewImageUrl(image) {
   if (!image) return '';
 
-  // Pull raw candidate url/string from supported fields
-  let raw = null;
-
+  // Plain string
   if (typeof image === 'string') {
-    raw = image;
-  } else if (image.thumbnail_url) {
-    raw = image.thumbnail_url;
-  } else if (image.file_url) {
-    raw = image.file_url;
-  } else if (image.url) {
-    raw = image.url;
-  } else if (image.image_url) {
-    raw = image.image_url;
-  } else if (image.image) {
-    // Sometimes nested objects
+    const trimmed = image.trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+      return trimmed;
+    }
+    return `/${trimmed.replace(/^\/+/, '')}`;
+  }
+
+  // If backend nests inside an `image` field
+  if (image.image && typeof image.image === 'string') {
     return getReviewImageUrl(image.image);
   }
-
-  if (!raw) return '';
-
-  raw = String(raw).trim();
-  if (!raw) return '';
-
-  // If backend returns "/uploads/..." → prefix with /api so Vercel proxies to backend
-  if (raw.startsWith('/uploads')) {
-    return `/api${raw}`;
+  if (image.image && typeof image.image === 'object') {
+    const nested = getReviewImageUrl(image.image);
+    if (nested) return nested;
   }
 
-  // Already absolute URL
-  if (/^https?:\/\//i.test(raw)) {
-    return raw;
+  const candidate =
+    image.thumbnail_url ||
+    image.url ||
+    image.image_url ||
+    image.file_url ||
+    image.file_path ||
+    image.path ||
+    image.location ||
+    image.src ||
+    null;
+
+  if (!candidate) return '';
+
+  const trimmed = String(candidate).trim();
+  if (!trimmed) return '';
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+    return trimmed;
   }
 
-  // Relative "uploads/xyz.jpg" without leading slash
-  if (raw.startsWith('uploads/')) {
-    return `/api/${raw}`;
-  }
-
-  // Fallback: ensure a single leading slash
-  return raw.startsWith('/') ? raw : `/${raw}`;
+  return `/${trimmed.replace(/^\/+/, '')}`;
 }
 
-// Collect image URLs from all likely fields on the review
-function collectReviewImageUrls(review) {
+// Return { thumb, full } for a single image object/value
+function getReviewImagePair(image) {
+  if (!image) return null;
+
+  // Simple string: use same URL for thumb and full
+  if (typeof image === 'string') {
+    const url = getReviewImageUrl(image);
+    if (!url) return null;
+    return { thumb: url, full: url };
+  }
+
+  // Prefer explicit thumbnail / main fields when present
+  const thumbUrl =
+    getReviewImageUrl(
+      image.thumbnail_url ||
+        image.thumb_url ||
+        image.thumbnail ||
+        image.thumb ||
+        image
+    );
+
+  const fullUrl =
+    getReviewImageUrl(
+      image.main_url ||
+        image.full_url ||
+        image.url ||
+        image.image_url ||
+        image.file_url ||
+        image
+    );
+
+  if (!thumbUrl && !fullUrl) return null;
+
+  return {
+    thumb: thumbUrl || fullUrl,
+    full: fullUrl || thumbUrl,
+  };
+}
+
+// Collect image pairs from all likely fields on the review
+function collectReviewImages(review) {
   if (!review) return [];
 
   const candidates = [
@@ -69,11 +108,23 @@ function collectReviewImageUrls(review) {
   ].filter(Array.isArray);
 
   const flat = candidates.flat().filter(Boolean);
-  const urls = flat
-    .map((img) => getReviewImageUrl(img))
-    .filter((u) => typeof u === 'string' && u.trim().length > 0);
 
-  return Array.from(new Set(urls));
+  const pairs = flat
+    .map((img) => getReviewImagePair(img))
+    .filter((p) => p && p.thumb && p.full);
+
+  // Deduplicate by full URL
+  const seen = new Set();
+  const unique = [];
+  for (const p of pairs) {
+    const key = p.full;
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(p);
+    }
+  }
+
+  return unique;
 }
 
 export function ProductPage() {
@@ -156,7 +207,9 @@ export function ProductPage() {
 
     const mergedImages = [
       ...(Array.isArray(baseReview.images) ? baseReview.images : []),
-      ...(Array.isArray(baseReview.review_images) ? baseReview.review_images : []),
+      ...(Array.isArray(baseReview.review_images)
+        ? baseReview.review_images
+        : []),
       ...uploadedImages,
     ];
 
@@ -505,7 +558,7 @@ export function ProductPage() {
                   ? new Date(review.created_at).toLocaleDateString()
                   : '';
 
-                const imageUrls = collectReviewImageUrls(review);
+                const images = collectReviewImages(review);
 
                 return (
                   <Card key={review.id}>
@@ -549,15 +602,21 @@ export function ProductPage() {
                         {review.content || review.comment}
                       </p>
 
-                      {imageUrls.length > 0 && (
+                      {images.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
-                          {imageUrls.map((src, index) => (
-                            <img
+                          {images.map((img, index) => (
+                            <a
                               key={index}
-                              src={src}
-                              alt="Review"
-                              className="w-20 h-20 object-cover rounded"
-                            />
+                              href={img.full}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <img
+                                src={img.thumb}
+                                alt="Review"
+                                className="w-20 h-20 object-cover rounded hover:opacity-80 transition"
+                              />
+                            </a>
                           ))}
                         </div>
                       )}
