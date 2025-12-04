@@ -736,6 +736,7 @@ export function ProductPage() {
             className="relative max-w-3xl w-full max-h-[90vh] mx-4"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Close button */}
             <button
               type="button"
               onClick={closeLightbox}
@@ -744,36 +745,38 @@ export function ProductPage() {
               <X className="h-5 w-5" />
             </button>
 
-            <div className="flex items-center justify-between mb-3">
-              <button
-                type="button"
-                onClick={showPrevImage}
-                disabled={lightbox.images.length <= 1}
-                className="inline-flex items-center justify-center rounded-full bg-black/60 p-2 text-gray-100 hover:bg-black/80 disabled:opacity-40 disabled:cursor-default focus:outline-none"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
+            {/* Image with centered side arrows */}
+            <div className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
+              {lightbox.images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={showPrevImage}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-full bg-black/60 p-2 text-gray-100 hover:bg-black/80 focus:outline-none"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+              )}
 
-              <div className="text-sm text-gray-100">
-                Image {lightbox.currentIndex + 1} of {lightbox.images.length}
-              </div>
-
-              <button
-                type="button"
-                onClick={showNextImage}
-                disabled={lightbox.images.length <= 1}
-                className="inline-flex items-center justify-center rounded-full bg-black/60 p-2 text-gray-100 hover:bg-black/80 disabled:opacity-40 disabled:cursor-default focus:outline-none"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center">
               <img
                 src={lightbox.images[lightbox.currentIndex]?.full}
                 alt={`Review image ${lightbox.currentIndex + 1}`}
                 className="max-h-[80vh] w-full object-contain"
               />
+
+              {lightbox.images.length > 1 && (
+                <button
+                  type="button"
+                  onClick={showNextImage}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-full bg-black/60 p-2 text-gray-100 hover:bg-black/80 focus:outline-none"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Image index */}
+            <div className="mt-3 text-sm text-gray-100 text-center">
+              Image {lightbox.currentIndex + 1} of {lightbox.images.length}
             </div>
           </div>
         </div>
