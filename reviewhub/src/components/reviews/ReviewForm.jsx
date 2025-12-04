@@ -4,11 +4,22 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { useAuth } from '../../contexts/AuthContext';
 import apiService from '../../services/api';
 
-export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
+export function ReviewForm({
+  productId,
+  onReviewSubmitted,
+  onCancel,
+  maxImages = 5, // allow parent to configure, defaults to 5
+}) {
   const [formData, setFormData] = useState({
     rating: 0,
     title: '',
@@ -31,7 +42,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
 
   const handleRatingClick = (rating) => {
     setFormData({ ...formData, rating });
-    setError('');
+    if (error) setError('');
   };
 
   const handleChange = (e) => {
@@ -42,27 +53,44 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
     if (error) setError('');
   };
 
+  // Enforce maxImages limit immediately when user selects files
   const handleImagesChange = (images) => {
-    setSelectedImages(images);
+    const limit = maxImages || 5;
+    let next = images || [];
+
+    if (next.length > limit) {
+      if (typeof window !== 'undefined') {
+        window.alert(
+          `You can upload a maximum of ${limit} photos per review. Only the first ${limit} will be used.`
+        );
+      }
+      next = next.slice(0, limit);
+    }
+
+    setSelectedImages(next);
+    if (error) setError('');
   };
 
   const uploadImages = async (reviewId) => {
-    if (selectedImages.length === 0) return [];
+    if (!reviewId || selectedImages.length === 0) return [];
 
     setUploadingImages(true);
     const uploadedImages = [];
 
     try {
-      if (selectedImages.length === 1) {
+      // Hard safety cap in case something bypasses selection limit
+      const limit = maxImages || 5;
+      const toUpload = selectedImages.slice(0, limit);
+
+      if (toUpload.length === 1) {
         // Upload single image
-        const result = await apiService.uploadReviewImage(selectedImages[0], reviewId);
-        // result.image may be a URL or an object
+        const result = await apiService.uploadReviewImage(toUpload[0], reviewId);
         if (result && result.image) {
           uploadedImages.push(result.image);
         }
-      } else {
+      } else if (toUpload.length > 1) {
         // Upload multiple images
-        const result = await apiService.uploadMultipleReviewImages(selectedImages, reviewId);
+        const result = await apiService.uploadMultipleReviewImages(toUpload, reviewId);
         if (result && Array.isArray(result.images)) {
           uploadedImages.push(...result.images);
         }
@@ -125,7 +153,7 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
         } catch (imageError) {
           console.error('Image upload failed:', imageError);
           setError(
-            'Review submitted successfully, but some images failed to upload. You can edit your review to add images later.',
+            'Review submitted successfully, but some images failed to upload. You can edit your review to add images later.'
           );
         }
       }
@@ -412,12 +440,12 @@ export function ReviewForm({ productId, onReviewSubmitted, onCancel }) {
               Add Photos (Optional)
             </label>
             <p className="text-xs text-gray-500 mb-3">
-              Help others by sharing photos of the product. You can upload up to
-              5 images.
+              Help others by sharing photos of the product. You can upload up to{' '}
+              {maxImages} image{maxImages === 1 ? '' : 's'}.
             </p>
             <ImageUpload
               onImagesChange={handleImagesChange}
-              maxImages={5}
+              maxImages={maxImages}
               disabled={isSubmitting || uploadingImages}
               className="border-2 border-dashed border-gray-200 rounded-lg"
             />
