@@ -68,24 +68,22 @@ function getReviewImagePair(image) {
   }
 
   // Prefer explicit thumbnail / main fields when present
-  const thumbUrl =
-    getReviewImageUrl(
-      image.thumbnail_url ||
-        image.thumb_url ||
-        image.thumbnail ||
-        image.thumb ||
-        image
-    );
+  const thumbUrl = getReviewImageUrl(
+    image.thumbnail_url ||
+      image.thumb_url ||
+      image.thumbnail ||
+      image.thumb ||
+      image
+  );
 
-  const fullUrl =
-    getReviewImageUrl(
-      image.main_url ||
-        image.full_url ||
-        image.url ||
-        image.image_url ||
-        image.file_url ||
-        image
-    );
+  const fullUrl = getReviewImageUrl(
+    image.main_url ||
+      image.full_url ||
+      image.url ||
+      image.image_url ||
+      image.file_url ||
+      image
+  );
 
   if (!thumbUrl && !fullUrl) return null;
 
@@ -139,16 +137,22 @@ export function ProductPage() {
   const [error, setError] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
 
-  // Lightbox state: images for a single review + current index
+  // Lightbox state: images for a single review + current index + zoom
   const [lightbox, setLightbox] = useState({
     open: false,
     images: [],
     currentIndex: 0,
+    scale: 1,
   });
 
-  // Touch tracking for swipe gestures
+  // Touch tracking for swipe + pinch gestures
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
+  const pinchStartDistance = useRef(null);
+  const pinchStartScale = useRef(1);
+
+  // Thumbnail refs for smooth scrolling of active thumb
+  const thumbRefs = useRef([]);
 
   // Track product view interaction
   useEffect(() => {
@@ -169,14 +173,14 @@ export function ProductPage() {
           if (!prev.images.length) return prev;
           const total = prev.images.length;
           const nextIndex = (prev.currentIndex - 1 + total) % total;
-          return { ...prev, currentIndex: nextIndex };
+          return { ...prev, currentIndex: nextIndex, scale: 1 };
         });
       } else if (e.key === 'ArrowRight') {
         setLightbox((prev) => {
           if (!prev.images.length) return prev;
           const total = prev.images.length;
           const nextIndex = (prev.currentIndex + 1) % total;
-          return { ...prev, currentIndex: nextIndex };
+          return { ...prev, currentIndex: nextIndex, scale: 1 };
         });
       }
     };
@@ -184,6 +188,19 @@ export function ProductPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightbox.open]);
+
+  // Smooth scroll active thumbnail into view when image changes
+  useEffect(() => {
+    if (!lightbox.open) return;
+    const el = thumbRefs.current[lightbox.currentIndex];
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      });
+    }
+  }, [lightbox.open, lightbox.currentIndex]);
 
   // Fetch product + reviews from real API
   useEffect(() => {
@@ -274,10 +291,12 @@ export function ProductPage() {
   // Lightbox helpers
   const openLightbox = (images, startIndex) => {
     if (!images || images.length === 0) return;
+    thumbRefs.current = [];
     setLightbox({
       open: true,
       images,
       currentIndex: startIndex ?? 0,
+      scale: 1,
     });
   };
 
@@ -291,7 +310,7 @@ export function ProductPage() {
       if (!prev.images.length) return prev;
       const total = prev.images.length;
       const nextIndex = (prev.currentIndex - 1 + total) % total;
-      return { ...prev, currentIndex: nextIndex };
+      return { ...prev, currentIndex: nextIndex, scale: 1 };
     });
   };
 
@@ -301,34 +320,70 @@ export function ProductPage() {
       if (!prev.images.length) return prev;
       const total = prev.images.length;
       const nextIndex = (prev.currentIndex + 1) % total;
-      return { ...prev, currentIndex: nextIndex };
+      return { ...prev, currentIndex: nextIndex, scale: 1 };
     });
   };
 
-  // Swipe handlers
+  // Swipe + pinch handlers
   const handleTouchStart = (e) => {
     if (!e.touches || e.touches.length === 0) return;
-    touchStartX.current = e.touches[0].clientX;
-    touchEndX.current = null;
+
+    if (e.touches.length === 1) {
+      // Single finger swipe
+      touchStartX.current = e.touches[0].clientX;
+      touchEndX.current = null;
+    } else if (e.touches.length === 2) {
+      // Two-finger pinch
+      const [t1, t2] = e.touches;
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      pinchStartDistance.current = Math.hypot(dx, dy);
+      pinchStartScale.current = lightbox.scale || 1;
+    }
   };
 
   const handleTouchMove = (e) => {
     if (!e.touches || e.touches.length === 0) return;
-    touchEndX.current = e.touches[0].clientX;
+
+    if (e.touches.length === 1 && pinchStartDistance.current == null) {
+      // Only track swipe when not pinching
+      touchEndX.current = e.touches[0].clientX;
+    } else if (e.touches.length === 2 && pinchStartDistance.current != null) {
+      const [t1, t2] = e.touches;
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      const distance = Math.hypot(dx, dy);
+      if (!distance) return;
+
+      const ratio = distance / pinchStartDistance.current;
+      const newScale = Math.min(3, Math.max(1, pinchStartScale.current * ratio));
+
+      setLightbox((prev) => ({
+        ...prev,
+        scale: newScale,
+      }));
+    }
   };
 
   const handleTouchEnd = () => {
-    if (touchStartX.current == null || touchEndX.current == null) return;
-    const delta = touchStartX.current - touchEndX.current;
+    // If pinch ended, reset pinch refs
+    if (pinchStartDistance.current != null) {
+      pinchStartDistance.current = null;
+      pinchStartScale.current = 1;
+    }
 
-    const SWIPE_THRESHOLD = 50; // px
-    if (Math.abs(delta) > SWIPE_THRESHOLD) {
-      if (delta > 0) {
-        // swipe left → next image
-        showNextImage();
-      } else {
-        // swipe right → previous image
-        showPrevImage();
+    // Handle swipe if we had a single-finger gesture
+    if (touchStartX.current != null && touchEndX.current != null) {
+      const delta = touchStartX.current - touchEndX.current;
+      const SWIPE_THRESHOLD = 50;
+      if (Math.abs(delta) > SWIPE_THRESHOLD) {
+        if (delta > 0) {
+          // swipe left → next image
+          showNextImage();
+        } else {
+          // swipe right → previous image
+          showPrevImage();
+        }
       }
     }
 
@@ -664,6 +719,20 @@ export function ProductPage() {
 
                 const images = collectReviewImages(review);
 
+                const reviewerName =
+                  review.user?.username ||
+                  review.user_username ||
+                  review.user_name ||
+                  'Anonymous';
+
+                const lightboxImages = images.map((img) => ({
+                  ...img,
+                  captionTitle: review.title || 'Review',
+                  captionMeta: createdAt
+                    ? `${reviewerName} • ${createdAt}`
+                    : reviewerName,
+                }));
+
                 return (
                   <Card key={review.id}>
                     <CardContent className="p-6">
@@ -671,10 +740,7 @@ export function ProductPage() {
                         <div>
                           <div className="flex items-center space-x-2 mb-2">
                             <span className="font-semibold">
-                              {review.user?.username ||
-                                review.user_username ||
-                                review.user_name ||
-                                'Anonymous'}
+                              {reviewerName}
                             </span>
                             {isVerified && (
                               <Badge
@@ -712,7 +778,7 @@ export function ProductPage() {
                             <button
                               key={index}
                               type="button"
-                              onClick={() => openLightbox(images, index)}
+                              onClick={() => openLightbox(lightboxImages, index)}
                               className="focus:outline-none"
                             >
                               <img
@@ -794,9 +860,10 @@ export function ProductPage() {
               <X className="h-5 w-5" />
             </button>
 
-            {/* Image with centered side arrows + swipe handlers */}
+            {/* Image with centered side arrows + swipe/pinch handlers */}
             <div
               className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center"
+              style={{ touchAction: 'none' }}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -815,6 +882,9 @@ export function ProductPage() {
                 src={lightbox.images[lightbox.currentIndex]?.full}
                 alt={`Review image ${lightbox.currentIndex + 1}`}
                 className="max-h-[80vh] w-full object-contain"
+                style={{
+                  transform: `scale(${lightbox.scale || 1})`,
+                }}
               />
 
               {lightbox.images.length > 1 && (
@@ -828,9 +898,28 @@ export function ProductPage() {
               )}
             </div>
 
-            {/* Image index */}
+            {/* Image index + captions */}
             <div className="mt-3 text-sm text-gray-100 text-center">
-              Image {lightbox.currentIndex + 1} of {lightbox.images.length}
+              <div>
+                Image {lightbox.currentIndex + 1} of {lightbox.images.length}
+              </div>
+              {(() => {
+                const current = lightbox.images[lightbox.currentIndex] || {};
+                return (
+                  <>
+                    {current.captionTitle && (
+                      <div className="mt-1 font-medium">
+                        {current.captionTitle}
+                      </div>
+                    )}
+                    {current.captionMeta && (
+                      <div className="mt-0.5 text-xs text-gray-300">
+                        {current.captionMeta}
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
 
             {/* Thumbnail strip inside lightbox */}
@@ -842,10 +931,14 @@ export function ProductPage() {
                     <button
                       key={idx}
                       type="button"
+                      ref={(el) => {
+                        thumbRefs.current[idx] = el;
+                      }}
                       onClick={() =>
                         setLightbox((prev) => ({
                           ...prev,
                           currentIndex: idx,
+                          scale: 1,
                         }))
                       }
                       className={`border rounded ${
