@@ -1,3 +1,4 @@
+// reviewhub/src/components/ProductPage.jsx
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -359,8 +360,6 @@ export function ProductPage() {
       ? result.uploadedImages
       : [];
 
-    // Prefer images that came back specifically for this submission.
-    // Fall back to any image arrays on the review object if needed.
     const existingImages = [
       ...(Array.isArray(baseReview.images) ? baseReview.images : []),
       ...(Array.isArray(baseReview.review_images)
@@ -368,18 +367,9 @@ export function ProductPage() {
         : []),
     ];
 
-    // Combine recent upload + any existing, but enforce a hard cap of MAX_REVIEW_IMAGES
-    const mergedImagesRaw = [...uploadedImages, ...existingImages];
-    const mergedImages = mergedImagesRaw.slice(0, MAX_REVIEW_IMAGES);
-
-    if (
-      mergedImagesRaw.length > MAX_REVIEW_IMAGES &&
-      typeof window !== 'undefined'
-    ) {
-      window.alert(
-        `You can upload a maximum of ${MAX_REVIEW_IMAGES} photos per review. Only the first ${MAX_REVIEW_IMAGES} were kept.`
-      );
-    }
+    // Merge what the backend returned with any explicitly uploaded images,
+    // but do not show any alert here; enforcement happens in the form/upload UI.
+    const mergedImages = [...existingImages, ...uploadedImages];
 
     const finalReview = {
       ...baseReview,
@@ -1026,8 +1016,6 @@ export function ProductPage() {
                                   e.currentTarget.onerror = null;
                                   e.currentTarget.src =
                                     'https://via.placeholder.com/80?text=Img';
-                                  // Optional debug:
-                                  // console.warn('Thumbnail failed to load', img);
                                 }}
                               />
                             </button>
@@ -1157,8 +1145,6 @@ export function ProductPage() {
                     e.currentTarget.onerror = null;
                     e.currentTarget.src =
                       'https://via.placeholder.com/800x600?text=Image+unavailable';
-                    // Optional debug:
-                    // console.warn('Lightbox image failed to load', lightbox.images[lightbox.currentIndex]);
                   }}
                 />
 
