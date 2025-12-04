@@ -177,12 +177,16 @@ class FileStorageService:
         try:
             if self.storage_type == 'local':
                 # Save to local storage
-                main_path = self.save_local_file(main_image_data, main_filename, 'reviews')
-                thumb_path = self.save_local_file(thumbnail_data, thumb_filename, 'thumbnails')
+                self.save_local_file(main_image_data, main_filename, 'reviews')
+                self.save_local_file(thumbnail_data, thumb_filename, 'thumbnails')
+
+                # Relative paths inside the uploads folder
+                main_rel = f"reviews/{main_filename}"
+                thumb_rel = f"thumbnails/{thumb_filename}"
                 
-                # Return relative URLs for local storage
-                main_url = f"/uploads/reviews/{main_filename}"
-                thumb_url = f"/uploads/thumbnails/{thumb_filename}"
+                # Canonical URLs exposed to the frontend
+                main_url = f"/api/uploads/{main_rel}"
+                thumb_url = f"/api/uploads/{thumb_rel}"
             else:
                 # Save to S3
                 main_url = self.save_s3_file(main_image_data, main_filename, 'reviews')
@@ -247,8 +251,8 @@ class FileStorageService:
         
         try:
             if self.storage_type == 'local':
-                file_path = self.save_local_file(processed_data, filename, 'profiles')
-                url = f"/uploads/profiles/{filename}"
+                self.save_local_file(processed_data, filename, 'profiles')
+                url = f"/api/uploads/profiles/{filename}"
             else:
                 url = self.save_s3_file(processed_data, filename, 'profiles')
             
@@ -330,4 +334,3 @@ class FileStorageService:
 
 # Initialize file storage service
 file_storage = FileStorageService()
-
