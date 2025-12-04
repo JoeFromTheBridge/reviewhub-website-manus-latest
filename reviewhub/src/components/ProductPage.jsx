@@ -20,6 +20,8 @@ import SimilarProducts from './search/SimilarProducts';
 import { ReviewForm } from './reviews/ReviewForm';
 import apiService from '../services/api';
 
+const MAX_REVIEW_IMAGES = 5;
+
 // Safely normalize any "image-ish" value to a URL string
 function getReviewImageUrl(image) {
   if (!image) return '';
@@ -313,13 +315,18 @@ export function ProductPage() {
     ];
 
     let mergedImages = mergedImagesRaw;
-    if (mergedImagesRaw.length > 5) {
-      mergedImages = mergedImagesRaw.slice(0, 5);
+    if (mergedImagesRaw.length > MAX_REVIEW_IMAGES) {
+      mergedImages = mergedImagesRaw.slice(0, MAX_REVIEW_IMAGES);
       if (typeof window !== 'undefined') {
         window.alert(
-          'You can upload a maximum of 5 photos per review. Only the first 5 were saved.'
+          `You can upload a maximum of ${MAX_REVIEW_IMAGES} photos per review. Only the first ${MAX_REVIEW_IMAGES} were saved.`
         );
       }
+      // Optional: log for debugging
+      console.warn(
+        'Review had more than max images; extra images dropped:',
+        mergedImagesRaw.length
+      );
     }
 
     const finalReview = {
@@ -753,6 +760,9 @@ export function ProductPage() {
                 productId={numericId}
                 onReviewSubmitted={handleReviewSubmitted}
                 onCancel={() => setShowReviewForm(false)}
+                // Optional: if you later add a maxImages prop to ReviewForm/ImageUpload,
+                // you can pass MAX_REVIEW_IMAGES down here.
+                maxImages={MAX_REVIEW_IMAGES}
               />
             </div>
           )}
@@ -937,12 +947,12 @@ export function ProductPage() {
         >
           <div
             ref={lightboxContainerRef}
-            className="relative w-full max-w-3xl mx-4"
+            className="relative w-full max-w-5xl mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div
               className="relative bg-black rounded-lg shadow-lg overflow-hidden flex flex-col"
-              style={{ height: '80vh' }} // fixed overall lightbox height
+              style={{ height: isFullscreen ? '94vh' : '80vh' }}
             >
               {/* Close button */}
               <button
@@ -968,7 +978,9 @@ export function ProductPage() {
 
               {/* Fixed-height image area; arrows stay centered; wheel scrolls images */}
               <div
-                className="relative h-[60vh] flex items-center justify-center"
+                className={`relative flex items-center justify-center ${
+                  isFullscreen ? 'h-[78vh]' : 'h-[60vh]'
+                }`}
                 style={{ touchAction: 'none' }}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
