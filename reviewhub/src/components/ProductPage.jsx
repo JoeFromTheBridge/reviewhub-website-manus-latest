@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Star, ThumbsUp, Shield, Filter } from 'lucide-react';
+import { Star, ThumbsUp, Shield, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -139,12 +139,33 @@ export function ProductPage() {
   const [error, setError] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
 
+  // Lightbox state: images for a single review + current index
+  const [lightbox, setLightbox] = useState({
+    open: false,
+    images: [],
+    currentIndex: 0,
+  });
+
   // Track product view interaction
   useEffect(() => {
     if (numericId) {
       apiService.trackInteraction?.(numericId, 'view').catch?.(console.error);
     }
   }, [numericId]);
+
+  // Close lightbox on Escape key
+  useEffect(() => {
+    if (!lightbox.open) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setLightbox((prev) => ({ ...prev, open: false }));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightbox.open]);
 
   // Fetch product + reviews from real API
   useEffect(() => {
@@ -230,6 +251,40 @@ export function ProductPage() {
         el.scrollIntoView({ behavior: 'smooth' });
       }
     }
+  };
+
+  // Lightbox helpers
+  const openLightbox = (images, startIndex) => {
+    if (!images || images.length === 0) return;
+    setLightbox({
+      open: true,
+      images,
+      currentIndex: startIndex ?? 0,
+    });
+  };
+
+  const closeLightbox = () => {
+    setLightbox((prev) => ({ ...prev, open: false }));
+  };
+
+  const showPrevImage = (e) => {
+    if (e) e.stopPropagation();
+    setLightbox((prev) => {
+      if (!prev.images.length) return prev;
+      const total = prev.images.length;
+      const nextIndex = (prev.currentIndex - 1 + total) % total;
+      return { ...prev, currentIndex: nextIndex };
+    });
+  };
+
+  const showNextImage = (e) => {
+    if (e) e.stopPropagation();
+    setLightbox((prev) => {
+      if (!prev.images.length) return prev;
+      const total = prev.images.length;
+      const nextIndex = (prev.currentIndex + 1) % total;
+      return { ...prev, currentIndex: nextIndex };
+    });
   };
 
   const filteredAndSortedReviews = useMemo(() => {
@@ -605,18 +660,18 @@ export function ProductPage() {
                       {images.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {images.map((img, index) => (
-                            <a
+                            <button
                               key={index}
-                              href={img.full}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                              type="button"
+                              onClick={() => openLightbox(images, index)}
+                              className="focus:outline-none"
                             >
                               <img
                                 src={img.thumb}
                                 alt="Review"
                                 className="w-20 h-20 object-cover rounded hover:opacity-80 transition"
                               />
-                            </a>
+                            </button>
                           ))}
                         </div>
                       )}
@@ -668,6 +723,59 @@ export function ProductPage() {
             limit={6}
             showReasons={false}
           />
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightbox.open && lightbox.images.length > 0 && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+          onClick={closeLightbox}
+        >
+          <div
+            className="relative max-w-3xl w-full max-h-[90vh] mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeLightbox}
+              className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full bg-black/60 p-1.5 text-gray-100 hover:bg-black/80 focus:outline-none"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="flex items-center justify-between mb-3">
+              <button
+                type="button"
+                onClick={showPrevImage}
+                disabled={lightbox.images.length <= 1}
+                className="inline-flex items-center justify-center rounded-full bg-black/60 p-2 text-gray-100 hover:bg-black/80 disabled:opacity-40 disabled:cursor-default focus:outline-none"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+
+              <div className="text-sm text-gray-100">
+                Image {lightbox.currentIndex + 1} of {lightbox.images.length}
+              </div>
+
+              <button
+                type="button"
+                onClick={showNextImage}
+                disabled={lightbox.images.length <= 1}
+                className="inline-flex items-center justify-center rounded-full bg-black/60 p-2 text-gray-100 hover:bg-black/80 disabled:opacity-40 disabled:cursor-default focus:outline-none"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="bg-black rounded-lg overflow-hidden flex items-center justify-center">
+              <img
+                src={lightbox.images[lightbox.currentIndex]?.full}
+                alt={`Review image ${lightbox.currentIndex + 1}`}
+                className="max-h-[80vh] w-full object-contain"
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
