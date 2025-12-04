@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   Star,
   ThumbsUp,
@@ -139,12 +139,15 @@ function collectReviewImages(review) {
 
 export function ProductPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
   const numericId = id ? parseInt(id, 10) : null;
 
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
-  const [sortBy, setSortBy] = useState('helpful');
-  const [filterRating, setFilterRating] = useState('all');
+  const [sortBy, setSortBy] = useState('helpful'); // helpful | recent | rating | photos
+  const [filterRating, setFilterRating] = useState('all'); // all | 1-5
+  const [onlyWithPhotos, setOnlyWithPhotos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -171,6 +174,54 @@ export function ProductPage() {
 
   // Lightbox container ref for Fullscreen API
   const lightboxContainerRef = useRef(null);
+
+  // Initialize sort/filter from URL query params (once)
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+
+    const sortParam = params.get('sort');
+    const ratingParam = params.get('rating');
+    const photosParam = params.get('photos');
+
+    if (sortParam && ['helpful', 'recent', 'rating', 'photos'].includes(sortParam)) {
+      setSortBy(sortParam);
+    }
+
+    if (ratingParam && ['1', '2', '3', '4', '5'].includes(ratingParam)) {
+      setFilterRating(ratingParam);
+    }
+
+    if (photosParam === '1') {
+      setOnlyWithPhotos(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // only on initial mount
+
+  // Keep URL in sync with sort/filter/photo state
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    params.set('sort', sortBy);
+    params.set('rating', filterRating);
+
+    if (onlyWithPhotos) {
+      params.set('photos', '1');
+    } else {
+      params.delete('photos');
+    }
+
+    const newSearch = params.toString();
+    const currentSearch = location.search.replace(/^\?/, '');
+
+    if (newSearch !== currentSearch) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: newSearch,
+        },
+        { replace: true }
+      );
+    }
+  }, [sortBy, filterRating, onlyWithPhotos, location.pathname, location.search, navigate]);
 
   // Track product view interaction
   useEffect(() => {
@@ -319,9 +370,12 @@ export function ProductPage() {
 
     // Combine recent upload + any existing, but enforce a hard cap of MAX_REVIEW_IMAGES
     const mergedImagesRaw = [...uploadedImages, ...existingImages];
-    let mergedImages = mergedImagesRaw.slice(0, MAX_REVIEW_IMAGES);
+    const mergedImages = mergedImagesRaw.slice(0, MAX_REVIEW_IMAGES);
 
-    if (mergedImagesRaw.length > MAX_REVIEW_IMAGES && typeof window !== 'undefined') {
+    if (
+      mergedImagesRaw.length > MAX_REVIEW_IMAGES &&
+      typeof window !== 'undefined'
+    ) {
       window.alert(
         `You can upload a maximum of ${MAX_REVIEW_IMAGES} photos per review. Only the first ${MAX_REVIEW_IMAGES} were kept.`
       );
@@ -484,12 +538,63 @@ export function ProductPage() {
     }
   };
 
+  const ratingStats = useMemo(() => {
+    if (!reviews || reviews.length === 0) {
+      return {
+        average: 0,
+        total: 0,
+        distribution: [5, 4, 3, 2, 1].map((stars) => ({
+          stars,
+          count: 0,
+          percentage: 0,
+        })),
+        photoCount: 0,
+      };
+    }
+
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sum = 0;
+    let photoCount = 0;
+
+    for (const r of reviews) {
+      const rating = Number(r.rating) || 0;
+      if (rating >= 1 && rating <= 5) {
+        counts[rating] += 1;
+        sum += rating;
+      }
+      if (collectReviewImages(r).length > 0) {
+        photoCount += 1;
+      }
+    }
+
+    const total =
+      counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
+    const average = total ? sum / total : 0;
+
+    const distribution = [5, 4, 3, 2, 1].map((stars) => {
+      const count = counts[stars];
+      const percentage = total ? Math.round((count / total) * 100) : 0;
+      return { stars, count, percentage };
+    });
+
+    return {
+      average,
+      total,
+      distribution,
+      photoCount,
+    };
+  }, [reviews]);
+
   const filteredAndSortedReviews = useMemo(() => {
     let result = [...reviews];
 
     if (filterRating !== 'all') {
       const target = parseInt(filterRating, 10);
       result = result.filter((r) => Number(r.rating) === target);
+    }
+
+    if (onlyWithPhotos) {
+      result = result.filter((r) => collectReviewImages(r).length > 0);
     }
 
     if (sortBy === 'recent') {
@@ -505,50 +610,15 @@ export function ProductPage() {
         (a, b) =>
           Number(b.helpful_count || 0) - Number(a.helpful_count || 0),
       );
+    } else if (sortBy === 'photos') {
+      result.sort(
+        (a, b) =>
+          collectReviewImages(b).length - collectReviewImages(a).length
+      );
     }
 
     return result;
-  }, [reviews, sortBy, filterRating]);
-
-  const ratingStats = useMemo(() => {
-    if (!reviews || reviews.length === 0) {
-      return {
-        average: 0,
-        total: 0,
-        distribution: [5, 4, 3, 2, 1].map((stars) => ({
-          stars,
-          count: 0,
-          percentage: 0,
-        })),
-      };
-    }
-
-    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    let sum = 0;
-
-    for (const r of reviews) {
-      const rating = Number(r.rating) || 0;
-      if (rating >= 1 && rating <= 5) {
-        counts[rating] += 1;
-        sum += rating;
-      }
-    }
-
-    const total = counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
-    const average = total ? sum / total : 0;
-
-    const distribution = [5, 4, 3, 2, 1].map((stars) => {
-      const count = counts[stars];
-      const percentage = total ? Math.round((count / total) * 100) : 0;
-      return { stars, count, percentage };
-    });
-
-    return {
-      average,
-      total,
-      distribution,
-    };
-  }, [reviews]);
+  }, [reviews, sortBy, filterRating, onlyWithPhotos]);
 
   const renderStars = (rating) => {
     const value = Number(rating) || 0;
@@ -562,6 +632,15 @@ export function ProductPage() {
         }`}
       />
     ));
+  };
+
+  const hasActiveFilters =
+    filterRating !== 'all' || onlyWithPhotos || sortBy !== 'helpful';
+
+  const clearFilters = () => {
+    setSortBy('helpful');
+    setFilterRating('all');
+    setOnlyWithPhotos(false);
   };
 
   if (loading) {
@@ -632,6 +711,11 @@ export function ProductPage() {
             src={imageUrl}
             alt={productName}
             className="w-full h-96 object-cover rounded-lg shadow-lg"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src =
+                'https://via.placeholder.com/800x400?text=Image+unavailable';
+            }}
           />
         </div>
 
@@ -658,6 +742,13 @@ export function ProductPage() {
               ({ratingStats.total || product.review_count || 0} reviews)
             </span>
           </div>
+
+          {ratingStats.photoCount > 0 && (
+            <div className="mb-4 text-sm text-gray-700">
+              {ratingStats.photoCount} review
+              {ratingStats.photoCount === 1 ? '' : 's'} include photos.
+            </div>
+          )}
 
           {specs && Array.isArray(specs) && specs.length > 0 && (
             <div className="mb-6">
@@ -732,6 +823,12 @@ export function ProductPage() {
                 <p className="text-gray-600">
                   {ratingStats.total || product.review_count || 0} total reviews
                 </p>
+                {ratingStats.photoCount > 0 && (
+                  <p className="mt-1 text-xs text-gray-600">
+                    {ratingStats.photoCount} review
+                    {ratingStats.photoCount === 1 ? '' : 's'} with photos
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -758,14 +855,13 @@ export function ProductPage() {
                 productId={numericId}
                 onReviewSubmitted={handleReviewSubmitted}
                 onCancel={() => setShowReviewForm(false)}
-                // If your ImageUpload supports it, you can pass this through
                 maxImages={MAX_REVIEW_IMAGES}
               />
             </div>
           )}
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-6">
+          <div className="flex flex-wrap gap-4 mb-6 items-center">
             <div className="flex items-center space-x-2">
               <Filter className="h-4 w-4 text-gray-600" />
               <span className="text-sm font-medium">Sort by:</span>
@@ -777,6 +873,7 @@ export function ProductPage() {
                 <option value="helpful">Most Helpful</option>
                 <option value="recent">Most Recent</option>
                 <option value="rating">Highest Rating</option>
+                <option value="photos">Most Photos</option>
               </select>
             </div>
 
@@ -795,14 +892,45 @@ export function ProductPage() {
                 <option value="1">1 Star</option>
               </select>
             </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                id="only-with-photos"
+                type="checkbox"
+                checked={onlyWithPhotos}
+                onChange={(e) => setOnlyWithPhotos(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label
+                htmlFor="only-with-photos"
+                className="text-sm text-gray-700 cursor-pointer"
+              >
+                Only reviews with photos
+              </label>
+            </div>
           </div>
 
           {/* Individual Reviews */}
           <div className="space-y-6">
             {filteredAndSortedReviews.length === 0 ? (
-              <p className="text-gray-600">
-                There are no reviews for this product yet.
-              </p>
+              <div className="text-gray-600">
+                {reviews.length === 0 ? (
+                  <p>There are no reviews for this product yet.</p>
+                ) : hasActiveFilters ? (
+                  <div className="space-y-2">
+                    <p>No reviews match these filters.</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearFilters}
+                    >
+                      Clear filters
+                    </Button>
+                  </div>
+                ) : (
+                  <p>No reviews to display.</p>
+                )}
+              </div>
             ) : (
               filteredAndSortedReviews.map((review) => {
                 const isVerified =
@@ -813,6 +941,7 @@ export function ProductPage() {
                   : '';
 
                 const images = collectReviewImages(review);
+                const hasImages = images.length > 0;
 
                 const reviewerName =
                   review.user?.username ||
@@ -860,26 +989,46 @@ export function ProductPage() {
                         </div>
                       </div>
 
-                      <h4 className="font-semibold text-gray-900 mb-2">
-                        {review.title || 'Review'}
-                      </h4>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">
+                          {review.title || 'Review'}
+                        </h4>
+                        {hasImages && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-blue-500 text-blue-600"
+                          >
+                            Includes photos
+                          </Badge>
+                        )}
+                      </div>
+
                       <p className="text-gray-700 mb-4">
                         {review.content || review.comment}
                       </p>
 
-                      {images.length > 0 && (
+                      {hasImages && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {images.map((img, index) => (
                             <button
                               key={index}
                               type="button"
-                              onClick={() => openLightbox(lightboxImages, index)}
+                              onClick={() =>
+                                openLightbox(lightboxImages, index)
+                              }
                               className="focus:outline-none"
                             >
                               <img
                                 src={img.thumb}
                                 alt="Review"
                                 className="w-20 h-20 object-cover rounded hover:opacity-80 transition"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src =
+                                    'https://via.placeholder.com/80?text=Img';
+                                  // Optional debug:
+                                  // console.warn('Thumbnail failed to load', img);
+                                }}
                               />
                             </button>
                           ))}
@@ -955,6 +1104,7 @@ export function ProductPage() {
               <button
                 type="button"
                 onClick={closeLightbox}
+                aria-label="Close image viewer"
                 className="absolute top-3 right-3 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
               >
                 <X className="h-5 w-5" />
@@ -964,6 +1114,7 @@ export function ProductPage() {
               <button
                 type="button"
                 onClick={toggleFullscreen}
+                aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
                 className="absolute top-3 right-12 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
               >
                 {isFullscreen ? (
@@ -988,6 +1139,7 @@ export function ProductPage() {
                   <button
                     type="button"
                     onClick={showPrevImage}
+                    aria-label="Previous image"
                     className="absolute left-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
                   >
                     <ChevronLeft className="h-5 w-5" />
@@ -1001,12 +1153,20 @@ export function ProductPage() {
                   style={{
                     transform: `scale(${lightbox.scale || 1})`,
                   }}
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src =
+                      'https://via.placeholder.com/800x600?text=Image+unavailable';
+                    // Optional debug:
+                    // console.warn('Lightbox image failed to load', lightbox.images[lightbox.currentIndex]);
+                  }}
                 />
 
                 {lightbox.images.length > 1 && (
                   <button
                     type="button"
                     onClick={showNextImage}
+                    aria-label="Next image"
                     className="absolute right-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
                   >
                     <ChevronRight className="h-5 w-5" />
@@ -1075,6 +1235,7 @@ export function ProductPage() {
                               ? 'border-white/80'
                               : 'border-white/20 hover:border-white/50'
                           }`}
+                          aria-label={`Go to image ${idx + 1}`}
                         >
                           <img
                             src={img.thumb}
@@ -1082,6 +1243,11 @@ export function ProductPage() {
                             className={`h-14 w-14 object-cover rounded ${
                               isActive ? 'opacity-100' : 'opacity-70'
                             }`}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src =
+                                'https://via.placeholder.com/80?text=Img';
+                            }}
                           />
                         </button>
                       );
