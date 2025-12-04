@@ -1,6 +1,16 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Star, ThumbsUp, Shield, Filter, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  Star,
+  ThumbsUp,
+  Shield,
+  Filter,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -145,14 +155,21 @@ export function ProductPage() {
     scale: 1,
   });
 
-  // Touch tracking for swipe + pinch gestures
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Touch tracking for swipe + pinch + double-tap
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
   const pinchStartDistance = useRef(null);
   const pinchStartScale = useRef(1);
+  const lastTapTimeRef = useRef(0);
 
   // Thumbnail refs for smooth scrolling of active thumb
   const thumbRefs = useRef([]);
+
+  // Lightbox container ref for Fullscreen API
+  const lightboxContainerRef = useRef(null);
 
   // Track product view interaction
   useEffect(() => {
@@ -188,6 +205,19 @@ export function ProductPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightbox.open]);
+
+  // Sync fullscreen state with browser's fullscreenchange event
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFs = !!document.fullscreenElement;
+      setIsFullscreen(isFs);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   // Smooth scroll active thumbnail into view when image changes
   useEffect(() => {
@@ -298,10 +328,15 @@ export function ProductPage() {
       currentIndex: startIndex ?? 0,
       scale: 1,
     });
+    setIsFullscreen(false);
   };
 
   const closeLightbox = () => {
-    setLightbox((prev) => ({ ...prev, open: false }));
+    setLightbox((prev) => ({ ...prev, open: false, scale: 1 }));
+    if (document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
+    setIsFullscreen(false);
   };
 
   const showPrevImage = (e) => {
@@ -324,12 +359,34 @@ export function ProductPage() {
     });
   };
 
-  // Swipe + pinch handlers
+  const toggleZoom = () => {
+    setLightbox((prev) => ({
+      ...prev,
+      scale: prev.scale > 1 ? 1 : 2,
+    }));
+  };
+
+  const toggleFullscreen = async () => {
+    const el = lightboxContainerRef.current;
+    if (!el) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await el.requestFullscreen?.();
+      } else {
+        await document.exitFullscreen?.();
+      }
+    } catch (err) {
+      console.error('Fullscreen toggle failed', err);
+    }
+  };
+
+  // Swipe + pinch + double-tap handlers
   const handleTouchStart = (e) => {
     if (!e.touches || e.touches.length === 0) return;
 
     if (e.touches.length === 1) {
-      // Single finger swipe
+      // Single finger swipe / tap
       touchStartX.current = e.touches[0].clientX;
       touchEndX.current = null;
     } else if (e.touches.length === 2) {
@@ -365,18 +422,21 @@ export function ProductPage() {
     }
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e) => {
     // If pinch ended, reset pinch refs
     if (pinchStartDistance.current != null) {
       pinchStartDistance.current = null;
       pinchStartScale.current = 1;
     }
 
+    let handledSwipe = false;
+
     // Handle swipe if we had a single-finger gesture
     if (touchStartX.current != null && touchEndX.current != null) {
       const delta = touchStartX.current - touchEndX.current;
       const SWIPE_THRESHOLD = 50;
       if (Math.abs(delta) > SWIPE_THRESHOLD) {
+        handledSwipe = true;
         if (delta > 0) {
           // swipe left → next image
           showNextImage();
@@ -384,6 +444,26 @@ export function ProductPage() {
           // swipe right → previous image
           showPrevImage();
         }
+      }
+    }
+
+    // Handle double-tap zoom when not swiping or pinching
+    if (
+      !handledSwipe &&
+      pinchStartDistance.current == null &&
+      e.changedTouches &&
+      e.changedTouches.length === 1
+    ) {
+      const now = Date.now();
+      const timeSinceLastTap = now - (lastTapTimeRef.current || 0);
+      const DOUBLE_TAP_DELAY = 300; // ms
+
+      if (timeSinceLastTap < DOUBLE_TAP_DELAY) {
+        // Double tap detected
+        toggleZoom();
+        lastTapTimeRef.current = 0;
+      } else {
+        lastTapTimeRef.current = now;
       }
     }
 
@@ -848,6 +928,7 @@ export function ProductPage() {
           onClick={closeLightbox}
         >
           <div
+            ref={lightboxContainerRef}
             className="relative max-w-3xl w-full max-h-[90vh] mx-4"
             onClick={(e) => e.stopPropagation()}
           >
@@ -860,13 +941,27 @@ export function ProductPage() {
               <X className="h-5 w-5" />
             </button>
 
-            {/* Image with centered side arrows + swipe/pinch handlers */}
+            {/* Fullscreen toggle */}
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="absolute top-3 right-12 inline-flex items-center justify-center rounded-full bg-black/60 p-1.5 text-gray-100 hover:bg-black/80 focus:outline-none"
+            >
+              {isFullscreen ? (
+                <Minimize2 className="h-5 w-5" />
+              ) : (
+                <Maximize2 className="h-5 w-5" />
+              )}
+            </button>
+
+            {/* Image with centered side arrows + swipe/pinch/double-tap handlers */}
             <div
               className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center"
               style={{ touchAction: 'none' }}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
+              onDoubleClick={toggleZoom}
             >
               {lightbox.images.length > 1 && (
                 <button
@@ -898,17 +993,29 @@ export function ProductPage() {
               )}
             </div>
 
-            {/* Image index + captions */}
+            {/* Image index + captions + progress bar */}
             <div className="mt-3 text-sm text-gray-100 text-center">
               <div>
                 Image {lightbox.currentIndex + 1} of {lightbox.images.length}
+              </div>
+              {/* Progress bar / filmstrip indicator */}
+              <div className="mt-2 mx-auto w-40 h-1.5 rounded-full bg-white/20 overflow-hidden">
+                <div
+                  className="h-full bg-white/80"
+                  style={{
+                    width: `${
+                      ((lightbox.currentIndex + 1) / lightbox.images.length) *
+                      100
+                    }%`,
+                  }}
+                />
               </div>
               {(() => {
                 const current = lightbox.images[lightbox.currentIndex] || {};
                 return (
                   <>
                     {current.captionTitle && (
-                      <div className="mt-1 font-medium">
+                      <div className="mt-2 font-medium">
                         {current.captionTitle}
                       </div>
                     )}
