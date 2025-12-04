@@ -177,6 +177,16 @@ export function ProductPage() {
     }
   }, [numericId]);
 
+  // Disable background scroll while lightbox is open
+  useEffect(() => {
+    if (!lightbox.open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [lightbox.open]);
+
   // Keyboard navigation: Escape to close, Left/Right arrows to navigate
   useEffect(() => {
     if (!lightbox.open) return;
@@ -294,13 +304,23 @@ export function ProductPage() {
 
     const uploadedImages = result.uploadedImages || [];
 
-    const mergedImages = [
+    const mergedImagesRaw = [
       ...(Array.isArray(baseReview.images) ? baseReview.images : []),
       ...(Array.isArray(baseReview.review_images)
         ? baseReview.review_images
         : []),
       ...uploadedImages,
     ];
+
+    let mergedImages = mergedImagesRaw;
+    if (mergedImagesRaw.length > 5) {
+      mergedImages = mergedImagesRaw.slice(0, 5);
+      if (typeof window !== 'undefined') {
+        window.alert(
+          'You can upload a maximum of 5 photos per review. Only the first 5 were saved.'
+        );
+      }
+    }
 
     const finalReview = {
       ...baseReview,
@@ -442,6 +462,21 @@ export function ProductPage() {
 
     touchStartX.current = null;
     touchEndX.current = null;
+  };
+
+  // Mouse/trackpad wheel: scroll through images instead of page
+  const handleWheel = (e) => {
+    if (!lightbox.open) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+
+    if (delta > 0) {
+      showNextImage();
+    } else if (delta < 0) {
+      showPrevImage();
+    }
   };
 
   const filteredAndSortedReviews = useMemo(() => {
@@ -902,142 +937,150 @@ export function ProductPage() {
         >
           <div
             ref={lightboxContainerRef}
-            className="relative max-w-3xl w-full max-h-[90vh] mx-4"
+            className="relative w-full max-w-3xl mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={closeLightbox}
-              className="absolute top-3 right-3 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
-            >
-              <X className="h-5 w-5" />
-            </button>
-
-            {/* Fullscreen toggle */}
-            <button
-              type="button"
-              onClick={toggleFullscreen}
-              className="absolute top-3 right-12 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
-            >
-              {isFullscreen ? (
-                <Minimize2 className="h-5 w-5" />
-              ) : (
-                <Maximize2 className="h-5 w-5" />
-              )}
-            </button>
-
-            {/* Image with centered side arrows + swipe/pinch handlers */}
             <div
-              className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center"
-              style={{ touchAction: 'none' }}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              className="relative bg-black rounded-lg shadow-lg overflow-hidden flex flex-col"
+              style={{ height: '80vh' }} // fixed overall lightbox height
             >
-              {lightbox.images.length > 1 && (
-                <button
-                  type="button"
-                  onClick={showPrevImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-              )}
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={closeLightbox}
+                className="absolute top-3 right-3 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
 
-              <img
-                src={lightbox.images[lightbox.currentIndex]?.full}
-                alt={`Review image ${lightbox.currentIndex + 1}`}
-                className="max-h-[80vh] w-full object-contain"
-                style={{
-                  transform: `scale(${lightbox.scale || 1})`,
-                }}
-              />
+              {/* Fullscreen toggle */}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="absolute top-3 right-12 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="h-5 w-5" />
+                ) : (
+                  <Maximize2 className="h-5 w-5" />
+                )}
+              </button>
 
-              {lightbox.images.length > 1 && (
-                <button
-                  type="button"
-                  onClick={showNextImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
-              )}
-            </div>
+              {/* Fixed-height image area; arrows stay centered; wheel scrolls images */}
+              <div
+                className="relative h-[60vh] flex items-center justify-center"
+                style={{ touchAction: 'none' }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                onWheel={handleWheel}
+              >
+                {lightbox.images.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={showPrevImage}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                )}
 
-            {/* Image index + captions + progress bar */}
-            <div className="mt-3 text-sm text-gray-100 text-center">
-              <div>
-                Image {lightbox.currentIndex + 1} of {lightbox.images.length}
-              </div>
-              {/* Progress bar / filmstrip indicator */}
-              <div className="mt-2 mx-auto w-40 h-1.5 rounded-full bg-white/20 overflow-hidden">
-                <div
-                  className="h-full bg-white/80"
+                <img
+                  src={lightbox.images[lightbox.currentIndex]?.full}
+                  alt={`Review image ${lightbox.currentIndex + 1}`}
+                  className="max-h-full max-w-full object-contain"
                   style={{
-                    width: `${
-                      ((lightbox.currentIndex + 1) / lightbox.images.length) *
-                      100
-                    }%`,
+                    transform: `scale(${lightbox.scale || 1})`,
                   }}
                 />
-              </div>
-              {(() => {
-                const current = lightbox.images[lightbox.currentIndex] || {};
-                return (
-                  <>
-                    {current.captionTitle && (
-                      <div className="mt-2 font-medium">
-                        {current.captionTitle}
-                      </div>
-                    )}
-                    {current.captionMeta && (
-                      <div className="mt-0.5 text-xs text-gray-300">
-                        {current.captionMeta}
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
 
-            {/* Thumbnail strip inside lightbox */}
-            {lightbox.images.length > 1 && (
-              <div className="mt-3 flex justify-center gap-2 overflow-x-auto pb-2">
-                {lightbox.images.map((img, idx) => {
-                  const isActive = idx === lightbox.currentIndex;
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      ref={(el) => {
-                        thumbRefs.current[idx] = el;
-                      }}
-                      onClick={() =>
-                        setLightbox((prev) => ({
-                          ...prev,
-                          currentIndex: idx,
-                          scale: 1,
-                        }))
-                      }
-                      className={`border rounded ${
-                        isActive
-                          ? 'border-white/80'
-                          : 'border-white/20 hover:border-white/50'
-                      }`}
-                    >
-                      <img
-                        src={img.thumb}
-                        alt={`Thumbnail ${idx + 1}`}
-                        className={`h-14 w-14 object-cover rounded ${
-                          isActive ? 'opacity-100' : 'opacity-70'
-                        }`}
-                      />
-                    </button>
-                  );
-                })}
+                {lightbox.images.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={showNextImage}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                )}
               </div>
-            )}
+
+              {/* Fixed bottom info area: index + progress + captions */}
+              <div className="px-4 py-3 border-t border-white/10 text-sm text-gray-100 text-center">
+                <div>
+                  Image {lightbox.currentIndex + 1} of {lightbox.images.length}
+                </div>
+                <div className="mt-2 mx-auto w-40 h-1.5 rounded-full bg-white/20 overflow-hidden">
+                  <div
+                    className="h-full bg-white/80"
+                    style={{
+                      width: `${
+                        ((lightbox.currentIndex + 1) /
+                          lightbox.images.length) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+                {(() => {
+                  const current = lightbox.images[lightbox.currentIndex] || {};
+                  return (
+                    <>
+                      {current.captionTitle && (
+                        <div className="mt-2 font-medium">
+                          {current.captionTitle}
+                        </div>
+                      )}
+                      {current.captionMeta && (
+                        <div className="mt-0.5 text-xs text-gray-300">
+                          {current.captionMeta}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+
+              {/* Thumbnail strip pinned at very bottom */}
+              {lightbox.images.length > 1 && (
+                <div className="px-4 pb-3 pt-1 border-t border-white/10">
+                  <div className="flex justify-center gap-2 overflow-x-auto">
+                    {lightbox.images.map((img, idx) => {
+                      const isActive = idx === lightbox.currentIndex;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          ref={(el) => {
+                            thumbRefs.current[idx] = el;
+                          }}
+                          onClick={() =>
+                            setLightbox((prev) => ({
+                              ...prev,
+                              currentIndex: idx,
+                              scale: 1,
+                            }))
+                          }
+                          className={`border rounded ${
+                            isActive
+                              ? 'border-white/80'
+                              : 'border-white/20 hover:border-white/50'
+                          }`}
+                        >
+                          <img
+                            src={img.thumb}
+                            alt={`Thumbnail ${idx + 1}`}
+                            className={`h-14 w-14 object-cover rounded ${
+                              isActive ? 'opacity-100' : 'opacity-70'
+                            }`}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
