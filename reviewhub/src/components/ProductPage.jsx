@@ -158,12 +158,11 @@ export function ProductPage() {
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Touch tracking for swipe + pinch + double-tap
+  // Touch tracking for swipe + pinch
   const touchStartX = useRef(null);
   const touchEndX = useRef(null);
   const pinchStartDistance = useRef(null);
   const pinchStartScale = useRef(1);
-  const lastTapTimeRef = useRef(0);
 
   // Thumbnail refs for smooth scrolling of active thumb
   const thumbRefs = useRef([]);
@@ -184,7 +183,11 @@ export function ProductPage() {
 
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
-        setLightbox((prev) => ({ ...prev, open: false }));
+        setLightbox((prev) => ({ ...prev, open: false, scale: 1 }));
+        if (document.fullscreenElement) {
+          document.exitFullscreen?.().catch(() => {});
+        }
+        setIsFullscreen(false);
       } else if (e.key === 'ArrowLeft') {
         setLightbox((prev) => {
           if (!prev.images.length) return prev;
@@ -359,13 +362,6 @@ export function ProductPage() {
     });
   };
 
-  const toggleZoom = () => {
-    setLightbox((prev) => ({
-      ...prev,
-      scale: prev.scale > 1 ? 1 : 2,
-    }));
-  };
-
   const toggleFullscreen = async () => {
     const el = lightboxContainerRef.current;
     if (!el) return;
@@ -381,12 +377,12 @@ export function ProductPage() {
     }
   };
 
-  // Swipe + pinch + double-tap handlers
+  // Swipe + pinch handlers
   const handleTouchStart = (e) => {
     if (!e.touches || e.touches.length === 0) return;
 
     if (e.touches.length === 1) {
-      // Single finger swipe / tap
+      // Single finger swipe
       touchStartX.current = e.touches[0].clientX;
       touchEndX.current = null;
     } else if (e.touches.length === 2) {
@@ -422,21 +418,18 @@ export function ProductPage() {
     }
   };
 
-  const handleTouchEnd = (e) => {
+  const handleTouchEnd = () => {
     // If pinch ended, reset pinch refs
     if (pinchStartDistance.current != null) {
       pinchStartDistance.current = null;
       pinchStartScale.current = 1;
     }
 
-    let handledSwipe = false;
-
     // Handle swipe if we had a single-finger gesture
     if (touchStartX.current != null && touchEndX.current != null) {
       const delta = touchStartX.current - touchEndX.current;
       const SWIPE_THRESHOLD = 50;
       if (Math.abs(delta) > SWIPE_THRESHOLD) {
-        handledSwipe = true;
         if (delta > 0) {
           // swipe left → next image
           showNextImage();
@@ -444,26 +437,6 @@ export function ProductPage() {
           // swipe right → previous image
           showPrevImage();
         }
-      }
-    }
-
-    // Handle double-tap zoom when not swiping or pinching
-    if (
-      !handledSwipe &&
-      pinchStartDistance.current == null &&
-      e.changedTouches &&
-      e.changedTouches.length === 1
-    ) {
-      const now = Date.now();
-      const timeSinceLastTap = now - (lastTapTimeRef.current || 0);
-      const DOUBLE_TAP_DELAY = 300; // ms
-
-      if (timeSinceLastTap < DOUBLE_TAP_DELAY) {
-        // Double tap detected
-        toggleZoom();
-        lastTapTimeRef.current = 0;
-      } else {
-        lastTapTimeRef.current = now;
       }
     }
 
@@ -936,7 +909,7 @@ export function ProductPage() {
             <button
               type="button"
               onClick={closeLightbox}
-              className="absolute top-3 right-3 inline-flex items-center justify-center rounded-full bg-black/60 p-1.5 text-gray-100 hover:bg-black/80 focus:outline-none"
+              className="absolute top-3 right-3 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
             >
               <X className="h-5 w-5" />
             </button>
@@ -945,7 +918,7 @@ export function ProductPage() {
             <button
               type="button"
               onClick={toggleFullscreen}
-              className="absolute top-3 right-12 inline-flex items-center justify-center rounded-full bg-black/60 p-1.5 text-gray-100 hover:bg-black/80 focus:outline-none"
+              className="absolute top-3 right-12 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
             >
               {isFullscreen ? (
                 <Minimize2 className="h-5 w-5" />
@@ -954,20 +927,19 @@ export function ProductPage() {
               )}
             </button>
 
-            {/* Image with centered side arrows + swipe/pinch/double-tap handlers */}
+            {/* Image with centered side arrows + swipe/pinch handlers */}
             <div
               className="bg-black rounded-lg overflow-hidden relative flex items-center justify-center"
               style={{ touchAction: 'none' }}
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              onDoubleClick={toggleZoom}
             >
               {lightbox.images.length > 1 && (
                 <button
                   type="button"
                   onClick={showPrevImage}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-full bg-black/60 p-2 text-gray-100 hover:bg-black/80 focus:outline-none"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
@@ -986,7 +958,7 @@ export function ProductPage() {
                 <button
                   type="button"
                   onClick={showNextImage}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center rounded-full bg-black/60 p-2 text-gray-100 hover:bg-black/80 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>
