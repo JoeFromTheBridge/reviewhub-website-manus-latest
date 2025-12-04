@@ -5,6 +5,10 @@ import os
 from datetime import datetime
 from file_storage import file_storage
 
+# Hard cap on how many images a single review can have
+MAX_REVIEW_IMAGES = 5
+
+
 def register_image_routes(app, db):
     """Register image upload routes with the Flask app"""
     
@@ -63,7 +67,25 @@ def register_image_routes(app, db):
             # Get optional metadata
             alt_text = request.form.get('alt_text', '')
             caption = request.form.get('caption', '')
-            review_id = request.form.get('review_id')
+            review_id_raw = request.form.get('review_id')
+            review_id = None
+
+            if review_id_raw:
+                try:
+                    review_id = int(review_id_raw)
+                except ValueError:
+                    return jsonify({'error': 'Invalid review_id'}), 400
+
+                # Enforce per-review max image limit (single upload endpoint)
+                existing_count = Image.query.filter_by(
+                    related_id=review_id,
+                    image_type='review',
+                    is_active=True
+                ).count()
+                if existing_count >= MAX_REVIEW_IMAGES:
+                    return jsonify({
+                        'error': f'Maximum {MAX_REVIEW_IMAGES} images per review reached'
+                    }), 400
             
             # Upload and process image
             upload_result = file_storage.upload_review_image(file, user_id, review_id)
@@ -80,7 +102,7 @@ def register_image_routes(app, db):
                 alt_text=alt_text,
                 caption=caption,
                 image_type='review',
-                related_id=int(review_id) if review_id else None
+                related_id=review_id
             )
             
             db.session.add(image)
@@ -177,13 +199,42 @@ def register_image_routes(app, db):
             if not files or all(f.filename == '' for f in files):
                 return jsonify({'error': 'No files selected'}), 400
             
-            # Limit number of files
-            max_files = 5
-            if len(files) > max_files:
-                return jsonify({'error': f'Maximum {max_files} files allowed'}), 400
-            
             # Get optional metadata
-            review_id = request.form.get('review_id')
+            review_id_raw = request.form.get('review_id')
+            review_id = None
+            if review_id_raw:
+                try:
+                    review_id = int(review_id_raw)
+                except ValueError:
+                    return jsonify({'error': 'Invalid review_id'}), 400
+
+            # Enforce per-request and per-review limits
+            # First, enforce hard per-request limit
+            per_request_max = MAX_REVIEW_IMAGES
+            if len(files) > per_request_max:
+                return jsonify({'error': f'Maximum {per_request_max} files per upload allowed'}), 400
+
+            # Then enforce per-review total limit if we know the review_id
+            existing_count = 0
+            if review_id is not None:
+                existing_count = Image.query.filter_by(
+                    related_id=review_id,
+                    image_type='review',
+                    is_active=True
+                ).count()
+                remaining_slots = MAX_REVIEW_IMAGES - existing_count
+                if remaining_slots <= 0:
+                    return jsonify({
+                        'error': f'Maximum {MAX_REVIEW_IMAGES} images per review reached'
+                    }), 400
+                if len(files) > remaining_slots:
+                    return jsonify({
+                        'error': (
+                            f'You can only upload {remaining_slots} more '
+                            f'image{"s" if remaining_slots != 1 else ""} for this review '
+                            f'(max {MAX_REVIEW_IMAGES} images per review).'
+                        )
+                    }), 400
             
             uploaded_images = []
             errors = []
@@ -206,7 +257,7 @@ def register_image_routes(app, db):
                         main_url=upload_result['main_url'],
                         thumbnail_url=upload_result['thumbnail_url'],
                         image_type='review',
-                        related_id=int(review_id) if review_id else None
+                        related_id=review_id
                     )
                     
                     db.session.add(image)
@@ -357,6 +408,8 @@ def register_image_routes(app, db):
     def get_review_images(review_id):
         """Get all images for a specific review"""
         try:
+         
+
             images = Image.query.filter_by(
                 related_id=review_id, 
                 image_type='review', 
