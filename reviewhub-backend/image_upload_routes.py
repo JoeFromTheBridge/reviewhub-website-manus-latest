@@ -370,22 +370,22 @@ def register_image_routes(app, db):
         except Exception as e:
             return jsonify({'error': str(e)}), 500
     
-    # Serve uploaded files for local storage
-    if file_storage.storage_type == 'local':
-        # New canonical path used by stored URLs: /api/uploads/...
-        @app.route('/api/uploads/<path:filename>')
-        def uploaded_file_api(filename):
-            """Serve uploaded files under /api/uploads/..."""
-            return send_from_directory(file_storage.upload_folder, filename)
+    # Serve uploaded files (local filesystem)
+    @app.route('/api/uploads/<path:filename>')
+    def uploaded_file_api(filename):
+        """
+        Canonical path used in Image.main_url / Image.thumbnail_url:
+        /api/uploads/<subdir>/<filename>
+        """
+        return send_from_directory(file_storage.upload_folder, filename)
 
-        # Backwards-compatible legacy path: /uploads/...
-        @app.route('/uploads/<path:filename>')
-        def uploaded_file_legacy(filename):
-            """Legacy path for uploaded files"""
-            return send_from_directory(file_storage.upload_folder, filename)
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file_legacy(filename):
+        """
+        Backwards-compatible legacy path (/uploads/...) in case
+        anything still points there.
+        """
+        return send_from_directory(file_storage.upload_folder, filename)
 
-
-    
     # Return the Image model for use in other parts of the app
     return Image
-
