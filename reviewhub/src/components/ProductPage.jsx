@@ -1,3 +1,6 @@
+Add “reviews with photos” filter + photo count in summary
+
+```jsx
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -145,6 +148,7 @@ export function ProductPage() {
   const [reviews, setReviews] = useState([]);
   const [sortBy, setSortBy] = useState('helpful');
   const [filterRating, setFilterRating] = useState('all');
+  const [onlyWithPhotos, setOnlyWithPhotos] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -321,7 +325,10 @@ export function ProductPage() {
     const mergedImagesRaw = [...uploadedImages, ...existingImages];
     let mergedImages = mergedImagesRaw.slice(0, MAX_REVIEW_IMAGES);
 
-    if (mergedImagesRaw.length > MAX_REVIEW_IMAGES && typeof window !== 'undefined') {
+    if (
+      mergedImagesRaw.length > MAX_REVIEW_IMAGES &&
+      typeof window !== 'undefined'
+    ) {
       window.alert(
         `You can upload a maximum of ${MAX_REVIEW_IMAGES} photos per review. Only the first ${MAX_REVIEW_IMAGES} were kept.`
       );
@@ -484,12 +491,65 @@ export function ProductPage() {
     }
   };
 
+  const ratingStats = useMemo(() => {
+    if (!reviews || reviews.length === 0) {
+      return {
+        average: 0,
+        total: 0,
+        distribution: [5, 4, 3, 2, 1].map((stars) => ({
+          stars,
+          count: 0,
+          percentage: 0,
+        })),
+        photoCount: 0,
+      };
+    }
+
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sum = 0;
+
+    for (const r of reviews) {
+      const rating = Number(r.rating) || 0;
+      if (rating >= 1 && rating <= 5) {
+        counts[rating] += 1;
+        sum += rating;
+      }
+    }
+
+    const total =
+      counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
+    const average = total ? sum / total : 0;
+
+    const distribution = [5, 4, 3, 2, 1].map((stars) => {
+      const count = counts[stars];
+      const percentage = total ? Math.round((count / total) * 100) : 0;
+      return { stars, count, percentage };
+    });
+
+    const photoCount = reviews.filter(
+      (r) => collectReviewImages(r).length > 0
+    ).length;
+
+    return {
+      average,
+      total,
+      distribution,
+      photoCount,
+    };
+  }, [reviews]);
+
   const filteredAndSortedReviews = useMemo(() => {
     let result = [...reviews];
 
     if (filterRating !== 'all') {
       const target = parseInt(filterRating, 10);
       result = result.filter((r) => Number(r.rating) === target);
+    }
+
+    if (onlyWithPhotos) {
+      result = result.filter(
+        (r) => collectReviewImages(r).length > 0
+      );
     }
 
     if (sortBy === 'recent') {
@@ -508,47 +568,7 @@ export function ProductPage() {
     }
 
     return result;
-  }, [reviews, sortBy, filterRating]);
-
-  const ratingStats = useMemo(() => {
-    if (!reviews || reviews.length === 0) {
-      return {
-        average: 0,
-        total: 0,
-        distribution: [5, 4, 3, 2, 1].map((stars) => ({
-          stars,
-          count: 0,
-          percentage: 0,
-        })),
-      };
-    }
-
-    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    let sum = 0;
-
-    for (const r of reviews) {
-      const rating = Number(r.rating) || 0;
-      if (rating >= 1 && rating <= 5) {
-        counts[rating] += 1;
-        sum += rating;
-      }
-    }
-
-    const total = counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
-    const average = total ? sum / total : 0;
-
-    const distribution = [5, 4, 3, 2, 1].map((stars) => {
-      const count = counts[stars];
-      const percentage = total ? Math.round((count / total) * 100) : 0;
-      return { stars, count, percentage };
-    });
-
-    return {
-      average,
-      total,
-      distribution,
-    };
-  }, [reviews]);
+  }, [reviews, sortBy, filterRating, onlyWithPhotos]);
 
   const renderStars = (rating) => {
     const value = Number(rating) || 0;
@@ -659,6 +679,13 @@ export function ProductPage() {
             </span>
           </div>
 
+          {ratingStats.photoCount > 0 && (
+            <div className="mb-4 text-sm text-gray-700">
+              {ratingStats.photoCount} review
+              {ratingStats.photoCount === 1 ? '' : 's'} include photos.
+            </div>
+          )}
+
           {specs && Array.isArray(specs) && specs.length > 0 && (
             <div className="mb-6">
               <h3 className="font-semibold text-gray-900 mb-3">
@@ -732,6 +759,12 @@ export function ProductPage() {
                 <p className="text-gray-600">
                   {ratingStats.total || product.review_count || 0} total reviews
                 </p>
+                {ratingStats.photoCount > 0 && (
+                  <p className="mt-1 text-xs text-gray-600">
+                    {ratingStats.photoCount} review
+                    {ratingStats.photoCount === 1 ? '' : 's'} with photos
+                  </p>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -758,14 +791,13 @@ export function ProductPage() {
                 productId={numericId}
                 onReviewSubmitted={handleReviewSubmitted}
                 onCancel={() => setShowReviewForm(false)}
-                // If your ImageUpload supports it, you can pass this through
                 maxImages={MAX_REVIEW_IMAGES}
               />
             </div>
           )}
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-6">
+          <div className="flex flex-wrap gap-4 mb-6 items-center">
             <div className="flex items-center space-x-2">
               <Filter className="h-4 w-4 text-gray-600" />
               <span className="text-sm font-medium">Sort by:</span>
@@ -794,6 +826,22 @@ export function ProductPage() {
                 <option value="2">2 Stars</option>
                 <option value="1">1 Star</option>
               </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                id="only-with-photos"
+                type="checkbox"
+                checked={onlyWithPhotos}
+                onChange={(e) => setOnlyWithPhotos(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label
+                htmlFor="only-with-photos"
+                className="text-sm text-gray-700 cursor-pointer"
+              >
+                Only reviews with photos
+              </label>
             </div>
           </div>
 
@@ -1098,3 +1146,4 @@ export function ProductPage() {
 }
 
 export default ProductPage;
+```
