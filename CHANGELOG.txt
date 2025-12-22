@@ -1,0 +1,15 @@
+2025-12-22
+
+Added modal lightbox for review images with fixed layout, fullscreen mode, scroll-wheel navigation, swipe gestures, and pinch-to-zoom on mobile.
+
+Improved review image browsing with centered next/previous controls, image index indicator, and stable progress bar.
+
+Enforced a strict maximum of 5 images per review with immediate frontend validation and backend safeguards.
+
+Improved image upload UX with clear error messages, previews, removal controls, and accurate remaining-image feedback.
+
+Fixed multiple edge cases around review image rendering, navigation, and interaction consistency across desktop and mobile.
+
+Known limitation
+
+Review images are still stored on the backend’s local filesystem and may disappear after backend restarts; migration to persistent object storage (S3) is planned.
