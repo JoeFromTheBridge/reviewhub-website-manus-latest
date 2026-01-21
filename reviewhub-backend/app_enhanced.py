@@ -3,6 +3,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 from functools import wraps
@@ -37,6 +39,15 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 migrate = Migrate(app, db, directory="migrations")
+
+# Rate limiting (protects against brute force attacks)
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri=os.getenv('REDIS_URL', 'memory://'),
+    strategy="fixed-window"
+)
 
 # CORS configuration (standardize env var name and include APP_BASE_URL/FRONTEND_URL)
 def _normalize_origin(value: str) -> str:
@@ -493,6 +504,7 @@ class PrivacySettings(db.Model):
 
 # Authentication Routes
 @app.route('/api/auth/register', methods=['POST'])
+@limiter.limit("5 per hour")  # Prevent spam registrations
 def register():
     try:
         data = request.get_json()
@@ -588,6 +600,7 @@ def verify_email():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/resend-verification', methods=['POST'])
+@limiter.limit("3 per hour")  # Prevent email flooding
 def resend_verification():
     try:
         data = request.get_json()
@@ -656,6 +669,7 @@ def debug_verification_link():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/login', methods=['POST'])
+@limiter.limit("5 per minute")  # Prevent brute force attacks
 def login():
     try:
         data = request.get_json()
@@ -709,6 +723,7 @@ def logout():
     return jsonify({'message': 'Logged out successfully'}), 200
 
 @app.route('/api/auth/forgot-password', methods=['POST'])
+@limiter.limit("3 per hour")  # Prevent email flooding
 def forgot_password():
     try:
         data = request.get_json()
@@ -746,6 +761,7 @@ def forgot_password():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/reset-password', methods=['POST'])
+@limiter.limit("5 per hour")  # Prevent token brute force
 def reset_password():
     try:
         data = request.get_json()
