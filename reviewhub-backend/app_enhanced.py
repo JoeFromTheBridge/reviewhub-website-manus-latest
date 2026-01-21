@@ -5,6 +5,7 @@ from flask_jwt_extended import JWTManager, jwt_required, create_access_token, ge
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from functools import wraps
 import os
 import random  # added for seeding
 from dotenv import load_dotenv
@@ -88,6 +89,40 @@ def api_health():
 def healthz():
     # Simple string helps Render/container health checks
     return "ok", 200
+
+
+# --- Admin Security Decorator ---
+def admin_required(fn):
+    """
+    Decorator to require admin privileges for a route.
+    Must be used AFTER @jwt_required() decorator.
+
+    Usage:
+        @app.route('/api/admin/something')
+        @jwt_required()
+        @admin_required
+        def admin_only_route():
+            # Your admin logic here
+            pass
+    """
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        user_id = get_jwt_identity()
+
+        # Import User model (must be after models are defined, but this is inside function)
+        # So we'll do a forward reference by accessing db.Model registry
+        from sqlalchemy import inspect
+        user = db.session.get(User, user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        if not user.is_admin:
+            return jsonify({'error': 'Admin access required'}), 403
+
+        return fn(*args, **kwargs)
+
+    return wrapper
 
 
 # Enhanced Database Models
@@ -2261,15 +2296,11 @@ def download_export(request_id):
 # Admin Data Export Routes
 @app.route('/api/admin/data-export/cleanup', methods=['POST'])
 @jwt_required()
+@admin_required
 def admin_cleanup_exports():
     """Clean up expired export files (Admin only)"""
     try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        
-        if not user or not user.is_admin:
-            return jsonify({'error': 'Admin access required'}), 403
-        
+        # No need to manually check admin status - decorator handles it!
         export_svc = get_data_export_service(db)
         cleaned_count = export_svc.cleanup_expired_exports()
         
