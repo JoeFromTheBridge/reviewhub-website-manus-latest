@@ -22,6 +22,7 @@ from performance_service import get_performance_service
 from gdpr_service import get_gdpr_service
 from data_export_service import get_data_export_service
 from visual_search_service import visual_search_service
+import bleach
 
 # Load environment variables
 load_dotenv()
@@ -134,6 +135,22 @@ def admin_required(fn):
         return fn(*args, **kwargs)
 
     return wrapper
+
+
+# --- XSS Protection Helper ---
+def sanitize_html(text):
+    """
+    Sanitize user input to prevent XSS attacks.
+    Strips all HTML tags and malicious content.
+    Returns empty string if input is None.
+    """
+    if text is None:
+        return None
+    if not isinstance(text, str):
+        return str(text)
+
+    # Strip all HTML tags - we don't allow any HTML in user content
+    return bleach.clean(text, tags=[], strip=True)
 
 
 # Enhanced Database Models
@@ -819,12 +836,12 @@ def update_profile():
             return jsonify({'error': 'User not found'}), 404
         
         data = request.get_json()
-        
-        # Update allowed fields
-        allowed_fields = ['first_name', 'last_name', 'bio', 'location', 'website']
-        for field in allowed_fields:
+
+        # Update allowed fields with XSS protection
+        text_fields = ['first_name', 'last_name', 'bio', 'location', 'website']
+        for field in text_fields:
             if field in data:
-                setattr(user, field, data[field])
+                setattr(user, field, sanitize_html(data[field]))
         
         db.session.commit()
         
@@ -1160,14 +1177,15 @@ def create_review():
         if not product_id or not data.get("rating") or not data.get("content"):
             return jsonify({"error": "Product ID, rating, and content are required"}), 400
 
+        # Sanitize user input to prevent XSS attacks
         review = Review(
             user_id=user_id,
             product_id=product_id,
             rating=data["rating"],
-            title=data.get("title"),
-            content=data["content"],
-            pros=data.get("pros"),
-            cons=data.get("cons"),
+            title=sanitize_html(data.get("title")),
+            content=sanitize_html(data["content"]),
+            pros=sanitize_html(data.get("pros")),
+            cons=sanitize_html(data.get("cons")),
             verified_purchase=data.get("verified_purchase", False)
         )
         db.session.add(review)
@@ -1239,10 +1257,17 @@ def update_review(review_id):
 
         data = request.get_json() or {}
 
-        updatable_fields = ["rating", "title", "content", "pros", "cons", "verified_purchase"]
-        for field in updatable_fields:
+        # Sanitize text fields to prevent XSS
+        text_fields = ["title", "content", "pros", "cons"]
+        for field in text_fields:
             if field in data:
-                setattr(review, field, data[field])
+                setattr(review, field, sanitize_html(data[field]))
+
+        # Update non-text fields without sanitization
+        if "rating" in data:
+            review.rating = data["rating"]
+        if "verified_purchase" in data:
+            review.verified_purchase = data["verified_purchase"]
 
         db.session.commit()
 
