@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
 """
 Simple server runner for ReviewHub backend testing.
+Uses app_enhanced.py to match production environment.
 """
 
 import os
 import sys
-from app import app
+from app_enhanced import app
 
 if __name__ == '__main__':
     # Set environment variables for development
     os.environ['FLASK_ENV'] = 'development'
     os.environ['FLASK_DEBUG'] = '1'
     
-    print("Starting ReviewHub Backend Server...")
+    print("Starting ReviewHub Backend Server (Enhanced)...")
     print("Server will be available at: http://localhost:5000")
-    print("API endpoints:")
-    print("  - Health check: GET /api/health")
+    print("\nKey API endpoints:")
+    print("  - Health check: GET /api/health, GET /healthz")
+    print("  - Auth: POST /api/auth/register, /api/auth/login, /api/auth/verify-email")
     print("  - Products: GET /api/products")
     print("  - Categories: GET /api/categories")
-    print("  - Reviews: GET /api/reviews")
-    print("  - Register: POST /api/register")
-    print("  - Login: POST /api/login")
+    print("  - Reviews: GET /api/reviews, POST /api/reviews")
+    print("  - Admin: /api/admin/* (requires admin privileges)")
     print("\nPress Ctrl+C to stop the server")
     
     try:

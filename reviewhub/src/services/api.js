@@ -4,10 +4,12 @@
  */
 
 // ---- Base URL (Vite) ----
-// In Vercel set: VITE_API_URL=/api
+// IMPORTANT: Set VITE_API_URL in .env file or Vercel environment variables
+// For local dev: VITE_API_URL=http://localhost:5000/api
+// For Vercel production: VITE_API_URL=https://your-backend.onrender.com/api
 const RAW_BASE =
   (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_URL) ||
-  (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'https://reviewhub-website-manus-latest.onrender.com/api')
+  (typeof window !== 'undefined' ? `${window.location.origin}/api` : '/api')
 
 // normalize: remove trailing slashes
 const API_BASE_URL = String(RAW_BASE).replace(/\/+$/, '')

@@ -3,8 +3,11 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from flask_migrate import Migrate
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from functools import wraps
 import os
 import random  # added for seeding
 from dotenv import load_dotenv
@@ -19,6 +22,7 @@ from performance_service import get_performance_service
 from gdpr_service import get_gdpr_service
 from data_export_service import get_data_export_service
 from visual_search_service import visual_search_service
+import bleach
 
 # Load environment variables
 load_dotenv()
@@ -36,6 +40,15 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 migrate = Migrate(app, db, directory="migrations")
+
+# Rate limiting (protects against brute force attacks)
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri=os.getenv('REDIS_URL', 'memory://'),
+    strategy="fixed-window"
+)
 
 # CORS configuration (standardize env var name and include APP_BASE_URL/FRONTEND_URL)
 def _normalize_origin(value: str) -> str:
@@ -88,6 +101,56 @@ def api_health():
 def healthz():
     # Simple string helps Render/container health checks
     return "ok", 200
+
+
+# --- Admin Security Decorator ---
+def admin_required(fn):
+    """
+    Decorator to require admin privileges for a route.
+    Must be used AFTER @jwt_required() decorator.
+
+    Usage:
+        @app.route('/api/admin/something')
+        @jwt_required()
+        @admin_required
+        def admin_only_route():
+            # Your admin logic here
+            pass
+    """
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        user_id = get_jwt_identity()
+
+        # Import User model (must be after models are defined, but this is inside function)
+        # So we'll do a forward reference by accessing db.Model registry
+        from sqlalchemy import inspect
+        user = db.session.get(User, user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        if not user.is_admin:
+            return jsonify({'error': 'Admin access required'}), 403
+
+        return fn(*args, **kwargs)
+
+    return wrapper
+
+
+# --- XSS Protection Helper ---
+def sanitize_html(text):
+    """
+    Sanitize user input to prevent XSS attacks.
+    Strips all HTML tags and malicious content.
+    Returns empty string if input is None.
+    """
+    if text is None:
+        return None
+    if not isinstance(text, str):
+        return str(text)
+
+    # Strip all HTML tags - we don't allow any HTML in user content
+    return bleach.clean(text, tags=[], strip=True)
 
 
 # Enhanced Database Models
@@ -458,6 +521,7 @@ class PrivacySettings(db.Model):
 
 # Authentication Routes
 @app.route('/api/auth/register', methods=['POST'])
+@limiter.limit("5 per hour")  # Prevent spam registrations
 def register():
     try:
         data = request.get_json()
@@ -553,6 +617,7 @@ def verify_email():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/resend-verification', methods=['POST'])
+@limiter.limit("3 per hour")  # Prevent email flooding
 def resend_verification():
     try:
         data = request.get_json()
@@ -621,6 +686,7 @@ def debug_verification_link():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/login', methods=['POST'])
+@limiter.limit("5 per minute")  # Prevent brute force attacks
 def login():
     try:
         data = request.get_json()
@@ -674,6 +740,7 @@ def logout():
     return jsonify({'message': 'Logged out successfully'}), 200
 
 @app.route('/api/auth/forgot-password', methods=['POST'])
+@limiter.limit("3 per hour")  # Prevent email flooding
 def forgot_password():
     try:
         data = request.get_json()
@@ -711,6 +778,7 @@ def forgot_password():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/auth/reset-password', methods=['POST'])
+@limiter.limit("5 per hour")  # Prevent token brute force
 def reset_password():
     try:
         data = request.get_json()
@@ -768,12 +836,12 @@ def update_profile():
             return jsonify({'error': 'User not found'}), 404
         
         data = request.get_json()
-        
-        # Update allowed fields
-        allowed_fields = ['first_name', 'last_name', 'bio', 'location', 'website']
-        for field in allowed_fields:
+
+        # Update allowed fields with XSS protection
+        text_fields = ['first_name', 'last_name', 'bio', 'location', 'website']
+        for field in text_fields:
             if field in data:
-                setattr(user, field, data[field])
+                setattr(user, field, sanitize_html(data[field]))
         
         db.session.commit()
         
@@ -1109,14 +1177,15 @@ def create_review():
         if not product_id or not data.get("rating") or not data.get("content"):
             return jsonify({"error": "Product ID, rating, and content are required"}), 400
 
+        # Sanitize user input to prevent XSS attacks
         review = Review(
             user_id=user_id,
             product_id=product_id,
             rating=data["rating"],
-            title=data.get("title"),
-            content=data["content"],
-            pros=data.get("pros"),
-            cons=data.get("cons"),
+            title=sanitize_html(data.get("title")),
+            content=sanitize_html(data["content"]),
+            pros=sanitize_html(data.get("pros")),
+            cons=sanitize_html(data.get("cons")),
             verified_purchase=data.get("verified_purchase", False)
         )
         db.session.add(review)
@@ -1188,10 +1257,17 @@ def update_review(review_id):
 
         data = request.get_json() or {}
 
-        updatable_fields = ["rating", "title", "content", "pros", "cons", "verified_purchase"]
-        for field in updatable_fields:
+        # Sanitize text fields to prevent XSS
+        text_fields = ["title", "content", "pros", "cons"]
+        for field in text_fields:
             if field in data:
-                setattr(review, field, data[field])
+                setattr(review, field, sanitize_html(data[field]))
+
+        # Update non-text fields without sanitization
+        if "rating" in data:
+            review.rating = data["rating"]
+        if "verified_purchase" in data:
+            review.verified_purchase = data["verified_purchase"]
 
         db.session.commit()
 
@@ -2261,15 +2337,11 @@ def download_export(request_id):
 # Admin Data Export Routes
 @app.route('/api/admin/data-export/cleanup', methods=['POST'])
 @jwt_required()
+@admin_required
 def admin_cleanup_exports():
     """Clean up expired export files (Admin only)"""
     try:
-        user_id = get_jwt_identity()
-        user = User.query.get(user_id)
-        
-        if not user or not user.is_admin:
-            return jsonify({'error': 'Admin access required'}), 403
-        
+        # No need to manually check admin status - decorator handles it!
         export_svc = get_data_export_service(db)
         cleaned_count = export_svc.cleanup_expired_exports()
         
