@@ -176,6 +176,7 @@ export function HomePage() {
                   size="lg"
                   variant="outline"
                   className="text-white border-white hover:bg-white hover:text-blue-600"
+                  onClick={() => navigate('/search')}
                 >
                   Write a Review
                 </Button>
@@ -465,15 +466,20 @@ export function HomePage() {
             Share your experiences and help others make better purchasing decisions
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" variant="secondary">
+            <Button
+              size="lg"
+              variant="secondary"
+              onClick={() => navigate('/search')}
+            >
               Write Your First Review
             </Button>
             <Button
               size="lg"
               variant="outline"
               className="text-white border-white hover:bg-white hover:text-primary"
+              onClick={() => navigate('/search?tab=products')}
             >
-              Learn More
+              Browse Products
             </Button>
           </div>
         </div>
