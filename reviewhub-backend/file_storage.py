@@ -17,21 +17,30 @@ class FileStorageService:
         self.upload_folder = os.getenv('UPLOAD_FOLDER', 'uploads')
         self.max_file_size = int(os.getenv('MAX_CONTENT_LENGTH', 16777216))  # 16MB
         self.allowed_extensions = set(os.getenv('ALLOWED_EXTENSIONS', 'png,jpg,jpeg,gif,webp').split(','))
-        
+
         # Image processing settings
         self.image_quality = int(os.getenv('IMAGE_QUALITY', 85))
         self.thumbnail_size = tuple(map(int, os.getenv('THUMBNAIL_SIZE', '300,300').split(',')))
         self.max_image_size = tuple(map(int, os.getenv('MAX_IMAGE_SIZE', '1920,1080').split(',')))
-        
-        # AWS S3 settings
+
+        # AWS S3 / Cloudflare R2 settings
         if self.storage_type == 's3':
-            self.s3_client = boto3.client(
-                's3',
-                aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
-                aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'),
-                region_name=os.getenv('AWS_S3_REGION', 'us-east-1')
-            )
+            # Build S3 client config
+            s3_config = {
+                'service_name': 's3',
+                'aws_access_key_id': os.getenv('AWS_ACCESS_KEY_ID'),
+                'aws_secret_access_key': os.getenv('AWS_SECRET_ACCESS_KEY'),
+                'region_name': os.getenv('AWS_S3_REGION', 'us-east-1')
+            }
+
+            # Add custom endpoint for S3-compatible services (e.g., Cloudflare R2)
+            endpoint_url = os.getenv('AWS_S3_ENDPOINT_URL')
+            if endpoint_url:
+                s3_config['endpoint_url'] = endpoint_url
+
+            self.s3_client = boto3.client(**s3_config)
             self.s3_bucket = os.getenv('AWS_S3_BUCKET')
+            self.s3_public_url = os.getenv('AWS_S3_PUBLIC_URL')  # Optional public URL for direct access
         
         # Ensure upload directory exists for local storage
         if self.storage_type == 'local':
@@ -132,15 +141,15 @@ class FileStorageService:
         return file_path
     
     def save_s3_file(self, file_data: bytes, filename: str, subfolder: str = '') -> str:
-        """Save file to AWS S3"""
+        """Save file to S3-compatible storage (AWS S3, Cloudflare R2, etc.)"""
         if subfolder:
             s3_key = f"{subfolder}/{filename}"
         else:
             s3_key = filename
-        
+
         # Determine content type
         content_type = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
-        
+
         self.s3_client.put_object(
             Bucket=self.s3_bucket,
             Key=s3_key,
@@ -148,9 +157,14 @@ class FileStorageService:
             ContentType=content_type,
             ACL='public-read'  # Make images publicly accessible
         )
-        
+
         # Return public URL
-        return f"https://{self.s3_bucket}.s3.amazonaws.com/{s3_key}"
+        # Use custom public URL if provided (e.g., Cloudflare R2 public bucket URL)
+        if self.s3_public_url:
+            return f"{self.s3_public_url}/{s3_key}"
+        else:
+            # Fallback to standard AWS S3 URL format
+            return f"https://{self.s3_bucket}.s3.amazonaws.com/{s3_key}"
     
     def upload_review_image(self, file: FileStorage, user_id: int, review_id: Optional[int] = None) -> dict:
         """Upload and process a review image"""
