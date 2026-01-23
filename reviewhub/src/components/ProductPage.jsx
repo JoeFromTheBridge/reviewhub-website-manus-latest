@@ -47,14 +47,14 @@ function getReviewImageUrl(image) {
   }
 
   const candidate =
-    image.thumbnail_url ||
+    image.file_url ||
     image.url ||
     image.image_url ||
-    image.file_url ||
     image.file_path ||
     image.path ||
     image.location ||
     image.src ||
+    image.thumbnail_url ||
     null;
 
   if (!candidate) return '';
@@ -90,11 +90,11 @@ function getReviewImagePair(image) {
   );
 
   const fullUrl = getReviewImageUrl(
-    image.main_url ||
+    image.file_url ||
+      image.main_url ||
       image.full_url ||
       image.url ||
       image.image_url ||
-      image.file_url ||
       image
   );
 
