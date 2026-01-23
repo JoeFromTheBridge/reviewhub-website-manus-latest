@@ -351,7 +351,7 @@ class Review(db.Model):
                     # Image model is defined in image_upload_routes; we only use fields that exist there
                     img_payload = {
                         "id": getattr(img, "id", None),
-                        "file_url": getattr(img, "file_url", None),
+                        "file_url": getattr(img, "main_url", None),  # Image model stores as main_url
                         "thumbnail_url": getattr(img, "thumbnail_url", None),
                         "alt_text": getattr(img, "alt_text", None),
                         "caption": getattr(img, "caption", None),
