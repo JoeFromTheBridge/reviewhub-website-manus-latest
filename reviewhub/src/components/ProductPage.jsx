@@ -615,12 +615,11 @@ export function ProductPage() {
     return [...Array(5)].map((_, i) => (
       <Star
         key={i}
-        className={`h-5 w-5 ${
+        className={`h-4 w-4 ${
           i < Math.round(value)
-            ? 'fill-current'
+            ? 'text-yellow-400 fill-current'
             : 'text-gray-300'
         }`}
-        style={i < Math.round(value) ? { color: '#f4c150' } : {}}
       />
     ));
   };
@@ -636,46 +635,24 @@ export function ProductPage() {
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          background: 'radial-gradient(circle at top left, #eaf3ff 0%, #f7f2ff 40%, #ffffff 70%)',
-        }}
-      >
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4" style={{ color: '#5f6368' }}>Loading product details…</p>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <p className="text-center text-gray-600">Loading product details…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          background: 'radial-gradient(circle at top left, #eaf3ff 0%, #f7f2ff 40%, #ffffff 70%)',
-        }}
-      >
-        <div className="text-center">
-          <p className="text-red-600">{error}</p>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <p className="text-center text-red-600">{error}</p>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          background: 'radial-gradient(circle at top left, #eaf3ff 0%, #f7f2ff 40%, #ffffff 70%)',
-        }}
-      >
-        <div className="text-center">
-          <p style={{ color: '#5f6368' }}>Product not found.</p>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <p className="text-center text-gray-600">Product not found.</p>
       </div>
     );
   }
@@ -716,27 +693,14 @@ export function ProductPage() {
     'No detailed description has been provided for this product yet.';
 
   return (
-    <div
-      className="min-h-screen py-12"
-      style={{
-        background: 'radial-gradient(circle at top left, #eaf3ff 0%, #f7f2ff 40%, #ffffff 70%)',
-      }}
-    >
-      <div className="max-w-[1280px] mx-auto px-8 sm:px-12">
-      {/* Product Section */}
-      <div className="grid lg:grid-cols-2 gap-12 mb-16">
-        {/* Product Image Card */}
-        <div
-          className="bg-white rounded-2xl p-8"
-          style={{
-            boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
-          }}
-        >
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Product Header */}
+      <div className="grid lg:grid-cols-2 gap-8 mb-12">
+        <div>
           <img
             src={imageUrl}
             alt={productName}
-            className="w-full h-auto object-contain"
-            style={{ maxHeight: '500px' }}
+            className="w-full h-96 object-cover rounded-lg shadow-lg"
             onError={(e) => {
               e.currentTarget.onerror = null;
               e.currentTarget.src =
@@ -745,101 +709,82 @@ export function ProductPage() {
           />
         </div>
 
-        {/* Product Info */}
-        <div className="flex flex-col justify-center">
-          {/* Title - Serif */}
-          <h1
-            className="text-[36px] font-medium mb-2"
-            style={{
-              fontFamily: 'Georgia, "Times New Roman", serif',
-              color: '#2a2a2a',
-              fontWeight: 500,
-            }}
-          >
-            {productName}
-          </h1>
+        <div>
+          <div className="mb-4">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              {productName}
+            </h1>
+            {productBrand && (
+              <p className="text-lg text-gray-600">{productBrand}</p>
+            )}
+          </div>
 
-          {/* Brand */}
-          {productBrand && (
-            <p className="text-[16px] mb-6" style={{ color: '#9aa0a6' }}>
-              {productBrand}
-            </p>
-          )}
-
-          {/* Price */}
-          {(product.price_min != null || product.price_max != null) && (
-            <p
-              className="text-[28px] mb-4"
-              style={{ color: '#2a2a2a' }}
-            >
-              {product.price_min != null && product.price_max != null
-                ? `$${product.price_min}`
-                : product.price_min != null
-                ? `$${product.price_min}+`
-                : product.price_max != null
-                ? `Up to $${product.price_max}`
-                : 'N/A'}
-            </p>
-          )}
-
-          {/* Rating */}
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="flex space-x-1">
+          <div className="flex items-center space-x-4 mb-6">
+            <div className="flex items-center space-x-1">
               {renderStars(ratingStats.average || product.average_rating)}
+              <span className="text-lg font-semibold ml-2">
+                {ratingStats.total
+                  ? ratingStats.average.toFixed(1)
+                  : product.average_rating?.toFixed?.(1) || 'N/A'}
+              </span>
             </div>
-            <span className="text-[16px] font-medium" style={{ color: '#2a2a2a' }}>
-              {ratingStats.total
-                ? ratingStats.average.toFixed(1)
-                : product.average_rating?.toFixed?.(1) || 'N/A'}
-            </span>
-            <span className="text-[14px]" style={{ color: '#9aa0a6' }}>
-              ({ratingStats.total || product.review_count || 0} Reviews)
+            <span className="text-gray-600">
+              ({ratingStats.total || product.review_count || 0} reviews)
             </span>
           </div>
 
-          {/* Category */}
-          {product.category && (
-            <div className="mb-6">
-              <span className="text-[14px] font-semibold" style={{ color: '#2a2a2a' }}>
-                Category:{' '}
-              </span>
-              <span className="text-[14px]" style={{ color: '#5f6368' }}>
-                {product.category}
-              </span>
+          {ratingStats.photoCount > 0 && (
+            <div className="mb-4 text-sm text-gray-700">
+              {ratingStats.photoCount} review
+              {ratingStats.photoCount === 1 ? '' : 's'} include photos.
             </div>
           )}
 
-          {/* Description */}
-          <p
-            className="text-[15px] leading-relaxed mb-8"
-            style={{
-              color: '#5f6368',
-              maxWidth: '65ch',
-            }}
-          >
-            {description}
-          </p>
+          {specs && Array.isArray(specs) && specs.length > 0 && (
+            <div className="mb-6">
+              <h3 className="font-semibold text-gray-900 mb-3">
+                Specifications
+              </h3>
+              <ul className="space-y-2">
+                {specs.map((spec, index) => (
+                  <li key={index} className="text-gray-700">
+                    • {spec}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-          {/* Write Review Button */}
-          <div className="flex justify-center">
-            <button
+          <div className="mb-6">
+            <p className="text-gray-700">{description}</p>
+          </div>
+
+          {product.price_min != null || product.price_max != null ? (
+            <div className="mb-6">
+              <p className="text-lg font-semibold text-gray-900">
+                Price Range{' '}
+                {product.price_min != null && product.price_max != null
+                  ? `$${product.price_min} - $${product.price_max}`
+                  : product.price_min != null
+                  ? `$${product.price_min}+`
+                  : product.price_max != null
+                  ? `Up to $${product.price_max}`
+                  : 'N/A'}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex space-x-4">
+            <Button size="lg" className="flex-1">
+              Compare Prices
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
               onClick={handleWriteReviewClick}
-              className="px-12 py-3 bg-white rounded-full text-[15px] font-medium transition-all"
-              style={{
-                border: '1px solid #e5e7eb',
-                color: '#5f6368',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = '#9aa0a6';
-                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = '#e5e7eb';
-                e.currentTarget.style.boxShadow = 'none';
-              }}
             >
-              Write a Review
-            </button>
+              Write Review
+            </Button>
           </div>
         </div>
       </div>
@@ -1300,7 +1245,6 @@ export function ProductPage() {
           </div>
         </div>
       )}
-      </div>
     </div>
   );
 }
