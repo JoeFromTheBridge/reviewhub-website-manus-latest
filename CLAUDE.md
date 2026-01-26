@@ -1,348 +1,311 @@
-ReviewHub — Full Project Implant Document
 
-(Authoritative Source of Truth for a Fresh Project)
+# CLAUDE.md — ReviewHub Project Context (Authoritative)
 
-1. Project Identity
-Project Name
+> **Last Updated:** 2026-01-26  
+> **Current Phase:** Phase 0 — Stabilization  
+> **Status:** 🔴 Blocking — All Phase 0 items must complete before Phase 1
 
-ReviewHub
+---
 
-What This Is (Very Important)
+## Quick Context
 
-ReviewHub is a product review platform, not a blog.
+ReviewHub is a **product review platform** (not a blog).
 
-Users come to:
+Users submit structured product reviews, browse community reviews, and discover products via search, filters, and comparisons.
 
-Submit structured reviews (rating, text, images; later video)
+**Philosophy:**  
+Trust > Features  
+Stability > Speed  
+Performance is a feature
 
-Read and compare community reviews
+---
 
-Discover products via search, filters, and recommendations
+## Stack (LOCKED — No Changes Allowed)
 
-Eventually compare prices and access affiliate links
-
-This is a data-driven, trust-centric review system, designed to scale into advanced discovery and recommendation tooling.
-
-2. High-Level Goals
-Near-Term (MVP Stability)
-
-Stable frontend + backend deployment
-
-Auth flows that work end-to-end
-
-Reviews display correctly
-
-Images load reliably
-
-Clean infrastructure foundation
-
-Mid-Term (Core Product)
-
-Polished product pages
-
-Search, filters, and sorting
-
-Admin moderation tools
-
-Basic analytics
-
-Long-Term (Platform)
-
-Recommendation engine
-
-Performance optimization and caching
-
-Privacy tooling (export, deletion)
-
-Advanced discovery (voice search POC)
-
-Monetization readiness (affiliate integrations)
-
-3. Technology Stack (Locked)
-Frontend
-
-React 18
-
-Vite
-
-Tailwind CSS
-
-shadcn/ui
-
-lucide-react
-
-React Router
-
-Context API for auth & global state
-
-Deployed on Vercel
-
-Backend
-
-Flask
-
-SQLAlchemy
-
-Flask-JWT-Extended
-
-Alembic for migrations
-
-PostgreSQL (production)
-
-SQLite allowed only for local fallback
-
-Dockerized
-
-Deployed on Render
-
-Supporting Services
-
-SMTP email (SendGrid or Gmail-style SMTP)
-
-Optional S3-compatible object storage for images
-
-Environment-variable–driven configuration
-
-4. Environment Variables (Patterns Matter)
-Frontend
-VITE_API_URL=https://api.yourdomain.com
-VITE_ENV=production
-
-Backend
-FLASK_ENV=production
-SECRET_KEY=***
-JWT_SECRET_KEY=***
-DATABASE_URL=postgresql+psycopg2://...
-APP_BASE_URL=https://yourfrontend.com
-
-Email
-SMTP_HOST=...
-SMTP_PORT=587
-SMTP_USER=...
-SMTP_PASSWORD=...
-EMAIL_FROM="ReviewHub <no-reply@yourdomain.com>"
-
-CORS
-CORS_ALLOWED_ORIGINS=https://yourfrontend.com
-
-5. Architecture Decisions (Do Not Re-Litigate)
-ADR-001 — Stack Choice
-
-Decision: SPA frontend + Flask backend
-Why: Simple mental model, sufficient scale, easy deployment
-Consequence: Explicit API contracts, clean separation
-
-ADR-002 — Auth
-
-Decision: JWT-based auth with email verification
-Why: Stateless, frontend-friendly, scalable
-Consequence: CORS and cookie/header handling must be correct
-
-ADR-003 — Data
-
-Decision: Postgres in prod, SQLite only for dev
-Why: Avoid production surprises
-Consequence: Alembic migrations are mandatory
-
-6. Repository & Project Structure
-GitHub
-
-GitHub is the permanent source of truth for code
-
-Commits are done manually
-
-No automation assumptions
-
-ChatGPT Project Files (Planning Memory)
-
-These act as working memory, not production truth:
-
-00_README-Project-Workspace.txt
-
-01_ROADMAP.txt
-
-02_DEPLOYMENT_NOTES.txt
-
-03_ENV_VARS.sample.txt
-
-04_CHANGELOG.txt
-
-05_ARCH_DECISIONS.txt
-
-06_TASKS_BACKLOG.txt
-
-FRONTEND_SNAPSHOT_YYYY-MM-DD.txt
-
-BACKEND_SNAPSHOT_YYYY-MM-DD.txt
-
-7. Workflow Rules (Hard Requirements)
-
-These rules must be followed in all future work.
-
-Code Updates
-
-Always return complete file replacements
-
-Never return snippets or partial diffs
-
-Preserve:
-
-File name
-
-Import order
-
-Formatting style
-
-Every Code Response Must Include
-
-One-line commit message (plain text)
-
-Then the full file in a code block
-
-Snapshots
-
-One snapshot per day per side (frontend/backend)
-
-Full files only when changed
-
-Date-stamped filenames
-
-Snapshots are for memory and rollback, not deployment
-
-8. CHANGELOG Rules (Strict)
-
-CHANGELOG entries must be:
-
-Factual
-
-Concise
-
-Completed work only
-
-No TODOs
-
-No future plans
-
-No implementation details
-
-Format:
-
-## YYYY-MM-DD
-- Bullet
-- Bullet
-
-9. Current Project State (At Time of Transplant)
-Phase 0 — Stabilization (Active)
-
-Goal: Make the system boring and reliable.
-
-Known Issues Being Fixed
-
+```yaml
 Frontend:
-
-Incorrect image paths (Vite static handling)
-
-Minor auth/header UI inconsistencies
+  Framework: React 18 + Vite
+  Styling: Tailwind CSS + shadcn/ui
+  Routing: React Router
+  State: Context API
+  Deploy: Vercel
 
 Backend:
+  Framework: Flask
+  ORM: SQLAlchemy
+  Auth: Flask-JWT-Extended
+  Migrations: Alembic (mandatory)
+  Database: PostgreSQL (prod), SQLite (local dev only)
+  Deploy: Render
 
-Email verification links pointing to wrong domain
+Services:
+  Email: SMTP (SendGrid or Gmail)
+  Storage: S3-compatible (Cloudflare R2 / S3-style APIs)
+  Config: Environment variables only
+````
 
-CORS + JWT alignment issues
+❌ **Do not introduce new frameworks, libraries, services, or architectural patterns** unless explicitly instructed.
 
-Alembic baseline not fully locked
+---
 
-Infra:
+## Architecture (Fixed)
 
-/healthz endpoint missing or inconsistent
+```
+thereviewhub.ca → Vercel (Frontend)
+       ↓
+api.thereviewhub.ca → Render (Flask API)
+       ↓
+PostgreSQL + SMTP
+```
 
-Environment parity between local / prod
+⚠️ **Critical Rule:**
+All email links **must use `APP_BASE_URL`** and route users to the **Vercel frontend**, never directly to Render.
 
-These are blocking issues before moving forward.
+---
 
-10. Roadmap (Authoritative)
-Phase 0 — Stabilization
+## Environment Variables (Authoritative Names)
 
-Fix image paths
+### Frontend (Vite)
 
-Fix email verification URLs
+* `VITE_API_BASE_URL`
 
-Add /healthz endpoint
+### Backend (Flask)
 
-Alembic baseline + migration sanity
+* `APP_BASE_URL`
+* `CORS_ALLOWED_ORIGINS`
+* `DATABASE_URL`
+* `JWT_SECRET_KEY`
+* `SECRET_KEY`
+* `SMTP_HOST`
+* `SMTP_PORT`
+* `SMTP_USER`
+* `SMTP_PASSWORD`
+* `EMAIL_FROM`
 
-Smoke tests
+Do not invent or rename environment variables.
 
-Milestone M0: Stable FE + BE deployed
+---
 
-Phase 1 — Core Product Polish
+## Development Commands (Verification)
 
-Product detail page UX
+**Frontend**
 
-Search, filters, sorting
+* Dev: `npm run dev`
+* Build: `npm run build`
+* Lint: `npm run lint`
 
-Full auth flows
+**Backend**
 
-Admin basics (product CRUD, review moderation)
+* Health: `curl http://localhost:5000/healthz`
+* Migrations: `flask db upgrade`
 
-Analytics basics
+---
 
-Milestone M1: Core UX feels complete
+## Source of Truth
 
-Phase 2 — Advanced & Operations
+This file is the **single authoritative source** for:
 
-Recommendation engine
+* Current phase
+* Allowed scope
+* Task completion status
+* Definition of “done”
 
-Performance & caching
+Other documentation may reference future or experimental ideas and **must not be assumed implemented**.
 
-Monitoring & alerts
+---
 
-Data export & privacy tooling
+## Your Responsibilities (Non-Negotiable)
 
-Voice search proof-of-concept
+1. Generate **complete file replacements only**
+2. Enforce phase discipline — **no Phase 1 work until Phase 0 is complete**
+3. Update this CLAUDE.md file:
 
-Milestone M2: Scalable platform
+   * Check off tasks **only after validation**
+   * Update the **Last Updated** date when tasks change
+4. Preserve architecture, APIs, and dependency set
+5. Ask **only minimal clarifying questions** required to complete the current task
 
-11. Ideas Already Brainstormed (Do Not Re-Discover)
+---
 
-Community-driven trust signals (verified purchases, reputation)
+## Code Output Format (REQUIRED)
 
-Recommendation engine (trending + cold start)
+For any code change, respond in **this exact order**:
 
-Price comparison & affiliate monetization
+1. One-line commit message (plain text)
+2. Exactly **one code block per file**, containing the **entire file**
+3. No snippets, no diffs, no ellipsis
 
-Voice search as discovery enhancer (not core)
+**Example**
 
-Privacy tooling (export/delete) as trust differentiator
+```
+commit: Fix email verification redirect URL
+```
 
-Performance as a feature, not an afterthought
+```tsx
+// full file content here
+```
 
-These are validated directions, not random ideas.
+❌ Never say:
 
-12. How to Think About This Project
+* “Add this code…”
+* “Insert the following…”
+* “…existing code…”
 
-This is not a content site
+---
 
-This is a structured data platform
+## Dependency & Refactor Policy (STRICT)
 
-Stability beats speed
+* ❌ No new runtime dependencies
+* ❌ No new dev dependencies
+* ❌ No refactors unless required to fix a bug
+* ❌ No formatting-only changes
+* ❌ No API contract changes unless explicitly requested
 
-Shipping clean phases beats shipping features
+Prefer the **smallest possible change** that fully resolves the issue.
 
-Trust is the core differentiator
+---
 
-13. How This Document Should Be Used
+## File Change Discipline
 
-If this project is:
+* Modify **only** files required for the current task
+* Preserve existing formatting and import order
+* Do not “clean up” unrelated code
+* Do not rename files or folders unless instructed
 
-Restarted
+---
 
-Migrated
+## Phase 0 — Stabilization (BLOCKING)
 
-Handed off
+**Objective:** Reliable, boring, deployable foundation
 
-Re-embedded into a new AI project
+Claude Code **must update this checklist** as tasks are completed.
 
-This document is the bootstrap memory.
+### 0.1 Frontend Stability
 
-Nothing outside this file should be assumed.
+* [ ] Fix all image paths (Vite relative/absolute rules)
+* [ ] Images load in local dev
+* [ ] Images load in Vercel production
+* [ ] No console errors on page load
+* [ ] Header renders correctly (logged out / logged in / verified)
+* [ ] Auth state persists across refresh
+* [ ] Logout clears all client auth state
+
+### 0.2 Backend Stability
+
+* [ ] `/healthz` endpoint returns 200 (no auth)
+* [ ] Render health check points to `/healthz`
+* [ ] Clean boot (no stack traces, no missing env vars)
+* [ ] No migration warnings on startup
+
+### 0.3 Authentication & Email (CRITICAL PATH)
+
+* [ ] Signup flow completes successfully
+* [ ] Verification email uses `APP_BASE_URL`
+* [ ] Verification link routes to frontend (Vercel)
+* [ ] User marked verified after link click
+* [ ] Password reset email routes to frontend
+* [ ] Password reset completes successfully
+* [ ] JWT expiry enforced
+
+### 0.4 CORS, JWT & Security
+
+* [ ] `CORS_ALLOWED_ORIGINS` matches Vercel domain
+* [ ] JWT works across refresh + protected routes
+* [ ] No cookie vs header confusion
+* [ ] Auth errors do not leak stack traces
+
+### 0.5 Database & Migrations
+
+* [ ] Alembic baseline established
+* [ ] `flask db upgrade` runs cleanly (local)
+* [ ] `flask db upgrade` runs cleanly (Render)
+* [ ] Models match database schema
+* [ ] No implicit or pending migrations
+
+### 0.6 Phase 0 Validation Gate
+
+Before advancing:
+
+* [ ] Frontend loads with zero console errors
+* [ ] `/healthz` returns 200 OK
+* [ ] Signup → verify → login works end-to-end
+* [ ] Products and reviews render correctly
+* [ ] Images load reliably in production
+
+**Milestone:** M0 — Stable frontend + backend deployed
+
+---
+
+## Phase 1 — LOCKED UNTIL M0
+
+**Objective:** Complete, usable review product
+
+* Product detail page polish
+* Search, filters, sorting
+* Auth UX polish
+* Admin basics (roles, moderation)
+* Basic analytics
+
+---
+
+## Phase 2 — LOCKED UNTIL M1
+
+**Objective:** Scalable platform
+
+* Recommendations
+* Performance & caching
+* Monitoring & metrics
+* Privacy tooling
+* Optional voice search POC
+
+---
+
+## Phase 3 — Deferred
+
+**Objective:** Monetize without eroding trust
+
+* Affiliate links
+* Price comparison
+* Sponsored placements
+* Revenue tracking
+
+---
+
+## Hard Rules (Absolute)
+
+❌ **Never**
+
+* Skip phases
+* Merge phase work
+* Return partial code
+* Add TODOs
+* Introduce new tools
+* Assume context outside this file
+
+✅ **Always**
+
+* Update this file when tasks are completed
+* Validate before checking boxes
+* Produce production-ready code only
+* Respect the locked stack
+* Keep scope tight and explicit
+
+---
+
+## Default Role
+
+You are a **technical execution partner**, not an architect-for-hire.
+
+Your job is to:
+
+* Finish the current phase cleanly
+* Prevent scope creep
+* Enforce discipline
+* Ship boring, correct software
+
+```
+
+---
+
+If you want, next we can **start Phase 0 execution** and I’ll explicitly tell you *which checkbox I’m working toward* before touching any code.
+```
