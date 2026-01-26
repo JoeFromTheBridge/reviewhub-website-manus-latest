@@ -48,17 +48,37 @@ export function SearchResults() {
       setLoading(true)
       setError('')
 
-      const params = {
-        q: searchParams.get('q') || '',
-        category: searchParams.get('category') || '',
-        rating_min: searchParams.get('minRating') || '',
-        price_max: searchParams.get('maxPrice') || '',
-        sort_by: searchParams.get('sort') || 'relevance',
-        page: currentPage,
-        per_page: 12
+      // Check if we have any active filters or search query
+      const hasQuery = searchParams.get('q')
+      const hasCategory = searchParams.get('category')
+      const hasRating = searchParams.get('minRating')
+      const hasPrice = searchParams.get('maxPrice')
+      const hasAnyFilter = hasQuery || hasCategory || hasRating || hasPrice
+
+      let response
+
+      if (hasAnyFilter) {
+        // Use Elasticsearch for filtered searches
+        const params = {
+          q: hasQuery || '',
+          category: hasCategory || '',
+          rating_min: hasRating || '',
+          price_max: hasPrice || '',
+          sort_by: searchParams.get('sort') || 'relevance',
+          page: currentPage,
+          per_page: 12
+        }
+        response = await apiService.searchProducts(params)
+      } else {
+        // Use basic endpoint to show all products
+        const params = {
+          page: currentPage,
+          per_page: 12,
+          sort_by: searchParams.get('sort') || 'created_at'
+        }
+        response = await apiService.getProducts(params)
       }
 
-      const response = await apiService.searchProducts(params)
       setProducts(response.products || [])
       setTotalResults(response.total || 0)
     } catch (error) {
@@ -214,104 +234,108 @@ export function SearchResults() {
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Filters Sidebar */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 space-y-6">
+            {/* Categories */}
             <Card>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">Filters</h3>
-                  <Button variant="ghost" size="sm" onClick={clearFilters}>
-                    Clear All
-                  </Button>
+                <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleFilterChange('category', '')}
+                    className={`block w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${
+                      !filters.category ? 'text-primary font-medium' : 'text-gray-700'
+                    }`}
+                  >
+                    All Categories
+                  </button>
+                  {categories.map((category) => (
+                    <button
+                      key={category.id}
+                      onClick={() => handleFilterChange('category', category.name)}
+                      className={`block w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${
+                        filters.category === category.name ? 'text-primary font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="space-y-6">
-                  {/* Search */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Search
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder="Search products..."
-                      value={filters.query}
-                      onChange={(e) => handleFilterChange('query', e.target.value)}
-                    />
-                  </div>
-
-                  {/* Category */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Category
-                    </label>
-                    <select
-                      value={filters.category}
-                      onChange={(e) => handleFilterChange('category', e.target.value)}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">All Categories</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.name}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Rating */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Minimum Rating
-                    </label>
-                    <select
-                      value={filters.minRating}
-                      onChange={(e) => handleFilterChange('minRating', e.target.value)}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">Any Rating</option>
-                      <option value="4">4+ Stars</option>
-                      <option value="3">3+ Stars</option>
-                      <option value="2">2+ Stars</option>
-                      <option value="1">1+ Stars</option>
-                    </select>
-                  </div>
-
-                  {/* Price */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Max Price
-                    </label>
-                    <Input
-                      type="number"
-                      placeholder="Enter max price"
-                      value={filters.maxPrice}
-                      onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
-                    />
+            {/* Price Range */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Price Range</h3>
+                <div className="space-y-3">
+                  <input
+                    type="range"
+                    min="0"
+                    max="2000"
+                    step="50"
+                    value={filters.maxPrice || 2000}
+                    onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>$0</span>
+                    <span className="font-medium text-gray-900">
+                      ${filters.maxPrice || 2000}
+                    </span>
+                    <span>$2000</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Results */}
-          <div className="lg:col-span-3">
-            {/* Sort and View Controls */}
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-4">
-                <label className="text-sm font-medium text-gray-700">Sort by:</label>
+            {/* Rating */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Rating</h3>
+                <div className="space-y-2">
+                  {[
+                    { value: '4', label: '4 stars & up' },
+                    { value: '3', label: '3 stars & up' },
+                    { value: '2', label: '2 stars & up' }
+                  ].map((rating) => (
+                    <label key={rating.value} className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={filters.minRating === rating.value}
+                        onChange={(e) => handleFilterChange('minRating', e.target.checked ? rating.value : '')}
+                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm text-gray-700">{rating.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Sort By */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-4">Sort by:</h3>
                 <select
                   value={filters.sortBy}
                   onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="relevance">Relevance</option>
+                  <option value="relevance">Most Popular</option>
                   <option value="rating">Highest Rated</option>
                   <option value="reviews">Most Reviews</option>
                   <option value="price_low">Price: Low to High</option>
                   <option value="price_high">Price: High to Low</option>
                   <option value="newest">Newest</option>
                 </select>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
 
+          {/* Results */}
+          <div className="lg:col-span-3">
+            {/* View Controls */}
+            <div className="flex items-center justify-end mb-6">
               <div className="flex items-center space-x-2">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'outline'}

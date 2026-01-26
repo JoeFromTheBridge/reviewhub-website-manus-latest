@@ -48,15 +48,15 @@ Helpful votes & replies – allow visitors to mark reviews as helpful and let se
 
 Admin basics – build an admin panel to moderate reviews, approve flagged content, edit product details and view user accounts. This provides essential control and is part of the Phase‑1 tasks list.
 
-Technical tasks
+### Technical tasks
 
-Implement search & filtering – start with database‑backed search and filters. Expose query parameters for text, category and rating.
+- [x] **Implement search & filtering** – start with database‑backed search and filters. Expose query parameters for text, category and rating. *(Completed: Connected to Elasticsearch endpoint with category, rating, and price filters)*
 
-Mobile‑first design – adopt a mobile‑first layout with swipe‑friendly controls and touch‑optimised buttons. Use sticky navigation and a clear call‑to‑action to keep primary actions visible.
+- [ ] **Mobile‑first design** – adopt a mobile‑first layout with swipe‑friendly controls and touch‑optimised buttons. Use sticky navigation and a clear call‑to‑action to keep primary actions visible.
 
-Performance & SEO – apply lazy loading for images, optimise assets and ensure the site loads in < 2.5 seconds. Include SEO meta tags and structured data.
+- [ ] **Performance & SEO** – apply lazy loading for images, optimise assets and ensure the site loads in < 2.5 seconds. Include SEO meta tags and structured data.
 
-Analytics integration – track essential metrics such as page views, conversion rate, review submission rate, net sales and average order value. WooCommerce notes that tracking net sales, average order value and top‑performing products helps refine marketing and inventory.
+- [ ] **Analytics integration** – track essential metrics such as page views, conversion rate, review submission rate, net sales and average order value. WooCommerce notes that tracking net sales, average order value and top‑performing products helps refine marketing and inventory.
 
 Why in Phase 1?
 
