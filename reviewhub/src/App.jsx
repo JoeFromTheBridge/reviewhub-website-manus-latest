@@ -4,7 +4,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { Header } from './components/Header'
 import { HomePage } from './components/HomePage'
 import { ProductPage } from './components/ProductPage'
-import SearchPage from './components/search/SearchPage'
+import { SearchResults } from './components/SearchResults'
 import UserAnalyticsPage from './components/profile/UserAnalyticsPage'
 import PrivacyPage from './components/privacy/PrivacyPage'
 import AdminLayout from './components/admin/AdminLayout'
@@ -132,7 +132,7 @@ function App() {
               element={
                 <>
                   <Header />
-                  <SearchPage />
+                  <SearchResults />
                 </>
               }
             />
