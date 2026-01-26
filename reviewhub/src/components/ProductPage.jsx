@@ -635,12 +635,7 @@ export function ProductPage() {
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          background: 'radial-gradient(circle at top left, #eaf3ff 0%, #f7f2ff 40%, #ffffff 70%)',
-        }}
-      >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <p className="text-center text-gray-600">Loading product details…</p>
       </div>
     );
@@ -648,12 +643,7 @@ export function ProductPage() {
 
   if (error) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          background: 'radial-gradient(circle at top left, #eaf3ff 0%, #f7f2ff 40%, #ffffff 70%)',
-        }}
-      >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <p className="text-center text-red-600">{error}</p>
       </div>
     );
@@ -661,12 +651,7 @@ export function ProductPage() {
 
   if (!product) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          background: 'radial-gradient(circle at top left, #eaf3ff 0%, #f7f2ff 40%, #ffffff 70%)',
-        }}
-      >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <p className="text-center text-gray-600">Product not found.</p>
       </div>
     );
@@ -708,13 +693,7 @@ export function ProductPage() {
     'No detailed description has been provided for this product yet.';
 
   return (
-    <div
-      className="min-h-screen py-12"
-      style={{
-        background: 'radial-gradient(circle at top left, #eaf3ff 0%, #f7f2ff 40%, #ffffff 70%)',
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Product Header */}
       <div className="grid lg:grid-cols-2 gap-8 mb-12">
         <div>
@@ -1093,7 +1072,6 @@ export function ProductPage() {
           />
         </div>
       )}
-      </div>
 
       {/* Lightbox Modal */}
       {lightbox.open && lightbox.images.length > 0 && (
