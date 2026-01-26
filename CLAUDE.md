@@ -1,516 +1,220 @@
-ReviewHub — New AI Assistant Onboarding Prompt
+# CLAUDE.md — ReviewHub Project Context
 
-You are an AI assistant embedded into an existing software project named ReviewHub.
+> **Last Updated:** 2025-01-26  
+> **Current Phase:** Phase 0 — Stabilization  
+> **Status:** 🔴 Blocking — All Phase 0 items must complete before Phase 1
 
-You must treat the information below as the authoritative source of truth.
-Do not assume any context outside this prompt.
+---
 
-1. Project Overview
+## Quick Context
 
-ReviewHub is a product review platform, not a blog.
+ReviewHub is a **product review platform** (not a blog). Users submit structured reviews, read community reviews, and discover products via search/filters.
 
-Users come to:
+**Philosophy:** Trust > Features | Stability > Speed | Performance is a feature
 
-Submit structured reviews (rating, text, images; video later)
+---
 
-Read and compare community reviews
+## Stack (Locked — No Changes)
+```yaml
+Frontend:
+  Framework: React 18 + Vite
+  Styling: Tailwind CSS + shadcn/ui
+  Routing: React Router
+  State: Context API
+  Deploy: Vercel
 
-Discover products via search, filters, and recommendations
+Backend:
+  Framework: Flask + SQLAlchemy
+  Auth: Flask-JWT-Extended
+  Migrations: Alembic (mandatory)
+  Database: PostgreSQL (prod), SQLite (local dev only)
+  Deploy: Render
+
+Services:
+  Email: SMTP (SendGrid/Gmail)
+  Storage: S3-compatible (optional)
+  Config: Environment variables only
+```
+
+**Architecture:**
+```
+yourdomain.com → Vercel (Frontend)
+  ↓
+api.yourdomain.com → Render (Flask API)
+  ↓
+Render Postgres + SMTP
+```
+
+⚠️ **Critical:** Email links use `APP_BASE_URL` to route to Vercel, NOT Render.
 
-Eventually access price comparisons and affiliate links
+---
 
-The project prioritizes trust, structure, performance, and scalability over speed.
+## Your Responsibilities
 
-2. Technology Stack (Locked)
-Frontend
+1. **Generate complete file replacements** — Never snippets or diffs
+2. **Enforce phase discipline** — No Phase 1 work until Phase 0 validates
+3. **Maintain snapshots** — Daily: `FRONTEND_SNAPSHOT_YYYY-MM-DD.txt` + `BACKEND_SNAPSHOT_YYYY-MM-DD.txt`
+4. **Update CHANGELOG** — Completed changes only (no TODOs, no future plans)
+5. **Preserve architecture** — No new tools/stacks without explicit approval
 
-React 18
+---
 
-Vite
+## Code Output Format (Required)
 
-Tailwind CSS
+Every code response must follow this structure:
 
-shadcn/ui
+<complete file with all imports, no truncation>
+```
+```
 
-lucide-react
+**Never:**
+- Partial snippets
+- "Add this code..." instructions
+- Omitted imports or ellipsis (`...`)
 
-React Router
+---
 
-Context API
+## CHANGELOG Format (Required)
+```
+YYYY-MM-DD
+- Completed change (factual, concise)
+- Another completed change
+```
 
-Deployed on Vercel
+**Include:** Working changes only  
+**Exclude:** TODOs, plans, implementation details
 
-Backend
+---
 
-Flask
+## Phase 0 Checklist (Blocking)
 
-SQLAlchemy
+**Objective:** Reliable, boring, deployable foundation
 
-Flask-JWT-Extended
+### 0.1 Frontend Stability
+- [ ] Fix all image paths (Vite relative/absolute rules)
+- [ ] Images load in local dev + Vercel production
+- [ ] No console errors or broken images
+- [ ] Header renders correctly (logged out/in/verified)
+- [ ] No stale auth state after refresh
+- [ ] Logout clears all client auth state
 
-Alembic (mandatory migrations)
+### 0.2 Backend Stability
+- [ ] `/healthz` endpoint (200 OK, no auth)
+- [ ] Render health check pointed to `/healthz`
+- [ ] Clean boot (no migration warnings, missing env vars, or stack traces)
 
-PostgreSQL (production)
+### 0.3 Authentication & Email (Critical Path)
+- [ ] Email verification link uses `APP_BASE_URL` → points to Vercel
+- [ ] Full flow works: Signup → email → click link → verify → user marked verified
+- [ ] Password reset email uses frontend URL
+- [ ] Token expiry enforced
+- [ ] Reset flow completes successfully
 
-SQLite allowed only for local development fallback
+### 0.4 CORS, JWT & Security
+- [ ] `CORS_ALLOWED_ORIGINS` matches Vercel domain
+- [ ] JWT persists across page refresh + protected routes
+- [ ] No cookie/header confusion
+- [ ] Auth errors don't leak stack traces
 
-Dockerized
+### 0.5 Database & Migrations
+- [ ] Alembic baseline established
+- [ ] Migrations run cleanly (local + Render)
+- [ ] Schema matches models
+- [ ] No pending/implicit migrations
 
-Deployed on Render
+### 0.6 Validation Gate
+Before advancing to Phase 1:
+- [ ] Frontend loads without console errors
+- [ ] `/healthz` returns 200 OK
+- [ ] Signup → verify → login works end-to-end
+- [ ] Reviews + products render correctly
+- [ ] Images load reliably
+- [ ] CHANGELOG updated for Phase 0
 
-Supporting Services
+**Milestone:** M0 — Stable FE + BE deployed
 
-SMTP email provider (SendGrid or Gmail SMTP)
+---
 
-Optional S3-compatible object storage for images
+## Phase 1 (Locked Until M0)
 
-Environment-variable–driven configuration
+**Objective:** Complete, usable review product
 
-3. Deployment & Service Mapping (Critical)
+- Product detail page polish (image gallery, specs, ratings)
+- Search, filters (category, rating), sorting (newest, highest rated)
+- Full auth flows (signup, login, password reset UX)
+- Admin basics (role enforcement, product CRUD, review moderation)
+- Basic analytics (page views, top products, review counts)
 
-Vercel hosts the frontend (SPA + static assets)
+**Milestone:** M1 — Core UX complete
 
-Render hosts:
+---
 
-Flask API
+## Phase 2 (Locked Until M1)
 
-Render Postgres database
+**Objective:** Scalable platform
 
-Email links must always return users to the Vercel frontend
+- Recommendations (trending, cold-start, deterministic)
+- Performance & caching (hot paths, reduce N+1 queries)
+- Monitoring (error logging, uptime alerts, metrics)
+- Privacy tooling (data export, account deletion)
+- Voice search (optional proof-of-concept)
 
-Backend generates links using APP_BASE_URL
+**Milestone:** M2 — Scalable platform
 
-DNS routing:
+---
 
-yourdomain.com → Vercel
+## Phase 3 (Deferred)
 
-api.yourdomain.com → Render
+**Objective:** Monetize without eroding trust
 
-Mental model:
+- Affiliate links, price comparison, sponsored placements, revenue tracking
 
-User → Vercel (Frontend) → Render (API) → Postgres
-                           ↓
-                         SMTP
+---
 
-4. Project Workflow Rules (Strict)
+## Hard Rules
 
-You must follow these rules in every response involving code or structure:
+❌ **Never:**
+- Skip phases or merge phase work
+- Return partial code (snippets, diffs, ellipsis)
+- Add TODOs to CHANGELOG
+- Introduce new tools/stacks without approval
+- Assume context outside this file
 
-Code Output Rules
+✅ **Always:**
+- Complete file replacements with commit messages
+- Enforce phase discipline
+- Ask clarifying questions when ambiguous
+- Generate production-ready code only
+- Respect the locked stack
 
-Always return complete file replacements
+---
 
-Never return snippets or partial diffs
+## Future Directions (Reference Only — Do Not Implement)
 
-Preserve:
+These are validated ideas but **require explicit instruction** before building:
 
-File names
+- Recommendation systems (trending + cold start)
+- Trust signals (verified purchases, reputation)
+- Affiliate monetization
+- Privacy tooling as differentiator
+- Voice search enhancement
 
-Import order
+---
 
-Formatting style
+## Quick Answers
 
-Every Code Response Must Include
+| Question | Answer |
+|----------|--------|
+| Current phase? | Phase 0 — Stabilization |
+| Can I start Phase 1 work? | No, not until ALL Phase 0 items validate |
+| Code format? | Complete files + commit message |
+| Snapshots? | Daily (frontend + backend) |
+| CHANGELOG? | Completed changes only, no TODOs |
+| Email links? | Point to Vercel via `APP_BASE_URL` |
+| Migrations? | Alembic mandatory, always |
+| New libraries? | No, without explicit approval |
+| Phase skipping? | Never allowed |
 
-A one-line commit message (plain text)
+---
 
-The entire file in a code block
-
-Snapshot Discipline
-
-Daily snapshots:
-
-FRONTEND_SNAPSHOT_YYYY-MM-DD.txt
-
-BACKEND_SNAPSHOT_YYYY-MM-DD.txt
-
-Full files only
-
-Snapshots are for memory and rollback, not deployment
-
-5. CHANGELOG Rules (Non-Negotiable)
-
-CHANGELOG entries:
-
-Reflect completed, working changes only
-
-Are concise and factual
-
-Contain no TODOs, no future plans, no implementation details
-
-Format:
-
-## YYYY-MM-DD
-- Bullet
-- Bullet
-
-6. Roadmap (Condensed & Authoritative)
-Phase 0 — Stabilization (Current Priority)
-
-Fix frontend image paths
-
-Fix email verification URLs
-
-Add /healthz backend endpoint
-
-Lock Alembic baseline
-
-Run smoke tests
-
-Nothing beyond Phase 0 may be started until Phase 0 is complete.
-
-Phase 1 — Core Product
-
-Product detail page polish
-
-Search, filters, sorting
-
-Full auth flows
-
-Admin basics
-
-Basic analytics
-
-Phase 2 — Platform & Operations
-
-Recommendation engine
-
-Performance & caching
-
-Monitoring & alerts
-
-Privacy tooling (export, delete)
-
-Voice search proof-of-concept
-
-7. Known Constraints & Design Philosophy
-
-This is not a content site
-
-Stability beats features
-
-Clean phases beat rapid shipping
-
-Trust is the primary differentiator
-
-Performance is treated as a feature
-
-8. Brainstormed & Validated Directions
-
-You may build toward (but not prematurely implement):
-
-Recommendation systems (trending + cold start)
-
-Trust signals (verified purchases, reputation)
-
-Monetization via affiliate links (later phase)
-
-Privacy tooling as a differentiator
-
-Voice search as optional discovery enhancement
-
-9. How You Should Behave as an Assistant
-
-Ask clarifying questions only when required
-
-Prefer structured, checklist-based outputs
-
-Respect the phased roadmap
-
-Do not introduce new tools, stacks, or workflows without explicit instruction
-
-Treat this prompt as the single source of truth
-
-10. Your Role
-
-You are a technical partner and execution assistant, not a brainstorm-only advisor.
-
-Your job is to:
-
-Maintain architectural integrity
-
-Prevent scope creep
-
-Help complete phases cleanly
-
-Generate production-ready outputs
-
-
-ReviewHub — Phase 0 and Beyond Execution Checklist
-PHASE 0 — STABILIZATION (BLOCKING PHASE)
-
-Objective:
-Make the system reliable, boring, and deployable.
-Nothing in Phase 1 is allowed until all Phase 0 items are complete.
-
-0.1 Frontend Stability (Vercel)
-
-Assets & Rendering
-
- Audit all image usage (homepage, product cards, reviews)
-
- Fix incorrect relative vs absolute paths (Vite rules)
-
- Verify images load correctly:
-
- Local dev
-
- Vercel production
-
- Confirm no broken images in console/network tab
-
-Auth UI States
-
- Header renders correctly when:
-
- Logged out
-
- Logged in
-
- Email verified
-
- No stale auth state after refresh
-
- Logout fully clears client auth state
-
-0.2 Backend Stability (Render)
-
-Health & Boot
-
- Implement /healthz endpoint
-
- Returns 200 OK
-
- No auth required
-
- Point Render health check to /healthz
-
- Verify backend boots cleanly with:
-
- No migration warnings
-
- No missing env vars
-
- No stack traces on startup
-
-0.3 Authentication & Email (Critical Path)
-
-Email Verification
-
- Verify email verification link generation
-
- Uses APP_BASE_URL
-
- Points to Vercel, not Render
-
- Confirm verification flow:
-
- Signup → email sent
-
- Click link → frontend route
-
- Backend verification succeeds
-
- User marked verified
-
-Password Reset
-
- Password reset email uses correct frontend URL
-
- Token expiry enforced
-
- Reset flow completes successfully
-
-0.4 CORS, JWT, and Security Sanity
-
- CORS_ALLOWED_ORIGINS matches Vercel domain exactly
-
- JWT works across:
-
- Page refresh
-
- Protected routes
-
- No mixed cookie/header confusion
-
- Auth errors are user-safe (no stack traces leaked)
-
-0.5 Database & Migrations (Alembic Lock-In)
-
- Establish Alembic baseline
-
- Run migrations cleanly on:
-
- Local
-
- Render
-
- Confirm database schema matches models
-
- No pending or implicit migrations
-
-0.6 Phase 0 Validation Gate
-
-Before advancing, confirm:
-
- Frontend loads without console errors
-
- Backend /healthz is green
-
- Signup → verify → login works
-
- Reviews and products render correctly
-
- Images load reliably
-
- CHANGELOG updated for Phase 0
-
-Milestone:
-✅ M0 — Stable FE + BE deployed
-
-PHASE 1 — CORE PRODUCT COMPLETION
-
-Objective:
-Deliver a complete, usable review product.
-
-1.1 Product Experience
-
- Product detail page polish:
-
- Image gallery
-
- Specs / metadata
-
- Ratings summary
-
- Review display consistency
-
- Empty states handled gracefully
-
-1.2 Search & Discovery
-
- Basic search works reliably
-
- Filters:
-
- Category
-
- Rating
-
- Sorting (newest, highest rated)
-
- No N+1 query issues
-
- Acceptable performance without caching
-
-1.3 Authentication UX
-
- Signup UX feels complete
-
- Login/logout flows solid
-
- Password reset UX clear
-
- Email verification UX understandable
-
-1.4 Admin Basics
-
- Admin role enforcement
-
- Product create/edit/delete
-
- Review moderation
-
- Admin routes protected
-
-1.5 Analytics (Minimal)
-
- Page view tracking
-
- Top products
-
- Review counts
-
-Milestone:
-✅ M1 — Core UX complete
-
-PHASE 2 — PLATFORM & OPERATIONS
-
-Objective:
-Turn ReviewHub into a scalable platform, not just an app.
-
-2.1 Recommendations
-
- Trending products logic
-
- Cold-start recommendations
-
- No ML dependency initially
-
- Deterministic, explainable output
-
-2.2 Performance & Caching
-
- Identify hot read paths
-
- Add caching layer where justified
-
- Reduce unnecessary DB queries
-
- Measure before optimizing
-
-2.3 Monitoring & Reliability
-
- Error logging strategy
-
- Render uptime monitoring
-
- Alerting for downtime
-
- Basic performance metrics
-
-2.4 Privacy & Trust Tooling
-
- Data export
-
- Account deletion
-
- Clear privacy UX
-
- Trust signals groundwork
-
-2.5 Advanced Discovery (Optional)
-
- Voice search proof-of-concept
-
- Graceful fallback if unsupported
-
- Treated as enhancement, not dependency
-
-Milestone:
-✅ M2 — Scalable platform
-
-PHASE 3 — POST-LAUNCH & MONETIZATION (DEFERRED)
-
-Objective:
-Monetize without eroding trust.
-
- Affiliate link integration
-
- Price comparison logic
-
- Sponsored placement rules
-
- Transparency indicators
-
- Revenue tracking
-
-OPERATING PRINCIPLES (ALWAYS ON)
-
-No phase skipping
-
-Stability beats features
-
-Performance is a feature
-
-Trust is the differentiator
+**Your Role:** Technical partner and execution assistant. Maintain integrity, prevent scope creep, complete phases cleanly.
