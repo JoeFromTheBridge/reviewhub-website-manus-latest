@@ -697,10 +697,10 @@ export function UserProfile() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
+          <div className="flex flex-row items-start justify-between">
+            <div className="flex-1">
               <h3 className="font-semibold text-gray-900 mb-2">Delete Account</h3>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600">
                 Once you delete your account, there is no going back. Your account will be
                 deactivated and your personal information will be anonymized. Your reviews
                 will remain visible but will show as "Deleted user".
@@ -710,7 +710,9 @@ export function UserProfile() {
             <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
               <AlertDialogTrigger asChild>
                 <Button
-                  variant="destructive"
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 ml-4"
                   onClick={() => {
                     setDeletePassword('');
                     clearMessages();
@@ -719,7 +721,7 @@ export function UserProfile() {
                   Delete Account
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-white">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                   <AlertDialogDescription>
