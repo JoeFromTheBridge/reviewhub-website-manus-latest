@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Maximize2,
   Minimize2,
-  Flag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -143,64 +142,49 @@ export function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const numericId = id ? parseInt(id, 10) : null;
 
   const [product, setProduct] = useState(null);
   const [reviews, setReviews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [sortBy, setSortBy] = useState('newest');
-  const [filterRating, setFilterRating] = useState('all');
+  const [sortBy, setSortBy] = useState('helpful'); // helpful | recent | rating | photos
+  const [filterRating, setFilterRating] = useState('all'); // all | 1-5
   const [onlyWithPhotos, setOnlyWithPhotos] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
-  // Lightbox state
+  // Lightbox state: images for a single review + current index + zoom
   const [lightbox, setLightbox] = useState({
     open: false,
     images: [],
     currentIndex: 0,
     scale: 1,
   });
+
+  // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const lightboxContainerRef = useRef(null);
+
+  // Touch tracking for swipe + pinch
+  const touchStartX = useRef(null);
+  const touchEndX = useRef(null);
+  const pinchStartDistance = useRef(null);
+  const pinchStartScale = useRef(1);
+
+  // Thumbnail refs for smooth scrolling of active thumb
   const thumbRefs = useRef([]);
 
-  // Fetch product data
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        setLoading(true);
-        const numericId = parseInt(id, 10);
-        if (isNaN(numericId)) {
-          navigate('/404');
-          return;
-        }
+  // Lightbox container ref for Fullscreen API
+  const lightboxContainerRef = useRef(null);
 
-        const productData = await apiService.getProduct(numericId);
-        setProduct(productData);
-
-        // Fetch reviews
-        const reviewsData = await apiService.getProductReviews(numericId);
-        setReviews(reviewsData.reviews || []);
-      } catch (error) {
-        console.error('Error fetching product:', error);
-        navigate('/404');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchProduct();
-    }
-  }, [id, navigate]);
-
-  // Parse query params for sort/filter on mount
+  // Initialize sort/filter from URL query params (once)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+
     const sortParam = params.get('sort');
     const ratingParam = params.get('rating');
     const photosParam = params.get('photos');
 
-    if (sortParam && ['newest', 'oldest', 'highest', 'lowest', 'helpful'].includes(sortParam)) {
+    if (sortParam && ['helpful', 'recent', 'rating', 'photos'].includes(sortParam)) {
       setSortBy(sortParam);
     }
 
@@ -240,17 +224,24 @@ export function ProductPage() {
     }
   }, [sortBy, filterRating, onlyWithPhotos, location.pathname, location.search, navigate]);
 
-  // Track product view
+  // Track product view interaction
   useEffect(() => {
-    if (product?.id) {
-      apiService.trackInteraction({
-        interaction_type: 'view',
-        product_id: product.id,
-      }).catch((err) => console.error('Failed to track view:', err));
+    if (numericId) {
+      apiService.trackInteraction?.(numericId, 'view').catch?.(console.error);
     }
-  }, [product?.id]);
+  }, [numericId]);
 
-  // Keyboard navigation for lightbox
+  // Disable background scroll while lightbox is open
+  useEffect(() => {
+    if (!lightbox.open) return;
+    const original = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = original;
+    };
+  }, [lightbox.open]);
+
+  // Keyboard navigation: Escape to close, Left/Right arrows to navigate
   useEffect(() => {
     if (!lightbox.open) return;
 
@@ -282,7 +273,7 @@ export function ProductPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [lightbox.open]);
 
-  // Sync fullscreen state
+  // Sync fullscreen state with browser's fullscreenchange event
   useEffect(() => {
     const handleFullscreenChange = () => {
       const isFs = !!document.fullscreenElement;
@@ -295,10 +286,12 @@ export function ProductPage() {
     };
   }, []);
 
-  // Scroll active thumbnail into view
+  // Smooth scroll active thumbnail into view when image changes
   useEffect(() => {
-    if (lightbox.open && thumbRefs.current[lightbox.currentIndex]) {
-      thumbRefs.current[lightbox.currentIndex].scrollIntoView({
+    if (!lightbox.open) return;
+    const el = thumbRefs.current[lightbox.currentIndex];
+    if (el && el.scrollIntoView) {
+      el.scrollIntoView({
         behavior: 'smooth',
         block: 'nearest',
         inline: 'center',
@@ -306,126 +299,98 @@ export function ProductPage() {
     }
   }, [lightbox.open, lightbox.currentIndex]);
 
-  // Computed values
-  const productName = product?.name || 'Product';
-  const productBrand = product?.brand || null;
-  const description = product?.description || '';
-  const category = product?.category || '';
-  const imageUrl = product?.image_url || 'https://via.placeholder.com/800x400?text=Product+Image';
-  const specs = product?.specifications || [];
-
-  // Calculate rating stats
-  const ratingStats = useMemo(() => {
-    if (!reviews || reviews.length === 0) {
-      return {
-        average: 0,
-        total: 0,
-        distribution: [
-          { stars: 5, count: 0, percentage: 0 },
-          { stars: 4, count: 0, percentage: 0 },
-          { stars: 3, count: 0, percentage: 0 },
-          { stars: 2, count: 0, percentage: 0 },
-          { stars: 1, count: 0, percentage: 0 },
-        ],
-        photoCount: 0,
-      };
+  // Fetch product + reviews from real API
+  useEffect(() => {
+    if (!numericId) {
+      setProduct(null);
+      setReviews([]);
+      setLoading(false);
+      setError('Invalid product id.');
+      return;
     }
 
-    const total = reviews.length;
-    const sum = reviews.reduce((acc, r) => acc + (r.rating || 0), 0);
-    const average = total > 0 ? sum / total : 0;
+    let isMounted = true;
 
-    const countsByRating = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    let photoCount = 0;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError('');
 
-    reviews.forEach((r) => {
-      const rating = r.rating || 0;
-      if (rating >= 1 && rating <= 5) {
-        countsByRating[rating] = (countsByRating[rating] || 0) + 1;
+        const [productDataRaw, reviewsResponse] = await Promise.all([
+          apiService.getProduct(numericId),
+          apiService.getReviews({
+            product_id: numericId,
+            sort: 'created_at',
+            order: 'desc',
+            limit: 50,
+          }),
+        ]);
+
+        if (!isMounted) return;
+
+        const productData = productDataRaw?.product || productDataRaw || null;
+
+        setProduct(productData);
+        setReviews(reviewsResponse?.reviews || []);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Failed to load product page data', err);
+        setError('Failed to load product details.');
+        setProduct(null);
+        setReviews([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      const images = collectReviewImages(r);
-      if (images.length > 0) {
-        photoCount++;
-      }
-    });
+    };
 
-    const distribution = [5, 4, 3, 2, 1].map((stars) => {
-      const count = countsByRating[stars] || 0;
-      const percentage = total > 0 ? (count / total) * 100 : 0;
-      return { stars, count, percentage };
-    });
+    fetchData();
 
-    return { average, total, distribution, photoCount };
-  }, [reviews]);
+    return () => {
+      isMounted = false;
+    };
+  }, [numericId]);
 
-  // Filter and sort reviews
-  const filteredReviews = useMemo(() => {
-    let filtered = [...reviews];
+  const handleReviewSubmitted = (result) => {
+    if (!result) return;
 
-    // Filter by rating
-    if (filterRating !== 'all') {
-      const targetRating = parseInt(filterRating, 10);
-      filtered = filtered.filter((r) => r.rating === targetRating);
-    }
+    const baseReview = result.review || result;
+    if (!baseReview) return;
 
-    // Filter by photos
-    if (onlyWithPhotos) {
-      filtered = filtered.filter((r) => {
-        const images = collectReviewImages(r);
-        return images.length > 0;
-      });
-    }
+    const uploadedImages = Array.isArray(result.uploadedImages)
+      ? result.uploadedImages
+      : [];
 
-    // Sort
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.created_at) - new Date(a.created_at);
-        case 'oldest':
-          return new Date(a.created_at) - new Date(b.created_at);
-        case 'highest':
-          return (b.rating || 0) - (a.rating || 0);
-        case 'lowest':
-          return (a.rating || 0) - (b.rating || 0);
-        case 'helpful':
-          return (b.helpful_votes || 0) - (a.helpful_votes || 0);
-        default:
-          return 0;
-      }
-    });
+    const existingImages = [
+      ...(Array.isArray(baseReview.images) ? baseReview.images : []),
+      ...(Array.isArray(baseReview.review_images)
+        ? baseReview.review_images
+        : []),
+    ];
 
-    return filtered;
-  }, [reviews, sortBy, filterRating, onlyWithPhotos]);
+    // Merge what the backend returned with any explicitly uploaded images,
+    // but do not show any alert here; enforcement happens in the form/upload UI.
+    const mergedImages = [...existingImages, ...uploadedImages];
 
-  // Render star icons
-  const renderStars = (rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating || 0);
-    const hasHalfStar = rating % 1 >= 0.5;
+    const finalReview = {
+      ...baseReview,
+      images: mergedImages,
+    };
 
-    for (let i = 1; i <= 5; i++) {
-      if (i <= fullStars) {
-        stars.push(
-          <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-        );
-      } else if (i === fullStars + 1 && hasHalfStar) {
-        stars.push(
-          <div key={i} className="relative w-5 h-5">
-            <Star className="w-5 h-5 text-gray-300 absolute" />
-            <div className="overflow-hidden w-1/2">
-              <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-            </div>
-          </div>
-        );
-      } else {
-        stars.push(<Star key={i} className="w-5 h-5 text-gray-300" />);
-      }
-    }
-
-    return stars;
+    setReviews((prev) => [finalReview, ...(prev || [])]);
+    setShowReviewForm(false);
   };
 
-  // Lightbox functions
+  const handleWriteReviewClick = () => {
+    setShowReviewForm(true);
+    if (typeof document !== 'undefined') {
+      const el = document.getElementById('reviews-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  // Lightbox helpers
   const openLightbox = (images, startIndex) => {
     if (!images || images.length === 0) return;
     thumbRefs.current = [];
@@ -435,6 +400,7 @@ export function ProductPage() {
       currentIndex: startIndex ?? 0,
       scale: 1,
     });
+    setIsFullscreen(false);
   };
 
   const closeLightbox = () => {
@@ -480,41 +446,191 @@ export function ProductPage() {
     }
   };
 
-  // Handle zoom
+  // Swipe + pinch handlers
+  const handleTouchStart = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+
+    if (e.touches.length === 1) {
+      // Single finger swipe
+      touchStartX.current = e.touches[0].clientX;
+      touchEndX.current = null;
+    } else if (e.touches.length === 2) {
+      // Two-finger pinch
+      const [t1, t2] = e.touches;
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      pinchStartDistance.current = Math.hypot(dx, dy);
+      pinchStartScale.current = lightbox.scale || 1;
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (!e.touches || e.touches.length === 0) return;
+
+    if (e.touches.length === 1 && pinchStartDistance.current == null) {
+      // Only track swipe when not pinching
+      touchEndX.current = e.touches[0].clientX;
+    } else if (e.touches.length === 2 && pinchStartDistance.current != null) {
+      const [t1, t2] = e.touches;
+      const dx = t1.clientX - t2.clientX;
+      const dy = t1.clientY - t2.clientY;
+      const distance = Math.hypot(dx, dy);
+      if (!distance) return;
+
+      const ratio = distance / pinchStartDistance.current;
+      const newScale = Math.min(3, Math.max(1, pinchStartScale.current * ratio));
+
+      setLightbox((prev) => ({
+        ...prev,
+        scale: newScale,
+      }));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    // If pinch ended, reset pinch refs
+    if (pinchStartDistance.current != null) {
+      pinchStartDistance.current = null;
+      pinchStartScale.current = 1;
+    }
+
+    // Handle swipe if we had a single-finger gesture
+    if (touchStartX.current != null && touchEndX.current != null) {
+      const delta = touchStartX.current - touchEndX.current;
+      const SWIPE_THRESHOLD = 50;
+      if (Math.abs(delta) > SWIPE_THRESHOLD) {
+        if (delta > 0) {
+          // swipe left → next image
+          showNextImage();
+        } else {
+          // swipe right → previous image
+          showPrevImage();
+        }
+      }
+    }
+
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
+
+  // Mouse/trackpad wheel: scroll through images instead of page
   const handleWheel = (e) => {
-    if (e.deltaY < 0) {
-      setLightbox((prev) => ({ ...prev, scale: Math.min(prev.scale + 0.1, 3) }));
-    } else {
-      setLightbox((prev) => ({ ...prev, scale: Math.max(prev.scale - 0.1, 1) }));
+    if (!lightbox.open) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX;
+
+    if (delta > 0) {
+      showNextImage();
+    } else if (delta < 0) {
+      showPrevImage();
     }
   };
 
-  // Handle write review
-  const handleWriteReviewClick = () => {
-    setShowReviewForm(true);
-    setTimeout(() => {
-      document.getElementById('review-form')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  };
-
-  const handleReviewSubmitted = () => {
-    setShowReviewForm(false);
-    // Refresh reviews
-    apiService.getProductReviews(parseInt(id, 10))
-      .then((data) => setReviews(data.reviews || []))
-      .catch((err) => console.error('Failed to refresh reviews:', err));
-  };
-
-  // Handle helpful vote
-  const handleHelpfulVote = async (reviewId, isHelpful) => {
-    try {
-      await apiService.voteReview(reviewId, isHelpful);
-      // Refresh reviews
-      const data = await apiService.getProductReviews(parseInt(id, 10));
-      setReviews(data.reviews || []);
-    } catch (error) {
-      console.error('Error voting:', error);
+  const ratingStats = useMemo(() => {
+    if (!reviews || reviews.length === 0) {
+      return {
+        average: 0,
+        total: 0,
+        distribution: [5, 4, 3, 2, 1].map((stars) => ({
+          stars,
+          count: 0,
+          percentage: 0,
+        })),
+        photoCount: 0,
+      };
     }
+
+    const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let sum = 0;
+    let photoCount = 0;
+
+    for (const r of reviews) {
+      const rating = Number(r.rating) || 0;
+      if (rating >= 1 && rating <= 5) {
+        counts[rating] += 1;
+        sum += rating;
+      }
+      if (collectReviewImages(r).length > 0) {
+        photoCount += 1;
+      }
+    }
+
+    const total =
+      counts[1] + counts[2] + counts[3] + counts[4] + counts[5];
+    const average = total ? sum / total : 0;
+
+    const distribution = [5, 4, 3, 2, 1].map((stars) => {
+      const count = counts[stars];
+      const percentage = total ? Math.round((count / total) * 100) : 0;
+      return { stars, count, percentage };
+    });
+
+    return {
+      average,
+      total,
+      distribution,
+      photoCount,
+    };
+  }, [reviews]);
+
+  const filteredAndSortedReviews = useMemo(() => {
+    let result = [...reviews];
+
+    if (filterRating !== 'all') {
+      const target = parseInt(filterRating, 10);
+      result = result.filter((r) => Number(r.rating) === target);
+    }
+
+    if (onlyWithPhotos) {
+      result = result.filter((r) => collectReviewImages(r).length > 0);
+    }
+
+    if (sortBy === 'recent') {
+      result.sort((a, b) => {
+        const da = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const db = b.created_at ? new Date(b.created_at).getTime() : 0;
+        return db - da;
+      });
+    } else if (sortBy === 'rating') {
+      result.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+    } else if (sortBy === 'helpful') {
+      result.sort(
+        (a, b) =>
+          Number(b.helpful_count || 0) - Number(a.helpful_count || 0),
+      );
+    } else if (sortBy === 'photos') {
+      result.sort(
+        (a, b) =>
+          collectReviewImages(b).length - collectReviewImages(a).length
+      );
+    }
+
+    return result;
+  }, [reviews, sortBy, filterRating, onlyWithPhotos]);
+
+  const renderStars = (rating) => {
+    const value = Number(rating) || 0;
+    return [...Array(5)].map((_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${
+          i < Math.round(value)
+            ? 'text-yellow-400 fill-current'
+            : 'text-gray-300'
+        }`}
+      />
+    ));
+  };
+
+  const hasActiveFilters =
+    filterRating !== 'all' || onlyWithPhotos || sortBy !== 'helpful';
+
+  const clearFilters = () => {
+    setSortBy('helpful');
+    setFilterRating('all');
+    setOnlyWithPhotos(false);
   };
 
   if (loading) {
@@ -522,7 +638,17 @@ export function ProductPage() {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading product...</p>
+          <p className="mt-4 text-gray-600">Loading product details…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600">{error}</p>
         </div>
       </div>
     );
@@ -532,347 +658,470 @@ export function ProductPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xl text-gray-600">Product not found</p>
-          <Button onClick={() => navigate('/')} className="mt-4">
-            Go Home
-          </Button>
+          <p className="text-gray-600">Product not found.</p>
         </div>
       </div>
     );
   }
 
+  const productName =
+    product.name ||
+    product.title ||
+    product.product_name ||
+    product.productTitle ||
+    'Product';
+
+  const productBrand =
+    product.brand ||
+    product.manufacturer ||
+    product.maker ||
+    '';
+
+  const imageUrl =
+    product.image_url ||
+    product.image ||
+    product.hero_image_url ||
+    product.main_image_url ||
+    'https://via.placeholder.com/800x400?text=No+image+available';
+
+  let specs = [];
+  if (Array.isArray(product.specifications)) {
+    specs = product.specifications;
+  } else if (typeof product.specifications === 'string') {
+    specs = product.specifications.split('\n').filter(Boolean);
+  } else if (Array.isArray(product.specs)) {
+    specs = product.specs;
+  }
+
+  const description =
+    product.description ||
+    product.summary ||
+    product.short_description ||
+    'No detailed description has been provided for this product yet.';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Product Info Section */}
-        <div className="grid lg:grid-cols-2 gap-8 mb-12">
-          {/* Product Image */}
-          <div className="bg-white rounded-2xl shadow-lg p-8">
-            <img
-              src={imageUrl}
-              alt={productName}
-              className="w-full h-auto object-contain rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => openLightbox([{ thumb: imageUrl, full: imageUrl }], 0)}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = 'https://via.placeholder.com/800x400?text=Image+unavailable';
-              }}
-            />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Product Header */}
+      <div className="grid lg:grid-cols-2 gap-8 mb-12">
+        <div>
+          <img
+            src={imageUrl}
+            alt={productName}
+            className="w-full h-96 object-cover rounded-lg shadow-lg"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src =
+                'https://via.placeholder.com/800x400?text=Image+unavailable';
+            }}
+          />
+        </div>
+
+        <div>
+          {/* Product Name */}
+          <div className="mb-2">
+            <h1 className="text-3xl font-bold text-gray-900">
+              {productName}
+            </h1>
           </div>
 
-          {/* Product Details */}
-          <div className="flex flex-col justify-center space-y-6">
-            <div>
-              <h1 className="text-4xl font-serif font-bold text-gray-900 mb-2">
-                {productName}
-              </h1>
-              {productBrand && (
-                <p className="text-lg text-gray-600">{productBrand}</p>
-              )}
+          {/* Brand */}
+          {productBrand && (
+            <div className="mb-4">
+              <p className="text-lg text-gray-600">{productBrand}</p>
             </div>
+          )}
 
-            {/* Price */}
-            {(product.price_min != null || product.price_max != null) && (
-              <div className="text-3xl font-bold text-gray-900">
+          {/* Price */}
+          {(product.price_min != null || product.price_max != null) && (
+            <div className="mb-4">
+              <p className="text-2xl font-bold text-gray-900">
                 {product.price_min != null && product.price_max != null
-                  ? `$${product.price_min}`
+                  ? `$${product.price_min} - $${product.price_max}`
                   : product.price_min != null
                   ? `$${product.price_min}+`
                   : product.price_max != null
                   ? `Up to $${product.price_max}`
                   : 'N/A'}
-              </div>
-            )}
+              </p>
+            </div>
+          )}
 
-            {/* Rating */}
-            <div className="flex items-center space-x-2">
-              <div className="flex items-center">
-                {renderStars(ratingStats.average || product.average_rating)}
-              </div>
-              <span className="text-lg font-semibold">
+          {/* Rating */}
+          <div className="flex items-center space-x-4 mb-4">
+            <div className="flex items-center space-x-1">
+              {renderStars(ratingStats.average || product.average_rating)}
+              <span className="text-lg font-semibold ml-2">
                 {ratingStats.total
                   ? ratingStats.average.toFixed(1)
                   : product.average_rating?.toFixed?.(1) || 'N/A'}
               </span>
-              <span className="text-gray-600">
-                ({ratingStats.total || product.review_count || 0} Reviews)
-              </span>
             </div>
+            <span className="text-gray-600">
+              ({ratingStats.total || product.review_count || 0} reviews)
+            </span>
+          </div>
 
-            {/* Category */}
-            {category && (
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold text-gray-700">Category:</span>
-                <Badge variant="secondary">{category}</Badge>
-              </div>
-            )}
+          {/* Category */}
+          {product.category && (
+            <div className="mb-4">
+              <span className="text-sm font-medium text-gray-700">Category: </span>
+              <Badge variant="secondary">{product.category}</Badge>
+            </div>
+          )}
 
-            {/* Description */}
+          {/* Description */}
+          <div className="mb-6">
             <p className="text-gray-700 leading-relaxed">{description}</p>
+          </div>
 
-            {/* Write a Review Button */}
+          <div className="flex space-x-4">
+            <Button size="lg" className="flex-1">
+              Compare Prices
+            </Button>
             <Button
               size="lg"
               variant="outline"
               onClick={handleWriteReviewClick}
-              className="w-full max-w-md mx-auto"
             >
-              Write a Review
+              Write Review
             </Button>
           </div>
         </div>
+      </div>
 
-        {/* Customer Reviews Section */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Customer Reviews</h2>
-
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Rating Distribution - Left Side */}
-            <div className="lg:col-span-1">
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold mb-4">Overall Rating</h3>
-                <div className="space-y-3">
-                  {ratingStats.distribution.map((item) => (
-                    <div key={item.stars} className="flex items-center space-x-3">
-                      <div className="flex items-center space-x-1">
-                        {renderStars(item.stars)}
-                      </div>
-                      <div className="flex-1">
-                        <div className="bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-yellow-400 h-full transition-all duration-300"
-                            style={{ width: `${item.percentage}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <span className="text-sm text-gray-600 w-12 text-right">
-                        {Math.round(item.percentage)}%
-                      </span>
-                    </div>
-                  ))}
+      {/* Reviews Section */}
+      <div
+        id="reviews-section"
+        className="grid lg:grid-cols-3 gap-8"
+      >
+        {/* Rating Summary */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Reviews</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center mb-6">
+                <div className="text-4xl font-bold text-gray-900 mb-2">
+                  {ratingStats.total
+                    ? ratingStats.average.toFixed(1)
+                    : product.average_rating?.toFixed?.(1) || 'N/A'}
                 </div>
+                <div className="flex justify-center mb-2">
+                  {renderStars(ratingStats.average || product.average_rating)}
+                </div>
+                <p className="text-gray-600">
+                  {ratingStats.total || product.review_count || 0} total reviews
+                </p>
+                {ratingStats.photoCount > 0 && (
+                  <p className="mt-1 text-xs text-gray-600">
+                    {ratingStats.photoCount} review
+                    {ratingStats.photoCount === 1 ? '' : 's'} with photos
+                  </p>
+                )}
               </div>
-            </div>
 
-            {/* Reviews List - Right Side */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Review Form */}
-              {showReviewForm && (
-                <div id="review-form" className="bg-white rounded-2xl shadow-lg p-6">
-                  <ReviewForm
-                    productId={parseInt(id, 10)}
-                    onSuccess={handleReviewSubmitted}
-                    onCancel={() => setShowReviewForm(false)}
-                    maxImages={MAX_REVIEW_IMAGES}
-                  />
-                </div>
-              )}
-
-              {/* Filters */}
-              <div className="bg-white rounded-2xl shadow-lg p-4">
-                <div className="flex flex-wrap items-center gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Filter className="w-4 h-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">Sort by:</span>
+              <div className="space-y-3">
+                {ratingStats.distribution.map((item) => (
+                  <div key={item.stars} className="flex items-center space-x-3">
+                    <span className="text-sm w-6">{item.stars}★</span>
+                    <Progress value={item.percentage} className="flex-1" />
+                    <span className="text-sm text-gray-600 w-12">
+                      {item.count}
+                    </span>
                   </div>
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="newest">Newest</option>
-                    <option value="oldest">Oldest</option>
-                    <option value="highest">Highest Rating</option>
-                    <option value="lowest">Lowest Rating</option>
-                    <option value="helpful">Most Helpful</option>
-                  </select>
-
-                  <select
-                    value={filterRating}
-                    onChange={(e) => setFilterRating(e.target.value)}
-                    className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="all">All Ratings</option>
-                    <option value="5">5 Stars</option>
-                    <option value="4">4 Stars</option>
-                    <option value="3">3 Stars</option>
-                    <option value="2">2 Stars</option>
-                    <option value="1">1 Star</option>
-                  </select>
-
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={onlyWithPhotos}
-                      onChange={(e) => setOnlyWithPhotos(e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">With Photos Only</span>
-                  </label>
-                </div>
+                ))}
               </div>
-
-              {/* Reviews */}
-              {filteredReviews.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-                  <p className="text-gray-600">No reviews found matching your criteria.</p>
-                </div>
-              ) : (
-                filteredReviews.map((review) => {
-                  const images = collectReviewImages(review);
-                  const lightboxImages = images.map((img) => ({
-                    ...img,
-                    captionTitle: review.title || 'Review',
-                    captionMeta: review.user?.username || 'Anonymous',
-                  }));
-
-                  const reviewerName = review.user?.username || 'Anonymous';
-                  const reviewDate = review.created_at
-                    ? new Date(review.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    : '';
-
-                  return (
-                    <div key={review.id} className="bg-white rounded-2xl shadow-lg p-6">
-                      <div className="flex items-start space-x-4">
-                        {/* Avatar */}
-                        <div className="flex-shrink-0">
-                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white font-semibold text-lg">
-                            {reviewerName.charAt(0).toUpperCase()}
-                          </div>
-                        </div>
-
-                        {/* Review Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <div className="flex items-center space-x-2 mb-1">
-                                <span className="font-semibold text-gray-900">
-                                  {reviewerName}
-                                </span>
-                                <div className="flex items-center">
-                                  {renderStars(review.rating)}
-                                </div>
-                              </div>
-                              <h3 className="text-lg font-bold text-gray-900 mb-2">
-                                {review.title || 'Review'}
-                              </h3>
-                            </div>
-                            <span className="text-sm text-gray-500 whitespace-nowrap">
-                              {reviewDate}
-                            </span>
-                          </div>
-
-                          <p className="text-gray-700 mb-4">{review.content}</p>
-
-                          {/* Review Images */}
-                          {images.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-4">
-                              {images.map((img, index) => (
-                                <button
-                                  key={index}
-                                  type="button"
-                                  onClick={() => openLightbox(lightboxImages, index)}
-                                  className="focus:outline-none"
-                                >
-                                  <img
-                                    src={img.thumb}
-                                    alt="Review"
-                                    className="w-20 h-20 object-cover rounded hover:opacity-80 transition"
-                                    onError={(e) => {
-                                      e.currentTarget.onerror = null;
-                                      e.currentTarget.src =
-                                        'https://via.placeholder.com/80?text=Img';
-                                    }}
-                                  />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Helpful Buttons */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                              <button
-                                onClick={() => handleHelpfulVote(review.id, true)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
-                              >
-                                Helpful
-                              </button>
-                              <button
-                                onClick={() => handleHelpfulVote(review.id, false)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition"
-                              >
-                                Not Helpful
-                              </button>
-                            </div>
-                            <button className="text-gray-400 hover:text-gray-600 transition">
-                              <Flag className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Recommendations */}
-        {product.id && (
-          <div className="mb-12">
-            <RecommendationSection productId={product.id} />
-          </div>
-        )}
+        {/* Reviews List + Form */}
+        <div className="lg:col-span-2">
+          {/* Review Form */}
+          {showReviewForm && (
+            <div className="mb-8">
+              <ReviewForm
+                productId={numericId}
+                onReviewSubmitted={handleReviewSubmitted}
+                onCancel={() => setShowReviewForm(false)}
+                maxImages={MAX_REVIEW_IMAGES}
+              />
+            </div>
+          )}
 
-        {/* Similar Products */}
-        {product.id && (
-          <div className="mb-12">
-            <SimilarProducts productId={product.id} />
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 mb-6 items-center">
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium">Sort by:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border rounded px-3 py-1 text-sm"
+              >
+                <option value="helpful">Most Helpful</option>
+                <option value="recent">Most Recent</option>
+                <option value="rating">Highest Rating</option>
+                <option value="photos">Most Photos</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium">Rating:</span>
+              <select
+                value={filterRating}
+                onChange={(e) => setFilterRating(e.target.value)}
+                className="border rounded px-3 py-1 text-sm"
+              >
+                <option value="all">All Ratings</option>
+                <option value="5">5 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="2">2 Stars</option>
+                <option value="1">1 Star</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <input
+                id="only-with-photos"
+                type="checkbox"
+                checked={onlyWithPhotos}
+                onChange={(e) => setOnlyWithPhotos(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label
+                htmlFor="only-with-photos"
+                className="text-sm text-gray-700 cursor-pointer"
+              >
+                Only reviews with photos
+              </label>
+            </div>
           </div>
-        )}
+
+          {/* Individual Reviews */}
+          <div className="space-y-6">
+            {filteredAndSortedReviews.length === 0 ? (
+              <div className="text-gray-600">
+                {reviews.length === 0 ? (
+                  <p>There are no reviews for this product yet.</p>
+                ) : hasActiveFilters ? (
+                  <div className="space-y-2">
+                    <p>No reviews match these filters.</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearFilters}
+                    >
+                      Clear filters
+                    </Button>
+                  </div>
+                ) : (
+                  <p>No reviews to display.</p>
+                )}
+              </div>
+            ) : (
+              filteredAndSortedReviews.map((review) => {
+                const isVerified =
+                  review.verified_purchase || review.is_verified;
+                const helpful = review.helpful_count || 0;
+                const createdAt = review.created_at
+                  ? new Date(review.created_at).toLocaleDateString()
+                  : '';
+
+                const images = collectReviewImages(review);
+                const hasImages = images.length > 0;
+
+                const reviewerName =
+                  review.user?.username ||
+                  review.user_username ||
+                  review.user_name ||
+                  'Anonymous';
+
+                const lightboxImages = images.map((img) => ({
+                  ...img,
+                  captionTitle: review.title || 'Review',
+                  captionMeta: createdAt
+                    ? `${reviewerName} • ${createdAt}`
+                    : reviewerName,
+                }));
+
+                return (
+                  <Card key={review.id}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="font-semibold">
+                              {reviewerName}
+                            </span>
+                            {isVerified && (
+                              <Badge
+                                variant="secondary"
+                                className="bg-green-100 text-green-800"
+                              >
+                                <Shield className="h-3 w-3 mr-1" />
+                                Verified Purchase
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="flex">
+                              {renderStars(review.rating)}
+                            </div>
+                            {createdAt && (
+                              <span className="text-sm text-gray-600">
+                                {createdAt}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-gray-900">
+                          {review.title || 'Review'}
+                        </h4>
+                        {hasImages && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-blue-500 text-blue-600"
+                          >
+                            Includes photos
+                          </Badge>
+                        )}
+                      </div>
+
+                      <p className="text-gray-700 mb-4">
+                        {review.content || review.comment}
+                      </p>
+
+                      {hasImages && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {images.map((img, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              onClick={() =>
+                                openLightbox(lightboxImages, index)
+                              }
+                              className="focus:outline-none"
+                            >
+                              <img
+                                src={img.thumb}
+                                alt="Review"
+                                className="w-20 h-20 object-cover rounded hover:opacity-80 transition"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src =
+                                    'https://via.placeholder.com/80?text=Img';
+                                }}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-600"
+                        >
+                          <ThumbsUp className="h-4 w-4 mr-2" />
+                          Helpful ({helpful})
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-600"
+                        >
+                          Reply
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+
+          <div className="text-center mt-8">
+            <Button variant="outline">Load More Reviews</Button>
+          </div>
+        </div>
       </div>
+
+      {/* Visual Similar Products Section */}
+      {numericId && (
+        <div className="mt-16">
+          <SimilarProducts productId={numericId} />
+        </div>
+      )}
+
+      {/* Similar Products Section */}
+      {numericId && (
+        <div className="mt-16">
+          <RecommendationSection
+            title="Similar Products"
+            type="similar"
+            productId={numericId}
+            limit={6}
+            showReasons={false}
+          />
+        </div>
+      )}
 
       {/* Lightbox Modal */}
       {lightbox.open && lightbox.images.length > 0 && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
           onClick={closeLightbox}
         >
           <div
             ref={lightboxContainerRef}
-            className="relative w-full h-full flex flex-col"
+            className="relative w-full max-w-5xl mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
-            <button
-              onClick={closeLightbox}
-              className="absolute top-4 right-4 z-30 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition"
+            <div
+              className="relative bg-black rounded-lg shadow-lg overflow-hidden flex flex-col"
+              style={{ height: isFullscreen ? '94vh' : '80vh' }}
             >
-              <X className="w-6 h-6" />
-            </button>
+              {/* Close button */}
+              <button
+                type="button"
+                onClick={closeLightbox}
+                aria-label="Close image viewer"
+                className="absolute top-3 right-3 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
+              >
+                <X className="h-5 w-5" />
+              </button>
 
-            {/* Fullscreen Toggle */}
-            <button
-              onClick={toggleFullscreen}
-              className="absolute top-4 right-16 z-30 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition"
-            >
-              {isFullscreen ? (
-                <Minimize2 className="w-6 h-6" />
-              ) : (
-                <Maximize2 className="w-6 h-6" />
-              )}
-            </button>
+              {/* Fullscreen toggle */}
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+                className="absolute top-3 right-12 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
+              >
+                {isFullscreen ? (
+                  <Minimize2 className="h-5 w-5" />
+                ) : (
+                  <Maximize2 className="h-5 w-5" />
+                )}
+              </button>
 
-            {/* Main Image Container */}
-            <div className="flex-1 flex items-center justify-center p-4">
+              {/* Fixed-height image area; arrows stay centered; wheel scrolls images */}
               <div
-                className="relative max-w-full max-h-full flex items-center justify-center"
+                className={`relative flex items-center justify-center ${
+                  isFullscreen ? 'h-[78vh]' : 'h-[60vh]'
+                }`}
+                style={{ touchAction: 'none' }}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
                 onWheel={handleWheel}
               >
                 {lightbox.images.length > 1 && (
@@ -911,67 +1160,95 @@ export function ProductPage() {
                   </button>
                 )}
               </div>
-            </div>
 
-            {/* Image Counter */}
-            <div className="px-4 py-3 border-t border-white/10 text-sm text-gray-100 text-center">
-              <div>
-                Image {lightbox.currentIndex + 1} of {lightbox.images.length}
-              </div>
-              <div className="mt-2 mx-auto w-40 h-1.5 rounded-full bg-white/20 overflow-hidden">
-                <div
-                  className="h-full bg-white/80"
-                  style={{
-                    width: `${
-                      ((lightbox.currentIndex + 1) / lightbox.images.length) * 100
-                    }%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Thumbnail Strip */}
-            {lightbox.images.length > 1 && (
-              <div className="px-4 pb-3 pt-1 border-t border-white/10">
-                <div className="flex justify-center gap-2 overflow-x-auto">
-                  {lightbox.images.map((img, idx) => {
-                    const isActive = idx === lightbox.currentIndex;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        ref={(el) => (thumbRefs.current[idx] = el)}
-                        onClick={() =>
-                          setLightbox((prev) => ({ ...prev, currentIndex: idx, scale: 1 }))
-                        }
-                        className={`flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
-                          isActive
-                            ? 'border-white ring-2 ring-white/50'
-                            : 'border-white/20 hover:border-white/50'
-                        }`}
-                        aria-label={`Go to image ${idx + 1}`}
-                      >
-                        <img
-                          src={img.thumb}
-                          alt={`Thumbnail ${idx + 1}`}
-                          className={`h-14 w-14 object-cover rounded ${
-                            isActive ? 'opacity-100' : 'opacity-70'
-                          }`}
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src =
-                              'https://via.placeholder.com/80?text=Img';
-                          }}
-                        />
-                      </button>
-                    );
-                  })}
+              {/* Fixed bottom info area: index + progress + captions */}
+              <div className="px-4 py-3 border-t border-white/10 text-sm text-gray-100 text-center">
+                <div>
+                  Image {lightbox.currentIndex + 1} of {lightbox.images.length}
                 </div>
+                <div className="mt-2 mx-auto w-40 h-1.5 rounded-full bg-white/20 overflow-hidden">
+                  <div
+                    className="h-full bg-white/80"
+                    style={{
+                      width: `${
+                        ((lightbox.currentIndex + 1) /
+                          lightbox.images.length) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+                {(() => {
+                  const current = lightbox.images[lightbox.currentIndex] || {};
+                  return (
+                    <>
+                      {current.captionTitle && (
+                        <div className="mt-2 font-medium">
+                          {current.captionTitle}
+                        </div>
+                      )}
+                      {current.captionMeta && (
+                        <div className="mt-0.5 text-xs text-gray-300">
+                          {current.captionMeta}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
-            )}
+
+              {/* Thumbnail strip pinned at very bottom */}
+              {lightbox.images.length > 1 && (
+                <div className="px-4 pb-3 pt-1 border-t border-white/10">
+                  <div className="flex justify-center gap-2 overflow-x-auto">
+                    {lightbox.images.map((img, idx) => {
+                      const isActive = idx === lightbox.currentIndex;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          ref={(el) => {
+                            thumbRefs.current[idx] = el;
+                          }}
+                          onClick={() =>
+                            setLightbox((prev) => ({
+                              ...prev,
+                              currentIndex: idx,
+                              scale: 1,
+                            }))
+                          }
+                          className={`border rounded ${
+                            isActive
+                              ? 'border-white/80'
+                              : 'border-white/20 hover:border-white/50'
+                          }`}
+                          aria-label={`Go to image ${idx + 1}`}
+                        >
+                          <img
+                            src={img.thumb}
+                            alt={`Thumbnail ${idx + 1}`}
+                            className={`h-14 w-14 object-cover rounded ${
+                              isActive ? 'opacity-100' : 'opacity-70'
+                            }`}
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src =
+                                'https://via.placeholder.com/80?text=Img';
+                            }}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
+
+export default ProductPage;
