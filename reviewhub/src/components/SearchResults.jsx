@@ -48,39 +48,74 @@ export function SearchResults() {
       setLoading(true)
       setError('')
 
-      // Check if we have any active filters or search query
-      const hasQuery = searchParams.get('q')
-      const hasCategory = searchParams.get('category')
-      const hasRating = searchParams.get('minRating')
-      const hasPrice = searchParams.get('maxPrice')
-      const hasAnyFilter = hasQuery || hasCategory || hasRating || hasPrice
+      // Fetch ALL products and filter client-side for reliability
+      const response = await apiService.getProducts({
+        page: 1,
+        per_page: 100 // Get more products to work with
+      })
 
-      let response
+      let allProducts = response.products || []
 
-      if (hasAnyFilter) {
-        // Use Elasticsearch for filtered searches
-        const params = {
-          q: hasQuery || '',
-          category: hasCategory || '',
-          rating_min: hasRating || '',
-          price_max: hasPrice || '',
-          sort_by: searchParams.get('sort') || 'relevance',
-          page: currentPage,
-          per_page: 12
-        }
-        response = await apiService.searchProducts(params)
-      } else {
-        // Use basic endpoint to show all products
-        const params = {
-          page: currentPage,
-          per_page: 12,
-          sort_by: searchParams.get('sort') || 'created_at'
-        }
-        response = await apiService.getProducts(params)
+      // Apply client-side filters
+      const query = (searchParams.get('q') || '').toLowerCase()
+      const category = searchParams.get('category') || ''
+      const minRating = parseInt(searchParams.get('minRating') || '0')
+      const maxPrice = parseFloat(searchParams.get('maxPrice') || '999999')
+      const sortBy = searchParams.get('sort') || 'relevance'
+
+      // Filter by search query
+      if (query) {
+        allProducts = allProducts.filter(p =>
+          (p.name || '').toLowerCase().includes(query) ||
+          (p.brand || '').toLowerCase().includes(query) ||
+          (p.description || '').toLowerCase().includes(query)
+        )
       }
 
-      setProducts(response.products || [])
-      setTotalResults(response.total || 0)
+      // Filter by category
+      if (category) {
+        allProducts = allProducts.filter(p => p.category === category)
+      }
+
+      // Filter by minimum rating
+      if (minRating > 0) {
+        allProducts = allProducts.filter(p => (p.average_rating || 0) >= minRating)
+      }
+
+      // Filter by max price
+      if (maxPrice < 999999) {
+        allProducts = allProducts.filter(p => {
+          // Extract numeric price from price_range if it exists
+          if (!p.price_range) return true
+          const priceMatch = p.price_range.match(/\$(\d+)/)
+          if (!priceMatch) return true
+          return parseInt(priceMatch[1]) <= maxPrice
+        })
+      }
+
+      // Sort products
+      if (sortBy === 'rating') {
+        allProducts.sort((a, b) => (b.average_rating || 0) - (a.average_rating || 0))
+      } else if (sortBy === 'reviews') {
+        allProducts.sort((a, b) => (b.review_count || 0) - (a.review_count || 0))
+      } else if (sortBy === 'price_low') {
+        allProducts.sort((a, b) => {
+          const priceA = a.price_range?.match(/\$(\d+)/)?.[1] || 0
+          const priceB = b.price_range?.match(/\$(\d+)/)?.[1] || 0
+          return parseInt(priceA) - parseInt(priceB)
+        })
+      } else if (sortBy === 'price_high') {
+        allProducts.sort((a, b) => {
+          const priceA = a.price_range?.match(/\$(\d+)/)?.[1] || 0
+          const priceB = b.price_range?.match(/\$(\d+)/)?.[1] || 0
+          return parseInt(priceB) - parseInt(priceA)
+        })
+      } else if (sortBy === 'newest') {
+        allProducts.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+      }
+
+      setProducts(allProducts)
+      setTotalResults(allProducts.length)
     } catch (error) {
       setError('Failed to load products. Please try again.')
       console.error('Error fetching products:', error)
@@ -117,6 +152,7 @@ export function SearchResults() {
   }
 
   const renderStars = (rating) => {
+    const displayRating = rating ? rating.toFixed(1) : '0.0'
     return (
       <div className="flex items-center">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -129,7 +165,7 @@ export function SearchResults() {
             }`}
           />
         ))}
-        <span className="ml-1 text-sm text-gray-600">{rating}</span>
+        <span className="ml-1 text-sm text-gray-600">{displayRating}</span>
       </div>
     )
   }
@@ -330,6 +366,15 @@ export function SearchResults() {
                 </select>
               </CardContent>
             </Card>
+
+            {/* Reset Filters Button */}
+            <Button
+              onClick={clearFilters}
+              variant="outline"
+              className="w-full"
+            >
+              Reset Filters
+            </Button>
           </div>
 
           {/* Results */}
