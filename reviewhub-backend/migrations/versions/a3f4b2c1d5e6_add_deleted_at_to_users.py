@@ -17,10 +17,10 @@ depends_on = None
 
 
 def upgrade():
-    # Add deleted_at column to users table
-    op.add_column('users', sa.Column('deleted_at', sa.DateTime(), nullable=True))
+    # Add deleted_at column to user table
+    op.add_column('user', sa.Column('deleted_at', sa.DateTime(), nullable=True))
 
 
 def downgrade():
-    # Remove deleted_at column from users table
-    op.drop_column('users', 'deleted_at')
+    # Remove deleted_at column from user table
+    op.drop_column('user', 'deleted_at')
