@@ -168,6 +168,11 @@ class ApiService {
     return this.request(qs ? `/products?${qs}` : '/products')
   }
 
+  async searchProducts(params = {}) {
+    const qs = new URLSearchParams(params).toString()
+    return this.request(qs ? `/search/products?${qs}` : '/search/products')
+  }
+
   async getProduct(productId) {
     return this.request(`/products/${productId}`)
   }

@@ -47,22 +47,22 @@ export function SearchResults() {
     try {
       setLoading(true)
       setError('')
-      
+
       const params = {
         q: searchParams.get('q') || '',
         category: searchParams.get('category') || '',
-        min_rating: searchParams.get('minRating') || '',
-        max_price: searchParams.get('maxPrice') || '',
-        sort: searchParams.get('sort') || 'relevance',
+        rating_min: searchParams.get('minRating') || '',
+        price_max: searchParams.get('maxPrice') || '',
+        sort_by: searchParams.get('sort') || 'relevance',
         page: currentPage,
-        limit: 12
+        per_page: 12
       }
 
-      const response = await apiService.getProducts(params)
+      const response = await apiService.searchProducts(params)
       setProducts(response.products || [])
       setTotalResults(response.total || 0)
     } catch (error) {
-      setError('Failed to load products')
+      setError('Failed to load products. Please try again.')
       console.error('Error fetching products:', error)
     } finally {
       setLoading(false)
