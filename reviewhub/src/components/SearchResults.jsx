@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
 import { Star, Filter, Grid, List, Loader2, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,7 +16,8 @@ export function SearchResults() {
   const [error, setError] = useState('')
   const [totalResults, setTotalResults] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
-  
+  const priceDebounceTimer = useRef(null)
+
   // Filter states
   const [filters, setFilters] = useState({
     query: searchParams.get('q') || '',
@@ -127,7 +128,7 @@ export function SearchResults() {
   const handleFilterChange = (key, value) => {
     const newFilters = { ...filters, [key]: value }
     setFilters(newFilters)
-    
+
     // Update URL params
     const newParams = new URLSearchParams(searchParams)
     if (value) {
@@ -137,6 +138,27 @@ export function SearchResults() {
     }
     setSearchParams(newParams)
     setCurrentPage(1)
+  }
+
+  const handlePriceChange = (value) => {
+    // Update filter state immediately for UI responsiveness
+    setFilters({ ...filters, maxPrice: value })
+
+    // Debounce URL update and refetch
+    if (priceDebounceTimer.current) {
+      clearTimeout(priceDebounceTimer.current)
+    }
+
+    priceDebounceTimer.current = setTimeout(() => {
+      const newParams = new URLSearchParams(searchParams)
+      if (value && value < 2000) {
+        newParams.set('maxPrice', value)
+      } else {
+        newParams.delete('maxPrice')
+      }
+      setSearchParams(newParams)
+      setCurrentPage(1)
+    }, 500) // Wait 500ms after slider stops moving
   }
 
   const clearFilters = () => {
@@ -310,7 +332,7 @@ export function SearchResults() {
                     max="2000"
                     step="50"
                     value={filters.maxPrice || 2000}
-                    onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
+                    onChange={(e) => handlePriceChange(e.target.value)}
                     className="w-full"
                   />
                   <div className="flex justify-between text-sm text-gray-600">
