@@ -155,6 +155,13 @@ class ApiService {
     })
   }
 
+  async deleteAccount(password) {
+    return this.request('/auth/delete-account', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    })
+  }
+
   // ---- Products / Categories ----
   async getProducts(params = {}) {
     const qs = new URLSearchParams(params).toString()

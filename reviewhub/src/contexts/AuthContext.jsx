@@ -217,6 +217,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const deleteAccount = async (password) => {
+    try {
+      setError(null);
+      setLoading(true);
+      await apiService.deleteAccount(password);
+      // After successful deletion, logout
+      await logout();
+      return { success: true };
+    } catch (error) {
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Optional helper if you ever want to force-refresh user from /auth/profile
   const refreshUserProfile = async () => {
     try {
@@ -252,6 +268,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateProfile,
     changePassword,
+    deleteAccount,
     refreshUserProfile,
     clearError,
     clearEmailVerificationStatus,

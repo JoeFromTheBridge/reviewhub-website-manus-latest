@@ -1,9 +1,21 @@
 import { useState, useEffect } from 'react';
-import { User, Calendar, Edit2, Save, X, Loader2, LogOut } from 'lucide-react';
+import { User, Calendar, Edit2, Save, X, Loader2, LogOut, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Safely parse a Response into JSON or text.
@@ -96,10 +108,14 @@ async function extractServerError(err) {
 }
 
 export function UserProfile() {
-  const { user, updateProfile, changePassword, logout } = useAuth();
+  const { user, updateProfile, changePassword, deleteAccount, logout } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Primary user feedback strings
   const [error, setError] = useState('');
@@ -267,6 +283,34 @@ export function UserProfile() {
       new_password: '',
       confirm_password: '',
     });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      setError('Please enter your password to confirm');
+      return;
+    }
+
+    setIsDeleting(true);
+    clearMessages();
+
+    try {
+      await deleteAccount(deletePassword);
+      // deleteAccount calls logout internally
+      // Show success message before redirect
+      setSuccess('Account deleted successfully. Redirecting...');
+      setShowDeleteDialog(false);
+      setTimeout(() => {
+        navigate('/');
+      }, 1000);
+    } catch (err) {
+      const enriched = await extractServerError(err);
+      setError(enriched?.message || 'Failed to delete account');
+      setErrorStatus(enriched?.status ?? null);
+      setErrorDetails(enriched?.details ?? null);
+      handleServerErrorUI(enriched);
+      setIsDeleting(false);
+    }
   };
 
   const renderValidationList = () => {
@@ -641,6 +685,86 @@ export function UserProfile() {
               Click "Change Password" to update your password.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="border-red-200">
+        <CardHeader>
+          <CardTitle className="text-red-600 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Danger Zone
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-semibold text-gray-900 mb-2">Delete Account</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Once you delete your account, there is no going back. Your account will be
+                deactivated and your personal information will be anonymized. Your reviews
+                will remain visible but will show as "Deleted user".
+              </p>
+            </div>
+
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setDeletePassword('');
+                    clearMessages();
+                  }}
+                >
+                  Delete Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will deactivate your account and anonymize your reviews.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="py-4">
+                  <label htmlFor="delete_password" className="block text-sm font-medium text-gray-700 mb-2">
+                    Enter your password to confirm
+                  </label>
+                  <Input
+                    id="delete_password"
+                    type="password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    placeholder="Your password"
+                    disabled={isDeleting}
+                  />
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleDeleteAccount();
+                    }}
+                    disabled={isDeleting || !deletePassword}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      'Delete Account'
+                    )}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardContent>
       </Card>
     </div>
