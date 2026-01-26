@@ -318,10 +318,11 @@ const SearchPage = () => {
     !!error;
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">
-        Search ReviewHub
-      </h1>
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto p-4">
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">
+          Search ReviewHub
+        </h1>
 
       {/* Search Type Tabs */}
       <div className="flex border-b border-gray-200 mb-6">
@@ -427,6 +428,7 @@ const SearchPage = () => {
           />
         </>
       )}
+      </div>
     </div>
   );
 };
