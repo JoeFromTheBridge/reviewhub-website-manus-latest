@@ -163,7 +163,8 @@ class User(db.Model):
     last_name = db.Column(db.String(50), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
-    
+    deleted_at = db.Column(db.DateTime, nullable=True)
+
     # Email verification fields
     email_verified = db.Column(db.Boolean, default=False)
     email_verification_token = db.Column(db.String(64), nullable=True)
@@ -704,8 +705,8 @@ def login():
         
         if not user or not user.check_password(password):
             return jsonify({'error': 'Invalid credentials'}), 401
-        
-        if not user.is_active:
+
+        if not user.is_active or user.deleted_at is not None:
             return jsonify({'error': 'Account is deactivated'}), 401
         
         if not user.email_verified:
@@ -889,6 +890,63 @@ def change_password():
         db.session.commit()
 
         return jsonify({'message': 'Password changed successfully'}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/auth/delete-account', methods=['POST'])
+@jwt_required()
+def delete_account():
+    """
+    Soft delete and anonymize the current user's account.
+    Expected JSON payload:
+    {
+        "password": "..."
+    }
+    """
+    try:
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Check if already deleted (idempotent)
+        if user.deleted_at is not None:
+            return jsonify({'ok': True, 'message': 'Account already deleted'}), 200
+
+        data = request.get_json() or {}
+        password = data.get('password')
+
+        if not password:
+            return jsonify({'error': 'Password is required'}), 400
+
+        if not user.check_password(password):
+            return jsonify({'error': 'Incorrect password'}), 400
+
+        # Soft delete
+        user.is_active = False
+        user.deleted_at = datetime.utcnow()
+
+        # Anonymize
+        user.username = f"deleted_user_{user.id}"
+        user.email = f"deleted_{user.id}@example.invalid"
+        user.first_name = None
+        user.last_name = None
+        user.bio = None
+        user.location = None
+        user.website = None
+        user.profile_image_url = None
+
+        # Clear tokens
+        user.email_verification_token = None
+        user.password_reset_token = None
+
+        db.session.commit()
+
+        return jsonify({'ok': True}), 200
 
     except Exception as e:
         db.session.rollback()
