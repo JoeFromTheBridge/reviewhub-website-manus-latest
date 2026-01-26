@@ -35,6 +35,12 @@ Services:
   Storage: S3-compatible (optional)
   Config: Environment variables only
 ```
+## Development Commands (Verification)
+- Start Dev Server: `npm run dev`
+- Build Check: `npm run build`
+- Backend Health: `curl http://localhost:5000/healthz`
+- Linting: `npm run lint`
+- Database: `flask db upgrade`
 
 **Architecture:**
 ```
