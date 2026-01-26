@@ -29,7 +29,7 @@ def upgrade():
     sa.UniqueConstraint('name'),
     sa.UniqueConstraint('slug')
     )
-    op.create_table('user', 'users'
+    op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=80), nullable=False),
     sa.Column('email', sa.String(length=120), nullable=False),
