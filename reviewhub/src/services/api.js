@@ -179,6 +179,10 @@ class ApiService {
     return this.request(`/reviews/${id}`)
   }
 
+  async getProductReviews(productId) {
+    return this.request(`/reviews?product_id=${encodeURIComponent(productId)}`)
+  }
+
   async createReview(reviewData) {
     return this.request('/reviews', { method: 'POST', body: JSON.stringify(reviewData) })
   }
