@@ -102,6 +102,28 @@ const productMatchesQuery = (product, q) => {
   return text.includes(q);
 };
 
+const productMatchesPrice = (product, filters) => {
+  const price = Number(product.price || 0);
+  const minPrice = Number(filters.minPrice || 0);
+  const maxPrice = Number(filters.maxPrice || Infinity);
+
+  if (filters.minPrice && price < minPrice) return false;
+  if (filters.maxPrice && price > maxPrice) return false;
+
+  return true;
+};
+
+const productMatchesRating = (product, filters) => {
+  const selectedRatings = filters.selectedRatings || [];
+
+  if (selectedRatings.length === 0) return true;
+
+  const avgRating = Number(product.average_rating || 0);
+  const roundedRating = Math.round(avgRating);
+
+  return selectedRatings.includes(roundedRating);
+};
+
 const reviewMatchesQuery = (review, q, allProducts) => {
   if (!q) return true;
 
@@ -228,7 +250,11 @@ const SearchPage = () => {
         buildCategoryMatchers(apiFilters);
 
       const filteredProducts = allProducts.filter(
-        (p) => productMatchesCategory(p) && productMatchesQuery(p, q)
+        (p) =>
+          productMatchesCategory(p) &&
+          productMatchesQuery(p, q) &&
+          productMatchesPrice(p, apiFilters) &&
+          productMatchesRating(p, apiFilters)
       );
 
       const filteredReviews = allReviews.filter(

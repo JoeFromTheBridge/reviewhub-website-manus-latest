@@ -147,35 +147,44 @@ const SearchFilters = ({
     </div>
   );
 
-  const renderRatingFilter = () => (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">Minimum Rating</label>
+  const renderRatingFilter = () => {
+    const selectedRatings = localFilters.selectedRatings || [];
+
+    const handleRatingToggle = (rating) => {
+      const current = selectedRatings;
+      const updated = current.includes(rating)
+        ? current.filter(r => r !== rating)
+        : [...current, rating];
+      handleFilterChange('selectedRatings', updated);
+    };
+
+    return (
       <div className="space-y-2">
-        {[5, 4, 3, 2, 1].map(rating => (
-          <label key={rating} className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              name="rating"
-              checked={localFilters.minRating === rating}
-              onChange={() => handleFilterChange('minRating', rating)}
-              className="text-blue-600"
-            />
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`h-3 w-3 ${
-                    i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                  }`}
-                />
-              ))}
-              <span className="text-xs text-gray-600">& up</span>
-            </div>
-          </label>
-        ))}
+        <label className="text-sm font-medium">Rating</label>
+        <div className="space-y-2">
+          {[5, 4, 3, 2, 1].map(rating => (
+            <label key={rating} className="flex items-center gap-2 cursor-pointer">
+              <Checkbox
+                checked={selectedRatings.includes(rating)}
+                onCheckedChange={() => handleRatingToggle(rating)}
+              />
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`h-3 w-3 ${
+                      i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                    }`}
+                  />
+                ))}
+                <span className="text-xs text-gray-600">{rating} star{rating !== 1 ? 's' : ''}</span>
+              </div>
+            </label>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderCategoryFilter = () => (
     <div className="space-y-2">
