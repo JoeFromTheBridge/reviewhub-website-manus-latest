@@ -68,6 +68,58 @@ const SearchResultsDisplay = ({
     const avgRating = Number(product.average_rating || 0);
     const reviewCount = product.review_count || 0;
 
+    // Get price information
+    const priceMin = product.price_min;
+    const priceMax = product.price_max;
+    const priceDisplay = priceMin && priceMax
+      ? `$${priceMin.toFixed(0)} - $${priceMax.toFixed(0)}`
+      : priceMin
+      ? `$${priceMin.toFixed(0)}`
+      : null;
+
+    // Helper function to render stars with proper half-star display
+    const renderStars = (rating) => {
+      return [...Array(5)].map((_, i) => {
+        const starValue = i + 1;
+        const fillPercentage = rating >= starValue
+          ? 100
+          : rating > starValue - 1
+          ? (rating - (starValue - 1)) * 100
+          : 0;
+
+        if (fillPercentage === 100) {
+          // Full star
+          return (
+            <Star
+              key={i}
+              className="w-4 h-4 text-yellow-400 fill-yellow-400"
+            />
+          );
+        } else if (fillPercentage === 0) {
+          // Empty star
+          return (
+            <Star
+              key={i}
+              className="w-4 h-4 text-gray-300"
+            />
+          );
+        } else {
+          // Partial star - use gradient or clip-path
+          return (
+            <div key={i} className="relative w-4 h-4">
+              <Star className="absolute w-4 h-4 text-gray-300" />
+              <div
+                className="absolute overflow-hidden"
+                style={{ width: `${fillPercentage}%` }}
+              >
+                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+              </div>
+            </div>
+          );
+        }
+      });
+    };
+
     return (
       <Card
         key={product.id}
@@ -91,21 +143,18 @@ const SearchResultsDisplay = ({
           {description && (
             <p className="text-gray-700 mb-2 line-clamp-2">{description}</p>
           )}
+          {product.category && (
+            <Badge variant="secondary" className="mb-2">{product.category}</Badge>
+          )}
+          {priceDisplay && (
+            <p className="text-lg font-semibold text-gray-900 mb-2">
+              {priceDisplay}
+            </p>
+          )}
           {avgRating > 0 && (
             <div className="flex items-center mb-2">
               <div className="flex items-center mr-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-4 h-4 ${
-                      i < Math.floor(avgRating)
-                        ? 'text-yellow-400 fill-yellow-400'
-                        : i < Math.ceil(avgRating) && avgRating % 1 >= 0.5
-                        ? 'text-yellow-400 fill-yellow-400 opacity-50'
-                        : 'text-gray-300'
-                    }`}
-                  />
-                ))}
+                {renderStars(avgRating)}
               </div>
               <span className="text-sm font-semibold">
                 {avgRating.toFixed(1)}
@@ -114,9 +163,6 @@ const SearchResultsDisplay = ({
                 ({reviewCount} reviews)
               </span>
             </div>
-          )}
-          {product.category && (
-            <Badge variant="secondary">{product.category}</Badge>
           )}
           {product.image_url && (
             <img
