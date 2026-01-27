@@ -616,8 +616,10 @@ export function ProductPage() {
       <Star
         key={i}
         className={`h-4 w-4 ${
-          i < Math.round(value)
+          i < Math.floor(value)
             ? 'text-yellow-400 fill-current'
+            : i < Math.ceil(value) && value % 1 >= 0.5
+            ? 'text-yellow-400 fill-current opacity-50'
             : 'text-gray-300'
         }`}
       />

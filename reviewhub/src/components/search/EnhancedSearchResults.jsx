@@ -239,16 +239,21 @@ const EnhancedSearchResults = ({
           {product.average_rating && (
             <div className="flex items-center gap-2 mb-2">
               <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`h-4 w-4 ${
-                      i < Math.floor(product.average_rating)
-                        ? 'text-yellow-400 fill-current'
-                        : 'text-gray-300'
-                    }`}
-                  />
-                ))}
+                {[...Array(5)].map((_, i) => {
+                  const avgRating = Number(product.average_rating || 0);
+                  return (
+                    <Star
+                      key={i}
+                      className={`h-4 w-4 ${
+                        i < Math.floor(avgRating)
+                          ? 'text-yellow-400 fill-current'
+                          : i < Math.ceil(avgRating) && avgRating % 1 >= 0.5
+                          ? 'text-yellow-400 fill-current opacity-50'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  );
+                })}
               </div>
               <span className="text-sm text-gray-600">
                 {formatRating(product.average_rating)} ({product.review_count || 0})

@@ -6,20 +6,23 @@ import { Badge } from '../ui/badge';
 
 const RecommendationCard = ({ product, type = 'recommendation', showReasons = true }) => {
   const renderStars = (rating) => {
+    const value = Number(rating) || 0;
     return (
       <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((star) => (
+        {[...Array(5)].map((_, i) => (
           <Star
-            key={star}
+            key={i}
             className={`h-4 w-4 ${
-              star <= rating
+              i < Math.floor(value)
                 ? 'fill-yellow-400 text-yellow-400'
+                : i < Math.ceil(value) && value % 1 >= 0.5
+                ? 'fill-yellow-400 text-yellow-400 opacity-50'
                 : 'text-gray-300'
             }`}
           />
         ))}
         <span className="ml-1 text-sm text-gray-600">
-          {rating.toFixed(1)}
+          {value.toFixed(1)}
         </span>
       </div>
     );
