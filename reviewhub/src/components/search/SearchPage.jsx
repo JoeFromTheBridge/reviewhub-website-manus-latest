@@ -104,11 +104,20 @@ const productMatchesQuery = (product, q) => {
 
 const productMatchesPrice = (product, filters) => {
   const price = Number(product.price || 0);
-  const minPrice = Number(filters.minPrice || 0);
-  const maxPrice = Number(filters.maxPrice || Infinity);
 
-  if (filters.minPrice && price < minPrice) return false;
-  if (filters.maxPrice && price > maxPrice) return false;
+  // Check if filter values are actually set (not undefined, null, or empty string)
+  const hasMinPrice = filters.minPrice !== undefined && filters.minPrice !== null && filters.minPrice !== '';
+  const hasMaxPrice = filters.maxPrice !== undefined && filters.maxPrice !== null && filters.maxPrice !== '';
+
+  if (hasMinPrice) {
+    const minPrice = Number(filters.minPrice);
+    if (price < minPrice) return false;
+  }
+
+  if (hasMaxPrice) {
+    const maxPrice = Number(filters.maxPrice);
+    if (price > maxPrice) return false;
+  }
 
   return true;
 };
@@ -119,7 +128,8 @@ const productMatchesRating = (product, filters) => {
   if (selectedRatings.length === 0) return true;
 
   const avgRating = Number(product.average_rating || 0);
-  const roundedRating = Math.round(avgRating);
+  // Use Math.ceil to match star display logic: 4.1-5.0 stars = 5-star category
+  const roundedRating = Math.ceil(avgRating);
 
   return selectedRatings.includes(roundedRating);
 };

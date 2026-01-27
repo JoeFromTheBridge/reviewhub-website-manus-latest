@@ -19,3 +19,15 @@ reviewhub-backend/instance/*.db
 reviewhub-backend/instance/*.sqlite
 reviewhub-backend/instance/*.sqlite3
 reviewhub-backend/instance/uploads/
+
+# Node.js / Frontend
+node_modules/
+dist/
+build/
+.vite/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*

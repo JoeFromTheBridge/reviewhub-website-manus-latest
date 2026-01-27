@@ -98,8 +98,10 @@ const SearchResultsDisplay = ({
                   <Star
                     key={i}
                     className={`w-4 h-4 ${
-                      i < Math.round(avgRating)
+                      i < Math.floor(avgRating)
                         ? 'text-yellow-400 fill-yellow-400'
+                        : i < Math.ceil(avgRating) && avgRating % 1 >= 0.5
+                        ? 'text-yellow-400 fill-yellow-400 opacity-50'
                         : 'text-gray-300'
                     }`}
                   />
