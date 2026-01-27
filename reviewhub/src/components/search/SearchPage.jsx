@@ -103,20 +103,25 @@ const productMatchesQuery = (product, q) => {
 };
 
 const productMatchesPrice = (product, filters) => {
-  const price = Number(product.price || 0);
+  // Products have price_min and price_max, use the average or min for filtering
+  const priceMin = Number(product.price_min || 0);
+  const priceMax = Number(product.price_max || product.price_min || 0);
+  const avgPrice = priceMin && priceMax ? (priceMin + priceMax) / 2 : priceMin || priceMax;
 
   // Check if filter values are actually set (not undefined, null, or empty string)
   const hasMinPrice = filters.minPrice !== undefined && filters.minPrice !== null && filters.minPrice !== '';
   const hasMaxPrice = filters.maxPrice !== undefined && filters.maxPrice !== null && filters.maxPrice !== '';
 
   if (hasMinPrice) {
-    const minPrice = Number(filters.minPrice);
-    if (price < minPrice) return false;
+    const minPriceFilter = Number(filters.minPrice);
+    // Product's max price should be at least the minimum filter
+    if (priceMax < minPriceFilter) return false;
   }
 
   if (hasMaxPrice) {
-    const maxPrice = Number(filters.maxPrice);
-    if (price > maxPrice) return false;
+    const maxPriceFilter = Number(filters.maxPrice);
+    // Product's min price should be at most the maximum filter
+    if (priceMin > maxPriceFilter) return false;
   }
 
   return true;
