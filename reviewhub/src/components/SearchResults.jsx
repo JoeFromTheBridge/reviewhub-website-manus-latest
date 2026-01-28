@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { Star, Filter, Grid, List, Loader2, ChevronDown } from 'lucide-react'
+import { Star, Grid, List, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import apiService from '../services/api'
 
 export function SearchResults() {
@@ -23,7 +22,8 @@ export function SearchResults() {
     query: searchParams.get('q') || '',
     category: searchParams.get('category') || '',
     minRating: searchParams.get('minRating') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
+    minPrice: searchParams.get('minPrice') || '0',
+    maxPrice: searchParams.get('maxPrice') || '2000',
     sortBy: searchParams.get('sort') || 'relevance'
   })
 
@@ -33,6 +33,7 @@ export function SearchResults() {
 
   useEffect(() => {
     fetchProducts()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, currentPage])
 
   const fetchCategories = async () => {
@@ -42,6 +43,29 @@ export function SearchResults() {
     } catch (error) {
       console.error('Error fetching categories:', error)
     }
+  }
+
+  // Helper to get product price
+  const getProductPrice = (product) => {
+    // Try different price fields
+    const priceMin = product.price_min ?? product.price ?? product.priceMin ?? null
+    const priceMax = product.price_max ?? product.priceMax ?? null
+
+    // If we have direct price fields, use them
+    if (priceMin !== null) {
+      return { min: Number(priceMin), max: priceMax !== null ? Number(priceMax) : Number(priceMin) }
+    }
+
+    // Try to parse from price_range string (e.g., "$100 - $200")
+    if (product.price_range) {
+      const matches = product.price_range.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/g)
+      if (matches && matches.length >= 1) {
+        const prices = matches.map(m => Number(m.replace(/[$,]/g, '')))
+        return { min: prices[0], max: prices[prices.length - 1] }
+      }
+    }
+
+    return null
   }
 
   const fetchProducts = async () => {
@@ -61,7 +85,8 @@ export function SearchResults() {
       const query = (searchParams.get('q') || '').toLowerCase()
       const category = searchParams.get('category') || ''
       const minRating = parseInt(searchParams.get('minRating') || '0')
-      const maxPrice = parseFloat(searchParams.get('maxPrice') || '999999')
+      const minPrice = parseFloat(searchParams.get('minPrice') || '0')
+      const maxPrice = parseFloat(searchParams.get('maxPrice') || '2000')
       const sortBy = searchParams.get('sort') || 'relevance'
 
       // Filter by search query
@@ -83,14 +108,14 @@ export function SearchResults() {
         allProducts = allProducts.filter(p => (p.average_rating || 0) >= minRating)
       }
 
-      // Filter by max price
-      if (maxPrice < 999999) {
+      // Filter by price range
+      const isPriceFilterActive = minPrice > 0 || maxPrice < 2000
+      if (isPriceFilterActive) {
         allProducts = allProducts.filter(p => {
-          // Extract numeric price from price_range if it exists
-          if (!p.price_range) return true
-          const priceMatch = p.price_range.match(/\$(\d+)/)
-          if (!priceMatch) return true
-          return parseInt(priceMatch[1]) <= maxPrice
+          const price = getProductPrice(p)
+          if (!price) return true // Show products without price data
+          // Product passes if its price range overlaps with the filter range
+          return price.max >= minPrice && price.min <= maxPrice
         })
       }
 
@@ -101,15 +126,15 @@ export function SearchResults() {
         allProducts.sort((a, b) => (b.review_count || 0) - (a.review_count || 0))
       } else if (sortBy === 'price_low') {
         allProducts.sort((a, b) => {
-          const priceA = a.price_range?.match(/\$(\d+)/)?.[1] || 0
-          const priceB = b.price_range?.match(/\$(\d+)/)?.[1] || 0
-          return parseInt(priceA) - parseInt(priceB)
+          const priceA = getProductPrice(a)?.min || 0
+          const priceB = getProductPrice(b)?.min || 0
+          return priceA - priceB
         })
       } else if (sortBy === 'price_high') {
         allProducts.sort((a, b) => {
-          const priceA = a.price_range?.match(/\$(\d+)/)?.[1] || 0
-          const priceB = b.price_range?.match(/\$(\d+)/)?.[1] || 0
-          return parseInt(priceB) - parseInt(priceA)
+          const priceA = getProductPrice(a)?.max || 0
+          const priceB = getProductPrice(b)?.max || 0
+          return priceB - priceA
         })
       } else if (sortBy === 'newest') {
         allProducts.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
@@ -140,9 +165,9 @@ export function SearchResults() {
     setCurrentPage(1)
   }
 
-  const handlePriceChange = (value) => {
+  const handlePriceChange = (type, value) => {
     // Update filter state immediately for UI responsiveness
-    setFilters({ ...filters, maxPrice: value })
+    setFilters({ ...filters, [type]: value })
 
     // Debounce URL update and refetch
     if (priceDebounceTimer.current) {
@@ -151,11 +176,21 @@ export function SearchResults() {
 
     priceDebounceTimer.current = setTimeout(() => {
       const newParams = new URLSearchParams(searchParams)
-      if (value && value < 2000) {
-        newParams.set('maxPrice', value)
-      } else {
-        newParams.delete('maxPrice')
+
+      if (type === 'minPrice') {
+        if (value && parseInt(value) > 0) {
+          newParams.set('minPrice', value)
+        } else {
+          newParams.delete('minPrice')
+        }
+      } else if (type === 'maxPrice') {
+        if (value && parseInt(value) < 2000) {
+          newParams.set('maxPrice', value)
+        } else {
+          newParams.delete('maxPrice')
+        }
       }
+
       setSearchParams(newParams)
       setCurrentPage(1)
     }, 500) // Wait 500ms after slider stops moving
@@ -166,129 +201,185 @@ export function SearchResults() {
       query: '',
       category: '',
       minRating: '',
-      maxPrice: '',
+      minPrice: '0',
+      maxPrice: '2000',
       sortBy: 'relevance'
     })
     setSearchParams({})
     setCurrentPage(1)
   }
 
+  // Improved star rendering with proper half-star support
   const renderStars = (rating) => {
-    const value = Number(rating) || 0;
-    const displayRating = value.toFixed(1);
+    const value = Number(rating) || 0
+    const displayRating = value.toFixed(1)
+    const fullStars = Math.floor(value)
+    const hasHalfStar = value % 1 >= 0.25 && value % 1 < 0.75
+    const hasFullFromPartial = value % 1 >= 0.75
+    const actualFullStars = fullStars + (hasFullFromPartial ? 1 : 0)
+
     return (
       <div className="flex items-center">
-        {[...Array(5)].map((_, i) => (
-          <Star
-            key={i}
-            className={`h-4 w-4 ${
-              i < Math.floor(value)
-                ? 'fill-yellow-400 text-yellow-400'
-                : i < Math.ceil(value) && value % 1 >= 0.5
-                ? 'fill-yellow-400 text-yellow-400 opacity-50'
-                : 'text-gray-300'
-            }`}
-          />
-        ))}
-        <span className="ml-1 text-sm text-gray-600">{displayRating}</span>
+        {[...Array(5)].map((_, i) => {
+          if (i < actualFullStars) {
+            // Full star
+            return (
+              <Star
+                key={i}
+                className="h-4 w-4 text-star-gold fill-star-gold"
+              />
+            )
+          } else if (i === actualFullStars && hasHalfStar) {
+            // Half star
+            return (
+              <div key={i} className="relative w-4 h-4">
+                <Star className="absolute inset-0 h-4 w-4 text-border-light" />
+                <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
+                  <Star className="h-4 w-4 text-star-gold fill-star-gold" />
+                </div>
+              </div>
+            )
+          } else {
+            // Empty star
+            return (
+              <Star
+                key={i}
+                className="h-4 w-4 text-border-light"
+              />
+            )
+          }
+        })}
+        <span className="ml-1.5 text-sm font-medium text-text-primary">{displayRating}</span>
       </div>
     )
   }
 
-  const ProductCard = ({ product }) => (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardContent className="p-4">
-        <Link to={`/product/${product.id}`}>
-          <img
-            src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'}
-            alt={product.name}
-            className="w-full h-48 object-cover rounded-md mb-4"
-          />
-        </Link>
-        <div className="space-y-2">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <Link
-                to={`/product/${product.id}`}
-                className="font-semibold text-gray-900 hover:text-primary transition-colors line-clamp-2"
-              >
-                {product.name}
-              </Link>
-              <p className="text-sm text-gray-600">{product.brand}</p>
-            </div>
-            <Badge variant="outline">{product.category}</Badge>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            {renderStars(product.average_rating || 0)}
-            <span className="text-sm text-gray-600">
-              ({product.review_count || 0} reviews)
-            </span>
-          </div>
-          
-          {product.price_range && (
-            <p className="text-lg font-semibold text-gray-900">{product.price_range}</p>
-          )}
-          
-          <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
-        </div>
-      </CardContent>
-    </Card>
-  )
+  // Format price display
+  const formatPrice = (product) => {
+    const price = getProductPrice(product)
+    if (!price) return product.price_range || null
 
-  const ProductListItem = ({ product }) => (
-    <Card className="hover:shadow-lg transition-shadow">
-      <CardContent className="p-4">
-        <div className="flex space-x-4">
-          <Link to={`/product/${product.id}`} className="flex-shrink-0">
+    if (price.min === price.max) {
+      return `$${price.min.toLocaleString()}`
+    }
+    return `$${price.min.toLocaleString()} - $${price.max.toLocaleString()}`
+  }
+
+  const ProductCard = ({ product }) => {
+    const priceDisplay = formatPrice(product)
+
+    return (
+      <Card className="bg-white-surface shadow-card card-hover-lift rounded-md overflow-hidden">
+        <CardContent className="p-4">
+          <Link to={`/product/${product.id}`}>
             <img
               src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'}
               alt={product.name}
-              className="w-24 h-24 object-cover rounded-md"
+              className="w-full h-48 object-cover rounded-sm mb-4"
             />
           </Link>
-          <div className="flex-1 space-y-2">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
                 <Link
                   to={`/product/${product.id}`}
-                  className="font-semibold text-lg text-gray-900 hover:text-primary transition-colors"
+                  className="font-semibold text-text-primary hover:text-accent-blue transition-smooth line-clamp-2"
                 >
                   {product.name}
                 </Link>
-                <p className="text-gray-600">{product.brand}</p>
-              </div>
-              <div className="text-right">
-                <Badge variant="outline">{product.category}</Badge>
-                {product.price_range && (
-                  <p className="text-lg font-semibold text-gray-900 mt-1">{product.price_range}</p>
-                )}
+                <p className="text-sm text-text-secondary">{product.brand}</p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-4">
+
+            {product.category && (
+              <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm">
+                {product.category}
+              </Badge>
+            )}
+
+            {priceDisplay && (
+              <p className="text-xl font-bold text-accent-blue">{priceDisplay}</p>
+            )}
+
+            <div className="flex items-center justify-between">
               {renderStars(product.average_rating || 0)}
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-text-secondary">
                 ({product.review_count || 0} reviews)
               </span>
             </div>
-            
-            <p className="text-gray-600 line-clamp-2">{product.description}</p>
+
+            {product.description && (
+              <p className="text-sm text-text-secondary line-clamp-2">{product.description}</p>
+            )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const ProductListItem = ({ product }) => {
+    const priceDisplay = formatPrice(product)
+
+    return (
+      <Card className="bg-white-surface shadow-card card-hover-lift rounded-md overflow-hidden">
+        <CardContent className="p-4">
+          <div className="flex space-x-4">
+            <Link to={`/product/${product.id}`} className="flex-shrink-0">
+              <img
+                src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'}
+                alt={product.name}
+                className="w-24 h-24 object-cover rounded-sm"
+              />
+            </Link>
+            <div className="flex-1 space-y-2">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <Link
+                    to={`/product/${product.id}`}
+                    className="font-semibold text-lg text-text-primary hover:text-accent-blue transition-smooth"
+                  >
+                    {product.name}
+                  </Link>
+                  <p className="text-text-secondary">{product.brand}</p>
+                </div>
+                <div className="text-right">
+                  {product.category && (
+                    <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm">
+                      {product.category}
+                    </Badge>
+                  )}
+                  {priceDisplay && (
+                    <p className="text-lg font-bold text-accent-blue mt-1">{priceDisplay}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                {renderStars(product.average_rating || 0)}
+                <span className="text-sm text-text-secondary">
+                  ({product.review_count || 0} reviews)
+                </span>
+              </div>
+
+              {product.description && (
+                <p className="text-text-secondary line-clamp-2">{product.description}</p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-primary">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-text-primary mb-2">
             {filters.query ? `Search results for "${filters.query}"` : 'All Products'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-text-secondary">
             {loading ? 'Loading...' : `${totalResults} products found`}
           </p>
         </div>
@@ -297,14 +388,16 @@ export function SearchResults() {
           {/* Filters Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Categories */}
-            <Card>
+            <Card className="bg-white-surface shadow-card rounded-md">
               <CardContent className="p-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
+                <h3 className="font-semibold text-text-primary mb-4">Categories</h3>
                 <div className="space-y-2">
                   <button
                     onClick={() => handleFilterChange('category', '')}
-                    className={`block w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${
-                      !filters.category ? 'text-primary font-medium' : 'text-gray-700'
+                    className={`block w-full text-left px-3 py-2 rounded-sm transition-smooth ${
+                      !filters.category
+                        ? 'bg-soft-blue text-accent-blue font-medium'
+                        : 'text-text-secondary hover:bg-soft-blue/50'
                     }`}
                   >
                     All Categories
@@ -313,8 +406,10 @@ export function SearchResults() {
                     <button
                       key={category.id}
                       onClick={() => handleFilterChange('category', category.name)}
-                      className={`block w-full text-left px-2 py-1 rounded hover:bg-gray-100 ${
-                        filters.category === category.name ? 'text-primary font-medium' : 'text-gray-700'
+                      className={`block w-full text-left px-3 py-2 rounded-sm transition-smooth ${
+                        filters.category === category.name
+                          ? 'bg-soft-blue text-accent-blue font-medium'
+                          : 'text-text-secondary hover:bg-soft-blue/50'
                       }`}
                     >
                       {category.name}
@@ -325,48 +420,93 @@ export function SearchResults() {
             </Card>
 
             {/* Price Range */}
-            <Card>
+            <Card className="bg-white-surface shadow-card rounded-md">
               <CardContent className="p-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Price Range</h3>
-                <div className="space-y-3">
-                  <input
-                    type="range"
-                    min="0"
-                    max="2000"
-                    step="50"
-                    value={filters.maxPrice || 2000}
-                    onChange={(e) => handlePriceChange(e.target.value)}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>$0</span>
-                    <span className="font-medium text-gray-900">
-                      ${filters.maxPrice || 2000}
-                    </span>
-                    <span>$2000</span>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-text-primary">Price Range</h3>
+                  <span className="text-sm font-semibold text-accent-blue">
+                    ${filters.minPrice || 0} - ${filters.maxPrice || 2000}
+                  </span>
+                </div>
+                <div className="space-y-4">
+                  {/* Dual range slider simulation with two inputs */}
+                  <div className="relative pt-1">
+                    <input
+                      type="range"
+                      min="0"
+                      max="2000"
+                      step="50"
+                      value={filters.maxPrice || 2000}
+                      onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
+                      className="w-full h-2 bg-border-light rounded-full appearance-none cursor-pointer accent-accent-blue"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <label className="text-xs text-text-secondary mb-1 block">Min ($)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="2000"
+                        value={filters.minPrice || '0'}
+                        onChange={(e) => handlePriceChange('minPrice', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-border-light rounded-sm bg-white-surface shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-text-secondary mb-1 block">Max ($)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="2000"
+                        value={filters.maxPrice || '2000'}
+                        onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-border-light rounded-sm bg-white-surface shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Rating */}
-            <Card>
+            <Card className="bg-white-surface shadow-card rounded-md">
               <CardContent className="p-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Rating</h3>
+                <h3 className="font-semibold text-text-primary mb-4">Rating</h3>
                 <div className="space-y-2">
                   {[
-                    { value: '4', label: '4 stars & up' },
-                    { value: '3', label: '3 stars & up' },
-                    { value: '2', label: '2 stars & up' }
+                    { value: '5', label: '5 stars' },
+                    { value: '4', label: '4+ stars' },
+                    { value: '3', label: '3+ stars' },
+                    { value: '2', label: '2+ stars' }
                   ].map((rating) => (
-                    <label key={rating.value} className="flex items-center space-x-2 cursor-pointer">
+                    <label
+                      key={rating.value}
+                      className={`flex items-center gap-3 cursor-pointer p-2 rounded-sm transition-smooth ${
+                        filters.minRating === rating.value
+                          ? 'bg-soft-blue'
+                          : 'hover:bg-soft-blue/50'
+                      }`}
+                    >
                       <input
                         type="checkbox"
                         checked={filters.minRating === rating.value}
                         onChange={(e) => handleFilterChange('minRating', e.target.checked ? rating.value : '')}
-                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                        className="rounded border-border-light text-accent-blue focus:ring-accent-blue"
                       />
-                      <span className="text-sm text-gray-700">{rating.label}</span>
+                      <div className="flex items-center gap-1.5">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < parseInt(rating.value)
+                                ? 'text-star-gold fill-star-gold'
+                                : 'text-border-light'
+                            }`}
+                          />
+                        ))}
+                        <span className="text-sm text-text-secondary ml-1">{rating.label}</span>
+                      </div>
                     </label>
                   ))}
                 </div>
@@ -374,13 +514,13 @@ export function SearchResults() {
             </Card>
 
             {/* Sort By */}
-            <Card>
+            <Card className="bg-white-surface shadow-card rounded-md">
               <CardContent className="p-6">
-                <h3 className="font-semibold text-gray-900 mb-4">Sort by:</h3>
+                <h3 className="font-semibold text-text-primary mb-4">Sort by:</h3>
                 <select
                   value={filters.sortBy}
                   onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="w-full rounded-sm border border-border-light bg-white-surface px-3 py-2 text-sm shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
                 >
                   <option value="relevance">Most Popular</option>
                   <option value="rating">Highest Rated</option>
@@ -396,7 +536,7 @@ export function SearchResults() {
             <Button
               onClick={clearFilters}
               variant="outline"
-              className="w-full"
+              className="w-full border-border-light hover:bg-soft-blue hover:text-accent-blue hover:border-accent-blue transition-smooth"
             >
               Reset Filters
             </Button>
@@ -411,6 +551,7 @@ export function SearchResults() {
                   variant={viewMode === 'grid' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('grid')}
+                  className={viewMode === 'grid' ? 'bg-accent-blue hover:bg-accent-blue/90' : 'border-border-light'}
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
@@ -418,6 +559,7 @@ export function SearchResults() {
                   variant={viewMode === 'list' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setViewMode('list')}
+                  className={viewMode === 'list' ? 'bg-accent-blue hover:bg-accent-blue/90' : 'border-border-light'}
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -427,8 +569,8 @@ export function SearchResults() {
             {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <span className="ml-2 text-gray-600">Loading products...</span>
+                <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+                <span className="ml-2 text-text-secondary">Loading products...</span>
               </div>
             )}
 
@@ -436,7 +578,7 @@ export function SearchResults() {
             {error && (
               <div className="text-center py-12">
                 <p className="text-red-600">{error}</p>
-                <Button onClick={fetchProducts} className="mt-4">
+                <Button onClick={fetchProducts} className="mt-4 bg-accent-blue hover:bg-accent-blue/90">
                   Try Again
                 </Button>
               </div>
@@ -444,9 +586,11 @@ export function SearchResults() {
 
             {/* No Results */}
             {!loading && !error && products.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600 mb-4">No products found matching your criteria.</p>
-                <Button onClick={clearFilters}>Clear Filters</Button>
+              <div className="text-center py-12 bg-white-surface rounded-md shadow-card">
+                <p className="text-text-secondary mb-4">No products found matching your criteria.</p>
+                <Button onClick={clearFilters} className="bg-accent-blue hover:bg-accent-blue/90">
+                  Clear Filters
+                </Button>
               </div>
             )}
 
@@ -470,18 +614,20 @@ export function SearchResults() {
                 {/* Pagination */}
                 <div className="flex justify-center mt-12">
                   <div className="flex space-x-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(currentPage - 1)}
+                      className="border-border-light disabled:opacity-50"
                     >
                       Previous
                     </Button>
-                    <Button variant="default">{currentPage}</Button>
-                    <Button 
+                    <Button className="bg-accent-blue hover:bg-accent-blue/90">{currentPage}</Button>
+                    <Button
                       variant="outline"
                       disabled={products.length < 12}
                       onClick={() => setCurrentPage(currentPage + 1)}
+                      className="border-border-light disabled:opacity-50"
                     >
                       Next
                     </Button>
@@ -495,4 +641,3 @@ export function SearchResults() {
     </div>
   )
 }
-
