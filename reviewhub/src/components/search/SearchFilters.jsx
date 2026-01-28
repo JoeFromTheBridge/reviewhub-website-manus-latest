@@ -111,8 +111,8 @@ const SearchFilters = ({
   const renderPriceFilter = () => (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">Price Range</label>
-        <span className="text-xs text-gray-500">
+        <label className="text-sm font-medium text-text-primary">Price Range</label>
+        <span className="text-xs text-text-secondary">
           ${localFilters.minPrice || 0} - ${localFilters.maxPrice || 1000}
         </span>
       </div>
@@ -120,8 +120,9 @@ const SearchFilters = ({
         <Slider
           value={[localFilters.minPrice || 0, localFilters.maxPrice || 1000]}
           onValueChange={([min, max]) => {
-            handleFilterChange('minPrice', min);
-            handleFilterChange('maxPrice', max);
+            const newFilters = { ...localFilters, minPrice: min, maxPrice: max };
+            setLocalFilters(newFilters);
+            onFiltersChange(newFilters);
           }}
           max={1000}
           step={10}
@@ -134,14 +135,14 @@ const SearchFilters = ({
           placeholder="Min"
           value={localFilters.minPrice || ''}
           onChange={(e) => handleFilterChange('minPrice', Number(e.target.value))}
-          className="flex-1 px-2 py-1 text-xs border rounded"
+          className="flex-1 px-2 py-1 text-xs border border-border-light rounded-sm focus:border-accent-blue focus:outline-none transition-smooth"
         />
         <input
           type="number"
           placeholder="Max"
           value={localFilters.maxPrice || ''}
           onChange={(e) => handleFilterChange('maxPrice', Number(e.target.value))}
-          className="flex-1 px-2 py-1 text-xs border rounded"
+          className="flex-1 px-2 py-1 text-xs border border-border-light rounded-sm focus:border-accent-blue focus:outline-none transition-smooth"
         />
       </div>
     </div>
@@ -160,10 +161,10 @@ const SearchFilters = ({
 
     return (
       <div className="space-y-2">
-        <label className="text-sm font-medium">Rating</label>
+        <label className="text-sm font-medium text-text-primary">Rating</label>
         <div className="space-y-2">
           {[5, 4, 3, 2, 1].map(rating => (
-            <label key={rating} className="flex items-center gap-2 cursor-pointer">
+            <label key={rating} className="flex items-center gap-2 cursor-pointer hover:bg-soft-blue/50 p-1 rounded-sm transition-smooth">
               <Checkbox
                 checked={selectedRatings.includes(rating)}
                 onCheckedChange={() => handleRatingToggle(rating)}
@@ -173,11 +174,11 @@ const SearchFilters = ({
                   <Star
                     key={i}
                     className={`h-3 w-3 ${
-                      i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                      i < rating ? 'text-star-gold fill-star-gold' : 'text-border-light'
                     }`}
                   />
                 ))}
-                <span className="text-xs text-gray-600">{rating} star{rating !== 1 ? 's' : ''}</span>
+                <span className="text-xs text-text-secondary">{rating} star{rating !== 1 ? 's' : ''}</span>
               </div>
             </label>
           ))}
@@ -188,10 +189,10 @@ const SearchFilters = ({
 
   const renderCategoryFilter = () => (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Categories</label>
+      <label className="text-sm font-medium text-text-primary">Categories</label>
       <div className="space-y-1 max-h-32 overflow-y-auto">
         {(availableFilters.categories || []).map(category => (
-          <label key={category} className="flex items-center gap-2 cursor-pointer">
+          <label key={category} className="flex items-center gap-2 cursor-pointer hover:bg-soft-blue/50 p-1 rounded-sm transition-smooth">
             <Checkbox
               checked={(localFilters.categories || []).includes(category)}
               onCheckedChange={(checked) => {
@@ -202,7 +203,7 @@ const SearchFilters = ({
                 handleFilterChange('categories', updated);
               }}
             />
-            <span className="text-sm capitalize">{category}</span>
+            <span className="text-sm capitalize text-text-primary">{category}</span>
           </label>
         ))}
       </div>
@@ -211,12 +212,12 @@ const SearchFilters = ({
 
   const renderBrandFilter = () => (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Brands</label>
+      <label className="text-sm font-medium text-text-primary">Brands</label>
       <Select
         value={localFilters.brand || ''}
         onValueChange={(value) => handleFilterChange('brand', value)}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full rounded-sm border-border-light">
           <SelectValue placeholder="Select brand" />
         </SelectTrigger>
         <SelectContent>
@@ -233,31 +234,31 @@ const SearchFilters = ({
 
   const renderFeaturesFilter = () => (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Features</label>
+      <label className="text-sm font-medium text-text-primary">Features</label>
       <div className="space-y-2">
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="flex items-center gap-2 cursor-pointer hover:bg-soft-blue/50 p-1 rounded-sm transition-smooth">
           <Checkbox
             checked={localFilters.hasImages || false}
             onCheckedChange={(checked) => handleFilterChange('hasImages', checked)}
           />
-          <Image className="h-4 w-4" />
-          <span className="text-sm">Has Images</span>
+          <Image className="h-4 w-4 text-text-secondary" />
+          <span className="text-sm text-text-primary">Has Images</span>
         </label>
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="flex items-center gap-2 cursor-pointer hover:bg-soft-blue/50 p-1 rounded-sm transition-smooth">
           <Checkbox
             checked={localFilters.verifiedPurchase || false}
             onCheckedChange={(checked) => handleFilterChange('verifiedPurchase', checked)}
           />
-          <CheckCircle className="h-4 w-4" />
-          <span className="text-sm">Verified Purchase</span>
+          <CheckCircle className="h-4 w-4 text-text-secondary" />
+          <span className="text-sm text-text-primary">Verified Purchase</span>
         </label>
-        <label className="flex items-center gap-2 cursor-pointer">
+        <label className="flex items-center gap-2 cursor-pointer hover:bg-soft-blue/50 p-1 rounded-sm transition-smooth">
           <Checkbox
             checked={localFilters.hasReviews || false}
             onCheckedChange={(checked) => handleFilterChange('hasReviews', checked)}
           />
-          <Users className="h-4 w-4" />
-          <span className="text-sm">Has Reviews</span>
+          <Users className="h-4 w-4 text-text-secondary" />
+          <span className="text-sm text-text-primary">Has Reviews</span>
         </label>
       </div>
     </div>
@@ -265,12 +266,12 @@ const SearchFilters = ({
 
   const renderDateFilter = () => (
     <div className="space-y-2">
-      <label className="text-sm font-medium">Date Range</label>
+      <label className="text-sm font-medium text-text-primary">Date Range</label>
       <Select
         value={localFilters.dateRange || ''}
         onValueChange={(value) => handleFilterChange('dateRange', value)}
       >
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full rounded-sm border-border-light">
           <SelectValue placeholder="Any time" />
         </SelectTrigger>
         <SelectContent>
@@ -286,19 +287,19 @@ const SearchFilters = ({
   );
 
   const renderFilterSection = (key, title, icon, content) => (
-    <div key={key} className="border-b border-gray-200 last:border-b-0">
+    <div key={key} className="border-b border-border-light last:border-b-0">
       <button
         onClick={() => toggleSection(key)}
-        className="w-full flex items-center justify-between p-3 hover:bg-gray-50"
+        className="w-full flex items-center justify-between p-3 hover:bg-soft-blue transition-smooth"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 text-text-primary">
           {icon}
           <span className="text-sm font-medium">{title}</span>
         </div>
         {expandedSections[key] ? (
-          <ChevronUp className="h-4 w-4" />
+          <ChevronUp className="h-4 w-4 text-text-secondary" />
         ) : (
-          <ChevronDown className="h-4 w-4" />
+          <ChevronDown className="h-4 w-4 text-text-secondary" />
         )}
       </button>
       {expandedSections[key] && (
@@ -310,14 +311,14 @@ const SearchFilters = ({
   );
 
   return (
-    <Card className={className}>
+    <Card className={`${className} rounded-md shadow-card bg-white-surface`}>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-text-primary">
             <Filter className="h-5 w-5" />
             Filters
             {getActiveFiltersCount() > 0 && (
-              <Badge variant="secondary" className="ml-2">
+              <Badge variant="secondary" className="ml-2 rounded-sm bg-soft-blue text-accent-blue">
                 {getActiveFiltersCount()}
               </Badge>
             )}
@@ -327,6 +328,7 @@ const SearchFilters = ({
             size="sm"
             onClick={handleResetFilters}
             disabled={getActiveFiltersCount() === 0}
+            className="transition-smooth hover:text-accent-blue"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
             Reset
@@ -336,18 +338,18 @@ const SearchFilters = ({
       <CardContent className="p-0">
         {/* Active Filters */}
         {getActiveFiltersCount() > 0 && (
-          <div className="p-3 bg-blue-50 border-b">
+          <div className="p-3 bg-soft-blue border-b border-border-light">
             <div className="flex flex-wrap gap-1">
               {Object.entries(localFilters).map(([key, value]) => {
                 if (!value || (Array.isArray(value) && value.length === 0)) return null;
-                
+
                 const displayValue = Array.isArray(value) ? value.join(', ') : value;
                 return (
-                  <Badge key={key} variant="secondary" className="text-xs">
+                  <Badge key={key} variant="secondary" className="text-xs rounded-sm bg-soft-lavender text-accent-blue">
                     {key}: {displayValue}
                     <button
                       onClick={() => handleFilterChange(key, Array.isArray(value) ? [] : '')}
-                      className="ml-1 hover:text-red-600"
+                      className="ml-1 hover:text-red-600 transition-smooth"
                     >
                       <X className="h-3 w-3" />
                     </button>
@@ -425,10 +427,10 @@ const SearchFilters = ({
         )}
 
         {/* Apply Filters Button */}
-        <div className="p-3 border-t">
+        <div className="p-3 border-t border-border-light">
           <Button
             onClick={handleApplyFilters}
-            className="w-full"
+            className="w-full rounded-sm bg-accent-blue hover:bg-accent-blue/90 transition-smooth"
             disabled={getActiveFiltersCount() === 0}
           >
             Apply Filters ({getActiveFiltersCount()})
