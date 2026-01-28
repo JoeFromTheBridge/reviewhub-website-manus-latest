@@ -14,6 +14,7 @@ import AdminPerformance from './components/admin/AdminPerformance'
 import AdminVoiceSearch from './components/admin/AdminVoiceSearch'
 import { useAuth } from './contexts/AuthContext'
 import EmailVerification from './components/auth/EmailVerification'
+import { PasswordReset } from './components/auth/PasswordReset'
 import ProfilePage from './components/profile/ProfilePage'
 import DevSeedPage from './components/DevSeedPage'
 
@@ -142,6 +143,15 @@ function App() {
                 <>
                   <Header />
                   <EmailVerification />
+                </>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <>
+                  <Header />
+                  <PasswordReset />
                 </>
               }
             />
