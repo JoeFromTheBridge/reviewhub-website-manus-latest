@@ -1,9 +1,9 @@
 
 # CLAUDE.md — ReviewHub Project Context (Authoritative)
 
-> **Last Updated:** 2026-01-26  
-> **Current Phase:** Phase 0 — Stabilization  
-> **Status:** 🔴 Blocking — All Phase 0 items must complete before Phase 1
+> **Last Updated:** 2026-01-28
+> **Current Phase:** Phase 1 — Core Review Product
+> **Status:** 🟢 Phase 0 Complete — M0 Milestone Achieved
 
 ---
 
@@ -180,71 +180,71 @@ Prefer the **smallest possible change** that fully resolves the issue.
 
 Claude Code **must update this checklist** as tasks are completed.
 
-### 0.1 Frontend Stability
+### 0.1 Frontend Stability ✅
 
-* [ ] Fix all image paths (Vite relative/absolute rules)
-* [ ] Images load in local dev
-* [ ] Images load in Vercel production
-* [ ] No console errors on page load
-* [ ] Header renders correctly (logged out / logged in / verified)
-* [ ] Auth state persists across refresh
-* [ ] Logout clears all client auth state
+* [x] Fix all image paths (Vite relative/absolute rules)
+* [x] Images load in local dev
+* [x] Images load in Vercel production
+* [x] No console errors on page load
+* [x] Header renders correctly (logged out / logged in / verified)
+* [x] Auth state persists across refresh
+* [x] Logout clears all client auth state
 
-### 0.2 Backend Stability
+### 0.2 Backend Stability ✅
 
-* [ ] `/healthz` endpoint returns 200 (no auth)
-* [ ] Render health check points to `/healthz`
-* [ ] Clean boot (no stack traces, no missing env vars)
-* [ ] No migration warnings on startup
+* [x] `/healthz` endpoint returns 200 (no auth)
+* [x] Render health check points to `/healthz`
+* [x] Clean boot (no stack traces, no missing env vars)
+* [x] No migration warnings on startup
 
-### 0.3 Authentication & Email (CRITICAL PATH)
+### 0.3 Authentication & Email (CRITICAL PATH) ✅
 
-* [ ] Signup flow completes successfully
-* [ ] Verification email uses `APP_BASE_URL`
-* [ ] Verification link routes to frontend (Vercel)
-* [ ] User marked verified after link click
-* [ ] Password reset email routes to frontend
-* [ ] Password reset completes successfully
-* [ ] JWT expiry enforced
+* [x] Signup flow completes successfully
+* [x] Verification email uses `APP_BASE_URL`
+* [x] Verification link routes to frontend (Vercel)
+* [x] User marked verified after link click
+* [x] Password reset email routes to frontend
+* [x] Password reset completes successfully
+* [x] JWT expiry enforced
 
-### 0.4 CORS, JWT & Security
+### 0.4 CORS, JWT & Security ✅
 
-* [ ] `CORS_ALLOWED_ORIGINS` matches Vercel domain
-* [ ] JWT works across refresh + protected routes
-* [ ] No cookie vs header confusion
-* [ ] Auth errors do not leak stack traces
+* [x] `CORS_ALLOWED_ORIGINS` matches Vercel domain
+* [x] JWT works across refresh + protected routes
+* [x] No cookie vs header confusion
+* [x] Auth errors do not leak stack traces
 
-### 0.5 Database & Migrations
+### 0.5 Database & Migrations ✅
 
-* [ ] Alembic baseline established
-* [ ] `flask db upgrade` runs cleanly (local)
-* [ ] `flask db upgrade` runs cleanly (Render)
-* [ ] Models match database schema
-* [ ] No implicit or pending migrations
+* [x] Alembic baseline established
+* [x] `flask db upgrade` runs cleanly (local)
+* [x] `flask db upgrade` runs cleanly (Render)
+* [x] Models match database schema
+* [x] No implicit or pending migrations
 
-### 0.6 Phase 0 Validation Gate
+### 0.6 Phase 0 Validation Gate ✅
 
 Before advancing:
 
-* [ ] Frontend loads with zero console errors
-* [ ] `/healthz` returns 200 OK
-* [ ] Signup → verify → login works end-to-end
-* [ ] Products and reviews render correctly
-* [ ] Images load reliably in production
+* [x] Frontend loads with zero console errors
+* [x] `/healthz` returns 200 OK
+* [x] Signup → verify → login works end-to-end
+* [x] Products and reviews render correctly
+* [x] Images load reliably in production
 
-**Milestone:** M0 — Stable frontend + backend deployed
+**Milestone:** M0 — Stable frontend + backend deployed ✅ (Completed 2026-01-28)
 
 ---
 
-## Phase 1 — LOCKED UNTIL M0
+## Phase 1 — UNLOCKED (Current Phase)
 
 **Objective:** Complete, usable review product
 
-* Product detail page polish
-* Search, filters, sorting
-* Auth UX polish
-* Admin basics (roles, moderation)
-* Basic analytics
+* [ ] Product detail page polish
+* [ ] Search, filters, sorting
+* [ ] Auth UX polish
+* [ ] Admin basics (roles, moderation)
+* [ ] Basic analytics
 
 ---
 
