@@ -218,7 +218,7 @@ const EnhancedAdvancedSearch = ({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Main Search Bar */}
-      <Card>
+      <Card className="rounded-md shadow-input bg-white-surface border border-border-light">
         <CardContent className="p-6">
           <div className="space-y-4">
             {/* Search Input with Autocomplete */}
@@ -234,14 +234,14 @@ const EnhancedAdvancedSearch = ({
 
             {/* Quick Filters */}
             <div className="flex flex-wrap gap-2">
-              <span className="text-sm font-medium text-gray-700 mr-2">Quick filters:</span>
+              <span className="text-sm font-medium text-text-primary mr-2">Quick filters:</span>
               {quickFilters.map((quickFilter, index) => (
                 <Button
                   key={index}
                   variant="outline"
                   size="sm"
                   onClick={() => handleQuickFilterClick(quickFilter)}
-                  className="text-xs"
+                  className="text-xs rounded-sm transition-smooth hover:border-accent-blue hover:text-accent-blue"
                 >
                   <span className="mr-1">{quickFilter.icon}</span>
                   {quickFilter.name}
@@ -255,21 +255,21 @@ const EnhancedAdvancedSearch = ({
                 <Button
                   onClick={() => handleSearch()}
                   disabled={!query.trim()}
-                  className="px-6"
+                  className="px-6 rounded-sm bg-accent-blue hover:bg-accent-blue/90 transition-smooth"
                 >
                   <Search className="h-4 w-4 mr-2" />
                   Search
                 </Button>
-                
+
                 <Button
                   variant="outline"
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-sm transition-smooth hover:border-accent-blue"
                 >
                   <Filter className="h-4 w-4" />
                   Advanced
                   {getActiveFiltersCount() > 0 && (
-                    <Badge variant="secondary" className="ml-1">
+                    <Badge variant="secondary" className="ml-1 rounded-sm bg-soft-blue text-accent-blue">
                       {getActiveFiltersCount()}
                     </Badge>
                   )}
@@ -281,7 +281,7 @@ const EnhancedAdvancedSearch = ({
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-text-secondary">
                 <Clock className="h-4 w-4" />
                 <span>{searchStats.totalSearches || 0} searches today</span>
               </div>
@@ -326,20 +326,20 @@ const EnhancedAdvancedSearch = ({
               </TabsContent>
               
               <TabsContent value="stats">
-                <Card>
+                <Card className="rounded-md shadow-card bg-white-surface">
                   <CardHeader>
-                    <CardTitle className="text-lg">Search Trends</CardTitle>
+                    <CardTitle className="text-lg text-text-primary">Search Trends</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Popular Categories */}
                     <div>
-                      <h4 className="text-sm font-medium mb-2">Popular Categories</h4>
+                      <h4 className="text-sm font-medium mb-2 text-text-primary">Popular Categories</h4>
                       <div className="flex flex-wrap gap-1">
                         {searchStats.popularCategories?.map((category, index) => (
                           <Badge
                             key={index}
                             variant="secondary"
-                            className="cursor-pointer"
+                            className="cursor-pointer rounded-sm transition-smooth hover:bg-soft-blue hover:text-accent-blue"
                             onClick={() => {
                               const newFilters = { ...filters, category };
                               setFilters(newFilters);
@@ -354,13 +354,13 @@ const EnhancedAdvancedSearch = ({
 
                     {/* Trending Queries */}
                     <div>
-                      <h4 className="text-sm font-medium mb-2">Trending Searches</h4>
+                      <h4 className="text-sm font-medium mb-2 text-text-primary">Trending Searches</h4>
                       <div className="space-y-1">
                         {searchStats.trendingQueries?.map((trendingQuery, index) => (
                           <button
                             key={index}
                             onClick={() => handleSearch(trendingQuery)}
-                            className="block w-full text-left text-sm text-gray-600 hover:text-blue-600 py-1"
+                            className="block w-full text-left text-sm text-text-secondary hover:text-accent-blue py-1 transition-smooth"
                           >
                             <TrendingUp className="h-3 w-3 inline mr-2" />
                             {trendingQuery}
@@ -370,18 +370,18 @@ const EnhancedAdvancedSearch = ({
                     </div>
 
                     {/* Search Stats */}
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border-light">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-blue-600">
+                        <div className="text-lg font-bold text-accent-blue">
                           {searchStats.totalSearches || 0}
                         </div>
-                        <div className="text-xs text-gray-600">Total Searches</div>
+                        <div className="text-xs text-text-secondary">Total Searches</div>
                       </div>
                       <div className="text-center">
                         <div className="text-lg font-bold text-green-600">
                           {searchStats.avgResultsPerSearch || 0}
                         </div>
-                        <div className="text-xs text-gray-600">Avg Results</div>
+                        <div className="text-xs text-text-secondary">Avg Results</div>
                       </div>
                     </div>
                   </CardContent>
@@ -394,17 +394,17 @@ const EnhancedAdvancedSearch = ({
 
       {/* Active Filters Display */}
       {getActiveFiltersCount() > 0 && (
-        <Card>
+        <Card className="rounded-md shadow-card bg-white-surface">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">Active filters:</span>
+                <span className="text-sm font-medium text-text-primary">Active filters:</span>
                 <div className="flex flex-wrap gap-1">
                   {Object.entries(filters).map(([key, value]) => {
                     if (!value || value === false || value === '') return null;
-                    
+
                     return (
-                      <Badge key={key} variant="secondary" className="text-xs">
+                      <Badge key={key} variant="secondary" className="text-xs rounded-sm bg-soft-blue text-accent-blue">
                         {key}: {value.toString()}
                         <button
                           onClick={() => {
@@ -412,7 +412,7 @@ const EnhancedAdvancedSearch = ({
                             setFilters(newFilters);
                             handleFiltersChange(newFilters);
                           }}
-                          className="ml-1 hover:text-red-600"
+                          className="ml-1 hover:text-red-600 transition-smooth"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -425,6 +425,7 @@ const EnhancedAdvancedSearch = ({
                 variant="ghost"
                 size="sm"
                 onClick={resetFilters}
+                className="transition-smooth hover:text-accent-blue"
               >
                 Clear All
               </Button>

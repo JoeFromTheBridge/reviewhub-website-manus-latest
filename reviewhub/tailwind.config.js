@@ -48,14 +48,30 @@ export default {
         "sidebar-accent-foreground": "oklch(var(--sidebar-accent-foreground) / <alpha-value>)",
         "sidebar-border": "oklch(var(--sidebar-border) / <alpha-value>)",
         "sidebar-ring": "oklch(var(--sidebar-ring) / <alpha-value>)",
+
+        // New design system colors (White, Sleek, Sophisticated theme)
+        "soft-blue": "#E3F2FD",
+        "soft-lavender": "#F3E5F5",
+        "accent-blue": "#2196F3",
+        "star-gold": "#FFC107",
+        "white-surface": "#FFFFFF",
+        "text-primary": "#1A1A1A",
+        "text-secondary": "#6B7280",
+        "border-light": "#E5E7EB",
       },
       borderRadius: {
-        // optional: if you want to use your radius tokens via utilities (e.g., rounded-[var(--radius-md)])
-        // or define direct radii names:
-        // 'sm': 'var(--radius-sm)',
-        // 'md': 'var(--radius-md)',
-        // 'lg': 'var(--radius-lg)',
-        // 'xl': 'var(--radius-xl)',
+        sm: '8px',
+        md: '12px',
+        lg: '16px',
+        xl: '20px',
+      },
+      boxShadow: {
+        'card': '0 2px 8px rgba(0, 0, 0, 0.08)',
+        'card-hover': '0 8px 24px rgba(0, 0, 0, 0.12)',
+        'input': '0 2px 4px rgba(0, 0, 0, 0.06)',
+      },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
     },
   },

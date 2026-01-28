@@ -34,7 +34,7 @@ const SearchResultsDisplay = ({
   const reviews = Array.isArray(results?.reviews) ? results.reviews : [];
 
   if (loading) {
-    return <div className="text-center py-8 text-gray-600">Searching...</div>;
+    return <div className="text-center py-8 text-text-secondary">Searching...</div>;
   }
 
   if (error) {
@@ -45,7 +45,7 @@ const SearchResultsDisplay = ({
 
   if (!list || list.length === 0) {
     return (
-      <p className="text-center text-gray-500">
+      <p className="text-center text-text-secondary">
         No {activeTab === 'products' ? 'products' : 'reviews'} found
         matching your criteria.
       </p>
@@ -92,7 +92,7 @@ const SearchResultsDisplay = ({
           return (
             <Star
               key={i}
-              className="w-4 h-4 text-yellow-400 fill-yellow-400"
+              className="w-4 h-4 text-star-gold fill-star-gold"
             />
           );
         } else if (fillPercentage === 0) {
@@ -100,19 +100,19 @@ const SearchResultsDisplay = ({
           return (
             <Star
               key={i}
-              className="w-4 h-4 text-gray-300"
+              className="w-4 h-4 text-border-light"
             />
           );
         } else {
           // Partial star - use gradient or clip-path
           return (
             <div key={i} className="relative w-4 h-4">
-              <Star className="absolute w-4 h-4 text-gray-300" />
+              <Star className="absolute w-4 h-4 text-border-light" />
               <div
                 className="absolute overflow-hidden"
                 style={{ width: `${fillPercentage}%` }}
               >
-                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                <Star className="w-4 h-4 text-star-gold fill-star-gold" />
               </div>
             </div>
           );
@@ -123,16 +123,16 @@ const SearchResultsDisplay = ({
     return (
       <Card
         key={product.id}
-        className="hover:shadow-lg transition-shadow duration-200"
+        className="rounded-md shadow-card card-hover-lift bg-white-surface"
       >
         <CardHeader>
           <CardTitle className="text-lg">
-            <Link to={`/product/${product.id}`} className="hover:text-primary">
+            <Link to={`/product/${product.id}`} className="hover:text-accent-blue transition-smooth">
               {name}
             </Link>
           </CardTitle>
           {(brand || product.model) && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-text-secondary">
               {brand}
               {brand && product.model ? ' — ' : ''}
               {product.model}
@@ -141,13 +141,13 @@ const SearchResultsDisplay = ({
         </CardHeader>
         <CardContent>
           {description && (
-            <p className="text-gray-700 mb-2 line-clamp-2">{description}</p>
+            <p className="text-text-primary mb-2 line-clamp-2">{description}</p>
           )}
           {product.category && (
-            <Badge variant="secondary" className="mb-2">{product.category}</Badge>
+            <Badge variant="secondary" className="mb-2 rounded-sm">{product.category}</Badge>
           )}
           {priceDisplay && (
-            <p className="text-lg font-semibold text-gray-900 mb-2">
+            <p className="text-lg font-semibold text-text-primary mb-2">
               {priceDisplay}
             </p>
           )}
@@ -168,7 +168,7 @@ const SearchResultsDisplay = ({
             <img
               src={product.image_url}
               alt={name}
-              className="mt-4 w-full h-32 object-cover rounded-md"
+              className="mt-4 w-full h-32 object-cover rounded-sm"
             />
           )}
         </CardContent>
@@ -216,19 +216,19 @@ const SearchResultsDisplay = ({
     return (
       <Card
         key={review.id}
-        className="hover:shadow-lg transition-shadow duration-200"
+        className="rounded-md shadow-card card-hover-lift bg-white-surface"
       >
         <CardHeader>
           <CardTitle className="text-lg">
             {productId ? (
-              <Link to={`/product/${productId}`} className="hover:text-primary">
+              <Link to={`/product/${productId}`} className="hover:text-accent-blue transition-smooth">
                 {title}
               </Link>
             ) : (
               <span>{title}</span>
             )}
           </CardTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-text-secondary">
             By {userName}
             {createdAt && ` on ${createdAt}`}
           </p>
@@ -240,21 +240,21 @@ const SearchResultsDisplay = ({
                 key={i}
                 className={`w-4 h-4 ${
                   i < Math.round(rating)
-                    ? 'text-yellow-400 fill-yellow-400'
-                    : 'text-gray-300'
+                    ? 'text-star-gold fill-star-gold'
+                    : 'text-border-light'
                 }`}
               />
             ))}
             {isVerified && (
-              <Badge variant="outline" className="ml-2 text-xs">
+              <Badge variant="outline" className="ml-2 text-xs rounded-sm">
                 Verified Purchase
               </Badge>
             )}
           </div>
           {body && (
-            <p className="text-gray-700 mb-2 line-clamp-3">{body}</p>
+            <p className="text-text-primary mb-2 line-clamp-3">{body}</p>
           )}
-          {hasImages && <Badge variant="outline">Has Images</Badge>}
+          {hasImages && <Badge variant="outline" className="rounded-sm">Has Images</Badge>}
         </CardContent>
       </Card>
     );
