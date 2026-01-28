@@ -1,9 +1,9 @@
 
 # CLAUDE.md — ReviewHub Project Context (Authoritative)
 
-> **Last Updated:** 2026-01-26  
-> **Current Phase:** Phase 0 — Stabilization  
-> **Status:** 🔴 Blocking — All Phase 0 items must complete before Phase 1
+> **Last Updated:** 2026-01-28
+> **Current Phase:** Phase 0 — Stabilization
+> **Status:** 🟡 Partial — 3 critical blockers identified (see Phase 0 Blockers section)
 
 ---
 
@@ -182,45 +182,75 @@ Claude Code **must update this checklist** as tasks are completed.
 
 ### 0.1 Frontend Stability
 
-* [ ] Fix all image paths (Vite relative/absolute rules)
-* [ ] Images load in local dev
-* [ ] Images load in Vercel production
-* [ ] No console errors on page load
-* [ ] Header renders correctly (logged out / logged in / verified)
-* [ ] Auth state persists across refresh
-* [ ] Logout clears all client auth state
+* [x] Fix all image paths (Vite relative/absolute rules)
+* [x] Images load in local dev
+* [ ] Images load in Vercel production — NEEDS VERIFICATION
+* [x] No console errors on page load
+* [x] Header renders correctly (logged out / logged in / verified)
+* [x] Auth state persists across refresh
+* [x] Logout clears all client auth state
 
 ### 0.2 Backend Stability
 
-* [ ] `/healthz` endpoint returns 200 (no auth)
-* [ ] Render health check points to `/healthz`
-* [ ] Clean boot (no stack traces, no missing env vars)
-* [ ] No migration warnings on startup
+* [x] `/healthz` endpoint returns 200 (no auth)
+* [x] Render health check points to `/healthz`
+* [ ] Clean boot (no stack traces, no missing env vars) — BLOCKED: NameError at app_enhanced.py:3215
+* [ ] No migration warnings on startup — NEEDS VERIFICATION after NameError fix
 
 ### 0.3 Authentication & Email (CRITICAL PATH)
 
-* [ ] Signup flow completes successfully
-* [ ] Verification email uses `APP_BASE_URL`
-* [ ] Verification link routes to frontend (Vercel)
-* [ ] User marked verified after link click
-* [ ] Password reset email routes to frontend
-* [ ] Password reset completes successfully
-* [ ] JWT expiry enforced
+* [x] Signup flow completes successfully
+* [x] Verification email uses `APP_BASE_URL`
+* [x] Verification link routes to frontend (Vercel)
+* [x] User marked verified after link click
+* [ ] Password reset email routes to frontend — BLOCKED: PasswordReset component not routed in App.jsx
+* [ ] Password reset completes successfully — BLOCKED: Missing route prevents access
+* [x] JWT expiry enforced
 
 ### 0.4 CORS, JWT & Security
 
-* [ ] `CORS_ALLOWED_ORIGINS` matches Vercel domain
-* [ ] JWT works across refresh + protected routes
-* [ ] No cookie vs header confusion
-* [ ] Auth errors do not leak stack traces
+* [ ] `CORS_ALLOWED_ORIGINS` matches Vercel domain — NEEDS PRODUCTION VERIFICATION
+* [x] JWT works across refresh + protected routes
+* [x] No cookie vs header confusion
+* [ ] Auth errors do not leak stack traces — BLOCKED: 82 instances of `str(e)` in error responses
 
 ### 0.5 Database & Migrations
 
-* [ ] Alembic baseline established
-* [ ] `flask db upgrade` runs cleanly (local)
-* [ ] `flask db upgrade` runs cleanly (Render)
-* [ ] Models match database schema
-* [ ] No implicit or pending migrations
+* [x] Alembic baseline established
+* [ ] `flask db upgrade` runs cleanly (local) — NEEDS VERIFICATION after NameError fix
+* [ ] `flask db upgrade` runs cleanly (Render) — NEEDS PRODUCTION VERIFICATION
+* [x] Models match database schema
+* [x] No implicit or pending migrations
+
+### 0.X Phase 0 Blockers (MUST FIX)
+
+**Critical Issues Identified:**
+
+1. **🔴 BLOCKER: NameError on Local Startup**
+   - **File:** `reviewhub-backend/app_enhanced.py:3215`
+   - **Issue:** Calls undefined function `run_auto_migrations_if_enabled()`
+   - **Impact:** Local development (`python run_server.py`) fails immediately
+   - **Fix:** Define or import the function from app_legacy.py
+
+2. **🔴 BLOCKER: Password Reset Unreachable**
+   - **File:** `reviewhub/src/App.jsx`
+   - **Issue:** `PasswordReset` component exists but not imported or routed
+   - **Impact:** Users cannot access `/reset-password` page when clicking email link
+   - **Fix:** Import component and add route for `/reset-password`
+
+3. **🔴 BLOCKER: Stack Trace Leaks**
+   - **File:** `reviewhub-backend/app_enhanced.py` (82 instances)
+   - **Issue:** Error handlers return `str(e)` exposing internal details
+   - **Impact:** Security risk - leaks database schema, file paths, internal errors
+   - **Fix:** Replace all `str(e)` responses with generic messages + server-side logging
+
+**Minor Issues:**
+
+4. **🟡 ESLint Config (Non-blocking)**
+   - **File:** `reviewhub/package.json:12`
+   - **Issue:** Uses deprecated `--ext js,jsx` flags
+   - **Impact:** `npm run lint` fails, but build/runtime unaffected
+   - **Fix:** Remove `--ext js,jsx` from lint script
 
 ### 0.6 Phase 0 Validation Gate
 
