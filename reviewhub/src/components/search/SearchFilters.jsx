@@ -109,14 +109,14 @@ const SearchFilters = ({
   };
 
   const renderPriceFilter = () => (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-text-primary">Price Range</label>
-        <span className="text-xs text-text-secondary">
+        <span className="text-sm font-semibold text-accent-blue">
           ${localFilters.minPrice || 0} - ${localFilters.maxPrice || 1000}
         </span>
       </div>
-      <div className="px-2">
+      <div className="px-1 py-2">
         <Slider
           value={[localFilters.minPrice || 0, localFilters.maxPrice || 1000]}
           onValueChange={([min, max]) => {
@@ -129,21 +129,27 @@ const SearchFilters = ({
           className="w-full"
         />
       </div>
-      <div className="flex gap-2">
-        <input
-          type="number"
-          placeholder="Min"
-          value={localFilters.minPrice || ''}
-          onChange={(e) => handleFilterChange('minPrice', Number(e.target.value))}
-          className="flex-1 px-2 py-1 text-xs border border-border-light rounded-sm focus:border-accent-blue focus:outline-none transition-smooth"
-        />
-        <input
-          type="number"
-          placeholder="Max"
-          value={localFilters.maxPrice || ''}
-          onChange={(e) => handleFilterChange('maxPrice', Number(e.target.value))}
-          className="flex-1 px-2 py-1 text-xs border border-border-light rounded-sm focus:border-accent-blue focus:outline-none transition-smooth"
-        />
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <label className="text-xs text-text-secondary mb-1 block">Min ($)</label>
+          <input
+            type="number"
+            placeholder="0"
+            value={localFilters.minPrice || ''}
+            onChange={(e) => handleFilterChange('minPrice', Number(e.target.value))}
+            className="w-full px-3 py-2 text-sm border border-border-light rounded-sm bg-white-surface shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="text-xs text-text-secondary mb-1 block">Max ($)</label>
+          <input
+            type="number"
+            placeholder="1000"
+            value={localFilters.maxPrice || ''}
+            onChange={(e) => handleFilterChange('maxPrice', Number(e.target.value))}
+            className="w-full px-3 py-2 text-sm border border-border-light rounded-sm bg-white-surface shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
+          />
+        </div>
       </div>
     </div>
   );
@@ -164,21 +170,23 @@ const SearchFilters = ({
         <label className="text-sm font-medium text-text-primary">Rating</label>
         <div className="space-y-2">
           {[5, 4, 3, 2, 1].map(rating => (
-            <label key={rating} className="flex items-center gap-2 cursor-pointer hover:bg-soft-blue/50 p-1 rounded-sm transition-smooth">
+            <label key={rating} className="flex items-center gap-2 cursor-pointer hover:bg-soft-blue/50 p-2 rounded-sm transition-smooth">
               <Checkbox
                 checked={selectedRatings.includes(rating)}
                 onCheckedChange={() => handleRatingToggle(rating)}
               />
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 {[...Array(5)].map((_, i) => (
                   <Star
                     key={i}
-                    className={`h-3 w-3 ${
+                    className={`h-4 w-4 ${
                       i < rating ? 'text-star-gold fill-star-gold' : 'text-border-light'
                     }`}
                   />
                 ))}
-                <span className="text-xs text-text-secondary">{rating} star{rating !== 1 ? 's' : ''}</span>
+                <span className="text-sm text-text-secondary ml-1">
+                  {rating === 5 ? '5 stars' : `${rating}+ stars`}
+                </span>
               </div>
             </label>
           ))}

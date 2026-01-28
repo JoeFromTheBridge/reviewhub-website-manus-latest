@@ -103,14 +103,32 @@ const productMatchesQuery = (product, q) => {
 };
 
 const productMatchesPrice = (product, filters) => {
-  // Products have price_min and price_max, use the average or min for filtering
-  const priceMin = Number(product.price_min || 0);
-  const priceMax = Number(product.price_max || product.price_min || 0);
-  const avgPrice = priceMin && priceMax ? (priceMin + priceMax) / 2 : priceMin || priceMax;
+  // Get product price - check multiple possible field names
+  const rawPriceMin = product.price_min ?? product.price ?? product.priceMin ?? null;
+  const rawPriceMax = product.price_max ?? product.priceMax ?? rawPriceMin ?? null;
 
-  // Check if filter values are actually set (not undefined, null, or empty string)
-  const hasMinPrice = filters.minPrice !== undefined && filters.minPrice !== null && filters.minPrice !== '';
-  const hasMaxPrice = filters.maxPrice !== undefined && filters.maxPrice !== null && filters.maxPrice !== '';
+  // If product has no price data at all, don't filter it out (show it)
+  const hasProductPrice = rawPriceMin !== null || rawPriceMax !== null;
+
+  const priceMin = Number(rawPriceMin || 0);
+  const priceMax = Number(rawPriceMax || rawPriceMin || 0);
+
+  // Check if filter values are actually set and not at default positions
+  // minPrice of 0 means "no minimum", maxPrice of 1000 is the default max
+  const hasMinPrice = filters.minPrice !== undefined &&
+                      filters.minPrice !== null &&
+                      filters.minPrice !== '' &&
+                      Number(filters.minPrice) > 0;
+  const hasMaxPrice = filters.maxPrice !== undefined &&
+                      filters.maxPrice !== null &&
+                      filters.maxPrice !== '' &&
+                      Number(filters.maxPrice) < 1000;
+
+  // If no price filters are active, show all products
+  if (!hasMinPrice && !hasMaxPrice) return true;
+
+  // If product has no price data but filters are active, hide it
+  if (!hasProductPrice && (hasMinPrice || hasMaxPrice)) return false;
 
   if (hasMinPrice) {
     const minPriceFilter = Number(filters.minPrice);
@@ -133,10 +151,12 @@ const productMatchesRating = (product, filters) => {
   if (selectedRatings.length === 0) return true;
 
   const avgRating = Number(product.average_rating || 0);
-  // Use Math.ceil to match star display logic: 4.1-5.0 stars = 5-star category
-  const roundedRating = Math.ceil(avgRating);
 
-  return selectedRatings.includes(roundedRating);
+  // "& up" semantics: if user selects "4+ stars", show products with rating >= 4
+  // Find the minimum selected rating - products must have at least that rating
+  const minSelectedRating = Math.min(...selectedRatings);
+
+  return avgRating >= minSelectedRating;
 };
 
 const reviewMatchesQuery = (review, q, allProducts) => {
