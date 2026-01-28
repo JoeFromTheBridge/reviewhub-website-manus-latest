@@ -359,19 +359,19 @@ const SearchPage = () => {
     !!error;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-primary">
       <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">
+        <h1 className="text-3xl font-bold text-text-primary mb-6">
           Search ReviewHub
         </h1>
 
       {/* Search Type Tabs */}
-      <div className="flex border-b border-gray-200 mb-6">
+      <div className="flex border-b border-border-light mb-6">
         <button
-          className={`py-3 px-6 text-lg font-medium ${
+          className={`py-3 px-6 text-lg font-medium transition-smooth ${
             activeSearchTab === 'text'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'border-b-2 border-accent-blue text-accent-blue'
+              : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveSearchTab('text')}
         >
@@ -379,10 +379,10 @@ const SearchPage = () => {
           Text Search
         </button>
         <button
-          className={`py-3 px-6 text-lg font-medium ${
+          className={`py-3 px-6 text-lg font-medium transition-smooth ${
             activeSearchTab === 'visual'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'border-b-2 border-accent-blue text-accent-blue'
+              : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveSearchTab('visual')}
         >
@@ -390,10 +390,10 @@ const SearchPage = () => {
           Visual Search
         </button>
         <button
-          className={`py-3 px-6 text-lg font-medium ${
+          className={`py-3 px-6 text-lg font-medium transition-smooth ${
             activeSearchTab === 'voice'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-500 hover:text-gray-700'
+              ? 'border-b-2 border-accent-blue text-accent-blue'
+              : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveSearchTab('voice')}
         >
@@ -425,33 +425,33 @@ const SearchPage = () => {
       {/* Results Section */}
       {hasResults && (
         <>
-          <div className="flex border-b border-gray-200 mb-4 mt-8">
+          <div className="flex border-b border-border-light mb-4 mt-8">
             <button
-              className={`py-2 px-4 text-lg font-medium ${
+              className={`py-2 px-4 text-lg font-medium transition-smooth ${
                 activeResultsTab === 'products'
-                  ? 'border-b-2 border-blue-600 text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'border-b-2 border-accent-blue text-accent-blue'
+                  : 'text-text-secondary hover:text-text-primary'
               }`}
               onClick={() => setActiveResultsTab('products')}
             >
               Products ({searchResults.products?.length || 0})
               {searchType === 'visual' && (
-                <span className="ml-1 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">
+                <span className="ml-1 text-xs bg-soft-blue text-accent-blue px-2 py-1 rounded-sm">
                   Visual
                 </span>
               )}
               {searchType === 'voice' && (
-                <span className="ml-1 text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">
+                <span className="ml-1 text-xs bg-soft-lavender text-purple-600 px-2 py-1 rounded-sm">
                   Voice
                 </span>
               )}
             </button>
             {searchType === 'text' && (
               <button
-                className={`py-2 px-4 text-lg font-medium ${
+                className={`py-2 px-4 text-lg font-medium transition-smooth ${
                   activeResultsTab === 'reviews'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'border-b-2 border-accent-blue text-accent-blue'
+                    : 'text-text-secondary hover:text-text-primary'
                 }`}
                 onClick={() => setActiveResultsTab('reviews')}
               >
