@@ -69,33 +69,33 @@ const Slider = ({
     <div className={`relative h-6 ${className}`}>
       <div
         ref={sliderRef}
-        className={`absolute top-1/2 transform -translate-y-1/2 w-full h-2 bg-gray-200 rounded-full ${
+        className={`absolute top-1/2 transform -translate-y-1/2 w-full h-2 bg-border-light rounded-full ${
           disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
         }`}
       >
         {/* Track between thumbs */}
         <div
-          className="absolute h-full bg-blue-500 rounded-full"
+          className="absolute h-full bg-accent-blue rounded-full"
           style={{
             left: `${getPercentage(localValue[0])}%`,
             width: `${getPercentage(localValue[1]) - getPercentage(localValue[0])}%`
           }}
         />
-        
+
         {/* Thumb 1 */}
         <div
-          className={`absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 top-1/2 ${
-            disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
-          } ${isDragging === 0 ? 'scale-110' : ''} transition-transform`}
+          className={`absolute w-5 h-5 bg-white-surface border-2 border-accent-blue rounded-full transform -translate-x-1/2 -translate-y-1/2 top-1/2 shadow-input transition-all ${
+            disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:shadow-card'
+          } ${isDragging === 0 ? 'scale-110 shadow-card' : ''}`}
           style={{ left: `${getPercentage(localValue[0])}%` }}
           onMouseDown={handleMouseDown(0)}
         />
-        
+
         {/* Thumb 2 */}
         <div
-          className={`absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full transform -translate-x-1/2 -translate-y-1/2 top-1/2 ${
-            disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing'
-          } ${isDragging === 1 ? 'scale-110' : ''} transition-transform`}
+          className={`absolute w-5 h-5 bg-white-surface border-2 border-accent-blue rounded-full transform -translate-x-1/2 -translate-y-1/2 top-1/2 shadow-input transition-all ${
+            disabled ? 'cursor-not-allowed' : 'cursor-grab active:cursor-grabbing hover:shadow-card'
+          } ${isDragging === 1 ? 'scale-110 shadow-card' : ''}`}
           style={{ left: `${getPercentage(localValue[1])}%` }}
           onMouseDown={handleMouseDown(1)}
         />
