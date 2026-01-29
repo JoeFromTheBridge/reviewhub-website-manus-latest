@@ -375,16 +375,37 @@ export function SearchResults() {
     <div className="min-h-screen bg-gradient-primary">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-text-primary mb-2">
-            {filters.query ? `Search results for "${filters.query}"` : 'All Products'}
-          </h1>
-          <p className="text-text-secondary">
-            {loading ? 'Loading...' : `${totalResults} products found`}
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-text-primary mb-1">
+              {filters.query ? `Search results for "${filters.query}"` : 'All Products'}
+            </h1>
+            <p className="text-text-secondary">
+              {loading ? 'Loading...' : `${totalResults} products found`}
+            </p>
+          </div>
+          {/* View Controls */}
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className={viewMode === 'grid' ? 'bg-accent-blue hover:bg-accent-blue/90' : 'border-border-light'}
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className={viewMode === 'list' ? 'bg-accent-blue hover:bg-accent-blue/90' : 'border-border-light'}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
           {/* Filters Sidebar */}
           <div className="lg:col-span-1 space-y-6">
             {/* Categories */}
@@ -544,28 +565,6 @@ export function SearchResults() {
 
           {/* Results */}
           <div className="lg:col-span-3">
-            {/* View Controls */}
-            <div className="flex items-center justify-end mb-6">
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className={viewMode === 'grid' ? 'bg-accent-blue hover:bg-accent-blue/90' : 'border-border-light'}
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className={viewMode === 'list' ? 'bg-accent-blue hover:bg-accent-blue/90' : 'border-border-light'}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
             {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center py-12">
