@@ -1,9 +1,8 @@
 // src/components/Header.jsx
 import { useState, useEffect } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
-import { Search, User, Menu, X, LogOut, Settings, TrendingUp, Shield } from 'lucide-react'
+import { Search, User, Menu, X, LogOut, Settings, TrendingUp, Shield, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { useAuth } from '../contexts/AuthContext'
 import { LoginModal } from './auth/LoginModal'
 import { RegisterModal } from './auth/RegisterModal'
@@ -54,108 +53,124 @@ export function Header() {
     setShowLoginModal(true)
   }
 
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showUserMenu && !event.target.closest('.user-menu-container')) {
+        setShowUserMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showUserMenu])
+
   return (
     <>
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white-surface shadow-card border-b border-border-light sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
+          <div className="flex items-center h-16 gap-4">
+            {/* Logo - Far Left (acts as Home link) */}
+            <Link to="/" className="flex-shrink-0">
               <img
                 src={logoImage}
-                alt="ReviewHub"
-                className="h-10 w-auto md:h-12 lg:h-14 object-contain"
+                alt="ReviewHub - Home"
+                className="h-10 w-auto md:h-12 object-contain"
                 loading="eager"
                 fetchPriority="high"
               />
-              <span className="sr-only">ReviewHub</span>
             </Link>
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center space-x-8">
-              <Link to="/" className="text-gray-700 hover:text-primary transition-colors">
-                Home
-              </Link>
-              <Link to="/categories" className="text-gray-700 hover:text-primary transition-colors">
-                Categories
-              </Link>
-              <Link to="/about" className="text-gray-700 hover:text-primary transition-colors">
-                About
-              </Link>
-              {isAuthenticated && (
-                <Link
-                  to="/profile"
-                  className="text-gray-700 hover:text-primary transition-colors"
-                >
-                  Profile
-                </Link>
-              )}
-            </nav>
-
-            {/* Search Icon (linking to SearchPage) */}
-            <div className="hidden md:flex items-center">
-              <form onSubmit={handleSearch} className="flex items-center">
-                <Input
+            {/* Search Bar - Primary Focus, Wide */}
+            <form
+              onSubmit={handleSearch}
+              className="hidden md:flex flex-1 max-w-2xl"
+            >
+              <div className="relative w-full">
+                <input
                   type="text"
-                  placeholder="Search products..."
+                  placeholder="Search products, brands, reviews..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-48 mr-2"
+                  className="w-full h-10 pl-4 pr-12 text-sm border border-border-light rounded-md bg-white-surface shadow-input focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
                 />
-                <Button
+                <button
                   type="submit"
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-700 hover:text-primary"
+                  className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-text-secondary hover:text-accent-blue transition-smooth"
                   aria-label="Search"
                 >
                   <Search className="h-5 w-5" />
-                </Button>
-              </form>
-            </div>
+                </button>
+              </div>
+            </form>
 
-            {/* Desktop Auth Buttons */}
-            <div className="hidden md:flex items-center space-x-4">
+            {/* Categories - Right of Search */}
+            <Link
+              to="/categories"
+              className="hidden md:flex items-center gap-1 px-4 py-2 text-text-secondary hover:text-accent-blue font-medium transition-smooth"
+            >
+              Categories
+              <ChevronDown className="h-4 w-4" />
+            </Link>
+
+            {/* Spacer to push auth to far right */}
+            <div className="hidden md:block flex-1" />
+
+            {/* Auth / Profile Actions - Far Right */}
+            <div className="hidden md:flex items-center gap-3">
               {isAuthenticated ? (
-                <div className="relative">
+                <div className="relative user-menu-container">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center space-x-2 text-gray-700 hover:text-primary transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 rounded-md text-text-secondary hover:text-accent-blue hover:bg-soft-blue/50 transition-smooth"
                     aria-haspopup="menu"
                     aria-expanded={showUserMenu}
                   >
-                    <User className="h-4 w-4" />
-                    <span>{user?.first_name || user?.username}</span>
+                    <div className="w-8 h-8 rounded-full bg-accent-blue text-white flex items-center justify-center text-sm font-semibold">
+                      {(user?.first_name?.[0] || user?.username?.[0] || 'U').toUpperCase()}
+                    </div>
+                    <span className="hidden lg:inline font-medium">
+                      {user?.first_name || user?.username}
+                    </span>
+                    <ChevronDown className="h-4 w-4" />
                   </button>
 
                   {showUserMenu && (
                     <div
-                      className="absolute right-0 mt-2 w-52 bg-white rounded-md shadow-lg py-1 z-50 border"
+                      className="absolute right-0 mt-2 w-56 bg-white-surface rounded-md shadow-card-hover py-1 z-50 border border-border-light"
                       role="menu"
                     >
+                      <div className="px-4 py-2 border-b border-border-light">
+                        <p className="text-sm font-medium text-text-primary">
+                          {user?.first_name || user?.username}
+                        </p>
+                        <p className="text-xs text-text-secondary truncate">
+                          {user?.email}
+                        </p>
+                      </div>
+
                       <Link
                         to="/profile"
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                         onClick={() => setShowUserMenu(false)}
                         role="menuitem"
                       >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Profile
+                        <Settings className="h-4 w-4" />
+                        Profile Settings
                       </Link>
 
                       <Link
                         to="/my-reviews"
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                         onClick={() => setShowUserMenu(false)}
                         role="menuitem"
                       >
-                        <User className="h-4 w-4 mr-2" />
+                        <User className="h-4 w-4" />
                         My Reviews
                       </Link>
 
                       <Link
                         to="/analytics"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                         onClick={() => setShowUserMenu(false)}
                         role="menuitem"
                       >
@@ -165,7 +180,7 @@ export function Header() {
 
                       <Link
                         to="/privacy"
-                        className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                         onClick={() => setShowUserMenu(false)}
                         role="menuitem"
                       >
@@ -176,21 +191,21 @@ export function Header() {
                       {user?.is_admin && (
                         <Link
                           to="/admin"
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-100"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth border-t border-border-light"
                           onClick={() => setShowUserMenu(false)}
                           role="menuitem"
                         >
-                          <Settings className="h-4 w-4 mr-2" />
+                          <Settings className="h-4 w-4" />
                           Admin Panel
                         </Link>
                       )}
 
                       <button
                         onClick={handleLogout}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-t border-gray-100"
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-smooth border-t border-border-light"
                         role="menuitem"
                       >
-                        <LogOut className="h-4 w-4 mr-2" />
+                        <LogOut className="h-4 w-4" />
                         Sign Out
                       </button>
                     </div>
@@ -199,13 +214,16 @@ export function Header() {
               ) : (
                 <>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => setShowLoginModal(true)}
+                    className="text-text-secondary hover:text-accent-blue hover:bg-soft-blue/50"
                   >
-                    <User className="h-4 w-4 mr-2" />
                     Sign In
                   </Button>
-                  <Button onClick={() => setShowRegisterModal(true)}>
+                  <Button
+                    onClick={() => setShowRegisterModal(true)}
+                    className="bg-accent-blue hover:bg-accent-blue/90 text-white"
+                  >
                     Sign Up
                   </Button>
                 </>
@@ -213,17 +231,18 @@ export function Header() {
             </div>
 
             {/* Mobile menu button */}
-            <div className="md:hidden">
+            <div className="md:hidden ml-auto">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Toggle menu"
+                className="text-text-secondary"
               >
                 {isMenuOpen ? (
-                  <X className="h-5 w-5" />
+                  <X className="h-6 w-6" />
                 ) : (
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-6 w-6" />
                 )}
               </Button>
             </div>
@@ -232,7 +251,7 @@ export function Header() {
 
         {/* Mobile menu */}
         {isMenuOpen && (
-          <div className="md:hidden border-t bg-white">
+          <div className="md:hidden border-t border-border-light bg-white-surface">
             <div className="px-4 py-4 space-y-4">
               {/* Mobile search */}
               <form
@@ -243,109 +262,119 @@ export function Header() {
                     setIsMenuOpen(false)
                   }
                 }}
-                className="flex items-center mb-2"
+                className="relative"
               >
-                <Input
+                <input
                   type="text"
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="mr-2"
+                  className="w-full h-10 pl-4 pr-12 text-sm border border-border-light rounded-md bg-white-surface shadow-input focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 focus:outline-none"
                 />
-                <Button
+                <button
                   type="submit"
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-700 hover:text-primary w-10"
+                  className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-text-secondary"
                   aria-label="Search"
                 >
-                  <Search className="h-4 w-4" />
-                </Button>
+                  <Search className="h-5 w-5" />
+                </button>
               </form>
 
-              <nav className="space-y-2">
-                <Link
-                  to="/"
-                  className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Home
-                </Link>
+              <nav className="space-y-1">
                 <Link
                   to="/categories"
-                  className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                  className="block px-3 py-2 rounded-md text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Categories
                 </Link>
                 <Link
                   to="/about"
-                  className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                  className="block px-3 py-2 rounded-md text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   About
                 </Link>
               </nav>
 
-              <div className="mt-4 space-y-2">
+              <div className="pt-4 border-t border-border-light space-y-2">
                 {isAuthenticated ? (
                   <>
-                    <div className="px-3 py-2 text-sm text-gray-600">
-                      Welcome, {user?.first_name || user?.username}!
+                    <div className="flex items-center gap-3 px-3 py-2">
+                      <div className="w-10 h-10 rounded-full bg-accent-blue text-white flex items-center justify-center text-sm font-semibold">
+                        {(user?.first_name?.[0] || user?.username?.[0] || 'U').toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium text-text-primary">
+                          {user?.first_name || user?.username}
+                        </p>
+                        <p className="text-xs text-text-secondary">{user?.email}</p>
+                      </div>
                     </div>
+
                     <Link
                       to="/profile"
-                      className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                      className="block px-3 py-2 rounded-md text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Profile
+                      Profile Settings
                     </Link>
                     <Link
                       to="/my-reviews"
-                      className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                      className="block px-3 py-2 rounded-md text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       My Reviews
                     </Link>
                     <Link
                       to="/analytics"
-                      className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                      className="block px-3 py-2 rounded-md text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                       onClick={() => setIsMenuOpen(false)}
                     >
                       Analytics
                     </Link>
                     <Link
                       to="/privacy"
-                      className="block px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                      className="block px-3 py-2 rounded-md text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
                       onClick={() => setIsMenuOpen(false)}
                     >
-                      Privacy &amp; Data
+                      Privacy & Data
                     </Link>
+
+                    {user?.is_admin && (
+                      <Link
+                        to="/admin"
+                        className="block px-3 py-2 rounded-md text-text-secondary hover:bg-soft-blue hover:text-accent-blue transition-smooth"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        Admin Panel
+                      </Link>
+                    )}
+
                     <button
                       onClick={() => {
                         handleLogout()
                         setIsMenuOpen(false)
                       }}
-                      className="block w-full text-left px-3 py-2 text-gray-700 hover:text-primary transition-colors"
+                      className="block w-full text-left px-3 py-2 rounded-md text-red-600 hover:bg-red-50 transition-smooth"
                     >
                       Sign Out
                     </button>
                   </>
                 ) : (
-                  <>
+                  <div className="space-y-2">
                     <Button
                       variant="outline"
-                      className="w-full"
+                      className="w-full border-border-light"
                       onClick={() => {
                         setShowLoginModal(true)
                         setIsMenuOpen(false)
                       }}
                     >
-                      <User className="h-4 w-4 mr-2" />
                       Sign In
                     </Button>
                     <Button
-                      className="w-full"
+                      className="w-full bg-accent-blue hover:bg-accent-blue/90"
                       onClick={() => {
                         setShowRegisterModal(true)
                         setIsMenuOpen(false)
@@ -353,7 +382,7 @@ export function Header() {
                     >
                       Sign Up
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
