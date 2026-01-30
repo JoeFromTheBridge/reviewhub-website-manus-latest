@@ -395,7 +395,7 @@ export function SearchResults() {
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('grid')}
-              className={viewMode === 'grid' ? 'bg-accent-blue hover:bg-accent-blue/90' : 'border-border-light'}
+              className={viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'border-border-light'}
             >
               <Grid className="h-4 w-4" />
             </Button>
@@ -403,7 +403,7 @@ export function SearchResults() {
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className={viewMode === 'list' ? 'bg-accent-blue hover:bg-accent-blue/90' : 'border-border-light'}
+              className={viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'border-border-light'}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -561,7 +561,7 @@ export function SearchResults() {
             {/* Reset Filters Button */}
             <Button
               onClick={clearFilters}
-              className="w-full bg-accent-blue hover:bg-accent-blue/90 text-white transition-smooth"
+              className="w-full bg-soft-blue text-accent-blue hover:bg-soft-blue/80 transition-smooth"
             >
               Reset Filters
             </Button>
@@ -625,7 +625,7 @@ export function SearchResults() {
                     >
                       Previous
                     </Button>
-                    <Button className="bg-accent-blue hover:bg-accent-blue/90">{currentPage}</Button>
+                    <Button className="bg-soft-blue text-accent-blue hover:bg-soft-blue/80">{currentPage}</Button>
                     <Button
                       variant="outline"
                       disabled={products.length < 12}
