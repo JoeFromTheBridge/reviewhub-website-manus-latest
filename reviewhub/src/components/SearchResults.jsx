@@ -104,8 +104,11 @@ export function SearchResults() {
       }
 
       // Filter by minimum rating
+      // "5 stars" means >= 4.75 for better UX (shows 4.8, 4.9, 5.0)
+      // "4+" means >= 4.0, "3+" means >= 3.0, etc.
       if (minRating > 0) {
-        allProducts = allProducts.filter(p => (p.average_rating || 0) >= minRating)
+        const ratingThreshold = minRating === 5 ? 4.75 : minRating
+        allProducts = allProducts.filter(p => (p.average_rating || 0) >= ratingThreshold)
       }
 
       // Filter by price range
@@ -269,8 +272,8 @@ export function SearchResults() {
     const priceDisplay = formatPrice(product)
 
     return (
-      <Card className="bg-white-surface shadow-card card-hover-lift rounded-md overflow-hidden">
-        <CardContent className="p-4">
+      <Card className="bg-white-surface shadow-card card-hover-lift rounded-md overflow-hidden h-full flex flex-col">
+        <CardContent className="p-4 flex flex-col flex-1">
           <Link to={`/product/${product.id}`}>
             <img
               src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'}
@@ -278,7 +281,7 @@ export function SearchResults() {
               className="w-full h-48 object-cover rounded-sm mb-4"
             />
           </Link>
-          <div className="space-y-2">
+          <div className="space-y-2 flex flex-col flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <Link
@@ -296,6 +299,8 @@ export function SearchResults() {
                 {product.category}
               </Badge>
             )}
+
+            <div className="flex-1" />
 
             {priceDisplay && (
               <p className="text-xl font-bold text-accent-blue">{priceDisplay}</p>
