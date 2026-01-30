@@ -558,13 +558,17 @@ export function SearchResults() {
               </CardContent>
             </Card>
 
-            {/* Reset Filters Button */}
-            <Button
-              onClick={clearFilters}
-              className="w-full bg-soft-blue text-accent-blue hover:bg-soft-blue/80 transition-smooth"
-            >
-              Reset Filters
-            </Button>
+            {/* Reset Filters */}
+            <Card className="bg-white-surface shadow-card rounded-md">
+              <CardContent className="p-6">
+                <Button
+                  onClick={clearFilters}
+                  className="w-full bg-soft-blue text-accent-blue hover:bg-soft-blue/80 transition-smooth"
+                >
+                  Reset Filters
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Results */}
