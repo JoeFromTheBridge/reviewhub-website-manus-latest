@@ -595,8 +595,8 @@ export function SearchResults() {
             {!loading && !error && products.length === 0 && (
               <div className="text-center py-12 bg-white-surface rounded-md shadow-card">
                 <p className="text-text-secondary mb-4">No products found matching your criteria.</p>
-                <Button onClick={clearFilters} className="bg-accent-blue hover:bg-accent-blue/90">
-                  Clear Filters
+                <Button onClick={clearFilters} className="bg-soft-blue text-accent-blue hover:bg-soft-blue/80 transition-smooth">
+                  Reset Filters
                 </Button>
               </div>
             )}

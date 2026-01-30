@@ -52,7 +52,7 @@ export default {
         // New design system colors (White, Sleek, Sophisticated theme)
         "soft-blue": "#E3F2FD",
         "soft-lavender": "#F3E5F5",
-        "accent-blue": "#2196F3",
+        "accent-blue": "#5B7DD4",
         "star-gold": "#FFC107",
         "white-surface": "#FFFFFF",
         "text-primary": "#1A1A1A",
