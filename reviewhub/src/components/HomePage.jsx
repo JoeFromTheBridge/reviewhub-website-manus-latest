@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Star, TrendingUp, Users, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import RecommendationSection from './recommendations/RecommendationSection'
 import ImageOptimizer from './ui/image-optimizer'
 import { useAuth } from '../contexts/AuthContext'
@@ -130,6 +131,33 @@ export function HomePage() {
     return Number(value || 0).toLocaleString()
   }
 
+  // Helper to get product price (similar to SearchResults)
+  const getProductPrice = (product) => {
+    if (!product) return null
+    const priceMin = product.price_min ?? product.price ?? product.priceMin ?? null
+    const priceMax = product.price_max ?? product.priceMax ?? null
+    if (priceMin !== null) {
+      return { min: Number(priceMin), max: priceMax !== null ? Number(priceMax) : Number(priceMin) }
+    }
+    if (product.price_range) {
+      const matches = product.price_range.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/g)
+      if (matches && matches.length >= 1) {
+        const prices = matches.map(m => Number(m.replace(/[$,]/g, '')))
+        return { min: prices[0], max: prices[prices.length - 1] }
+      }
+    }
+    return null
+  }
+
+  const formatPrice = (product) => {
+    const price = getProductPrice(product)
+    if (!price) return product?.price_range || null
+    if (price.min === price.max) {
+      return `$${price.min.toLocaleString()}`
+    }
+    return `$${price.min.toLocaleString()} - $${price.max.toLocaleString()}`
+  }
+
   const renderStars = (rating) => {
     return (
       <div className="flex items-center">
@@ -195,13 +223,203 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Stats (live from API) */}
+      {/* Recent Reviews Section - Directly after Hero */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <p className="text-sm text-text-secondary uppercase tracking-[0.1em] mb-2">Community</p>
+            <h2 className="text-2xl font-semibold text-text-primary">Recent Reviews</h2>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuredReviews.map((review) => {
+                // Product id from review
+                const productId =
+                  review.product?.id ??
+                  review.product?.product_id ??
+                  review.product_id ??
+                  review.productId ??
+                  null
+
+                // Try to find the full product in the products list
+                const matchedProduct = productId
+                  ? products.find(
+                      (p) =>
+                        p.id === productId ||
+                        p.product_id === productId
+                    )
+                  : null
+
+                const productName =
+                  matchedProduct?.name ||
+                  matchedProduct?.title ||
+                  matchedProduct?.product_name ||
+                  review.product?.name ||
+                  review.product?.product_name ||
+                  review.product_name ||
+                  (review.title && review.title !== 'Review'
+                    ? review.title
+                    : 'Product')
+
+                const productBrand =
+                  matchedProduct?.brand ||
+                  matchedProduct?.manufacturer ||
+                  review.product?.brand ||
+                  review.product?.manufacturer ||
+                  review.brand ||
+                  review.product_brand ||
+                  null
+
+                const productCategory =
+                  matchedProduct?.category ||
+                  review.product?.category ||
+                  null
+
+                const productImage =
+                  matchedProduct?.image_url ||
+                  review.product?.image_url ||
+                  null
+
+                const priceDisplay = formatPrice(matchedProduct)
+
+                // Get review images/photos if available
+                const reviewImages = review.images || review.photos || []
+                const firstReviewImage = reviewImages.length > 0 ? reviewImages[0]?.url || reviewImages[0] : null
+
+                const reviewTitle =
+                  review.title && review.title !== 'Review'
+                    ? review.title
+                    : `Review of ${productName}`
+
+                return (
+                  <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md overflow-hidden">
+                    {/* Product/Review Image */}
+                    {(productImage || firstReviewImage) && (
+                      <Link to={productId ? `/product/${productId}` : '#'}>
+                        <img
+                          src={firstReviewImage || productImage}
+                          alt={productName}
+                          className="w-full h-40 object-cover"
+                        />
+                      </Link>
+                    )}
+                    <CardContent className="p-4">
+                      {/* Category Badge */}
+                      {productCategory && (
+                        <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm mb-2">
+                          {productCategory}
+                        </Badge>
+                      )}
+
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          {productId ? (
+                            <Link
+                              to={`/product/${productId}`}
+                              className="font-semibold text-text-primary hover:text-accent-blue transition-colors line-clamp-1"
+                            >
+                              {productName}
+                            </Link>
+                          ) : (
+                            <span className="font-semibold text-text-primary line-clamp-1">
+                              {productName}
+                            </span>
+                          )}
+                          {productBrand && (
+                            <p className="text-sm text-text-secondary">{productBrand}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Price */}
+                      {priceDisplay && (
+                        <p className="text-lg font-bold text-accent-blue mb-2">{priceDisplay}</p>
+                      )}
+
+                      {/* Rating */}
+                      <div className="flex items-center gap-2 mb-2">
+                        {renderStars(review.rating)}
+                        <span className="text-sm text-text-secondary">
+                          {review.rating?.toFixed(1) || '0.0'}
+                        </span>
+                      </div>
+
+                      {/* Review Title & Content */}
+                      <h4 className="font-medium text-text-primary text-sm mb-1 line-clamp-1">
+                        {reviewTitle}
+                      </h4>
+                      <p className="text-text-secondary text-sm mb-3 line-clamp-2">
+                        {review.comment || review.content}
+                      </p>
+
+                      {/* Review thumbnails if multiple images */}
+                      {reviewImages.length > 1 && (
+                        <div className="flex gap-1 mb-3">
+                          {reviewImages.slice(0, 3).map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img?.url || img}
+                              alt={`Review photo ${idx + 1}`}
+                              className="w-10 h-10 object-cover rounded-sm"
+                            />
+                          ))}
+                          {reviewImages.length > 3 && (
+                            <div className="w-10 h-10 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
+                              +{reviewImages.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-text-secondary">
+                        <div className="flex items-center space-x-2">
+                          <span>
+                            By{' '}
+                            {review.user?.username ||
+                              review.user_username ||
+                              review.user_name ||
+                              'Anonymous'}
+                          </span>
+                          {(review.is_verified || review.verified_purchase) && (
+                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                              Verified
+                            </span>
+                          )}
+                        </div>
+                        <span>{review.helpful_count || 0} helpful</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+
+          <div className="text-center mt-8">
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md"
+              onClick={() => navigate('/search?tab=reviews')}
+            >
+              View All Reviews
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats (live from API) - with gradient background */}
       {!loading && !error && (
-        <section className="py-16 bg-white-surface">
+        <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
               <div className="flex flex-col items-center">
-                <div className="bg-soft-blue p-4 rounded-full mb-4">
+                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
                   <Star className="h-8 w-8 text-accent-blue" />
                 </div>
                 <h3 className="text-3xl font-bold text-text-primary mb-2">
@@ -210,7 +428,7 @@ export function HomePage() {
                 <p className="text-text-secondary">Total Reviews</p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="bg-soft-blue p-4 rounded-full mb-4">
+                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
                   <TrendingUp className="h-8 w-8 text-accent-blue" />
                 </div>
                 <h3 className="text-3xl font-bold text-text-primary mb-2">
@@ -219,7 +437,7 @@ export function HomePage() {
                 <p className="text-text-secondary">Products Listed</p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="bg-soft-blue p-4 rounded-full mb-4">
+                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
                   <Users className="h-8 w-8 text-accent-blue" />
                 </div>
                 <h3 className="text-3xl font-bold text-text-primary mb-2">
@@ -233,7 +451,7 @@ export function HomePage() {
       )}
 
       {/* Categories Section */}
-      <section className="py-16">
+      <section className="py-16 bg-white-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-sm text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>
@@ -245,7 +463,6 @@ export function HomePage() {
               <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
             </div>
           ) : error ? (
-            // If error, still show static categories so the section isn't empty
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {STATIC_CATEGORIES.map((category) => (
                 <Link
@@ -298,137 +515,6 @@ export function HomePage() {
               })}
             </div>
           )}
-        </div>
-      </section>
-
-      {/* Recent Reviews Section */}
-      <section className="py-16 bg-white-surface">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-sm text-text-secondary uppercase tracking-[0.1em] mb-2">Community</p>
-            <h2 className="text-2xl font-semibold text-text-primary">Recent Reviews</h2>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredReviews.map((review) => {
-                // Product id from review
-                const productId =
-                  review.product?.id ??
-                  review.product?.product_id ??
-                  review.product_id ??
-                  review.productId ??
-                  null
-
-                // Try to find the full product in the products list
-                const matchedProduct = productId
-                  ? products.find(
-                      (p) =>
-                        p.id === productId ||
-                        p.product_id === productId
-                    )
-                  : null
-
-                const productName =
-                  matchedProduct?.name ||
-                  matchedProduct?.title ||
-                  matchedProduct?.product_name ||
-                  review.product?.name ||
-                  review.product?.product_name ||
-                  review.product_name ||
-                  (review.title && review.title !== 'Review'
-                    ? review.title
-                    : 'Product')
-
-                const productBrand =
-                  matchedProduct?.brand ||
-                  matchedProduct?.manufacturer ||
-                  review.product?.brand ||
-                  review.product?.manufacturer ||
-                  review.brand ||
-                  review.product_brand ||
-                  null
-
-                const reviewTitle =
-                  review.title && review.title !== 'Review'
-                    ? review.title
-                    : `Review of ${productName}`
-
-                const ReviewProductWrapper = ({ children }) =>
-                  productId ? (
-                    <Link
-                      to={`/product/${productId}`}
-                      className="font-semibold text-text-primary hover:text-accent-blue transition-colors"
-                    >
-                      {children}
-                    </Link>
-                  ) : (
-                    <span className="font-semibold text-text-primary">
-                      {children}
-                    </span>
-                  )
-
-                return (
-                  <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <ReviewProductWrapper>
-                            {productName}
-                          </ReviewProductWrapper>
-                          {productBrand && (
-                            <p className="text-sm text-text-secondary">{productBrand}</p>
-                          )}
-                        </div>
-                        {renderStars(review.rating)}
-                      </div>
-
-                      <h4 className="font-medium text-text-primary mb-2">
-                        {reviewTitle}
-                      </h4>
-                      <p className="text-text-secondary text-sm mb-4 line-clamp-3">
-                        {review.comment || review.content}
-                      </p>
-
-                      <div className="flex items-center justify-between text-xs text-text-secondary">
-                        <div className="flex items-center space-x-2">
-                          <span>
-                            By{' '}
-                            {review.user?.username ||
-                              review.user_username ||
-                              review.user_name ||
-                              'Anonymous'}
-                          </span>
-                          {(review.is_verified || review.verified_purchase) && (
-                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                              Verified
-                            </span>
-                          )}
-                        </div>
-                        <span>{review.helpful_count || 0} helpful</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
-          )}
-
-          <div className="text-center mt-8">
-            {/* From Recent Reviews, go to SearchPage showing reviews */}
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md"
-              onClick={() => navigate('/search?tab=reviews')}
-            >
-              View All Reviews
-            </Button>
-          </div>
         </div>
       </section>
 
