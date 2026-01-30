@@ -138,8 +138,8 @@ export function HomePage() {
             key={star}
             className={`h-4 w-4 ${
               star <= rating
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-gray-300'
+                ? 'fill-star-gold text-star-gold'
+                : 'text-border-light'
             }`}
           />
         ))}
@@ -148,26 +148,25 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-soft-blue to-soft-lavender">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-blue-600 to-purple-700 text-white overflow-hidden mt-4">
-        <div className="absolute inset-0 bg-black opacity-20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <section className="relative overflow-hidden">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[120px] pb-[80px]">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-4xl md:text-6xl font-bold mb-6">
+            <div className="text-center lg:text-left">
+              <h1 className="text-3xl md:text-[48px] font-semibold text-text-primary mb-6 leading-tight">
                 Make Smarter
-                <span className="block text-yellow-300">Purchase Decisions</span>
+                <span className="block text-accent-blue">Purchase Decisions</span>
               </h1>
-              <p className="text-xl mb-8 opacity-90">
-                Read authentic reviews from real customers and share your own experiences 
+              <p className="text-lg text-text-secondary mb-8">
+                Read authentic reviews from real customers and share your own experiences
                 to help others make informed choices.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 {/* From hero, go to SearchPage showing review results */}
                 <Button
                   size="lg"
-                  variant="secondary"
+                  className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity rounded-md px-8"
                   onClick={() => navigate('/search?tab=reviews')}
                 >
                   Explore Reviews
@@ -175,7 +174,7 @@ export function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="text-white border-white hover:bg-white hover:text-blue-600"
+                  className="border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md px-8"
                   onClick={() => navigate('/search')}
                 >
                   Write a Review
@@ -188,7 +187,7 @@ export function HomePage() {
                 alt="ReviewHub - Product Reviews Platform"
                 width={500}
                 height={400}
-                className="rounded-lg shadow-2xl"
+                className="rounded-xl shadow-sleek"
                 lazy={false}
               />
             </div>
@@ -198,35 +197,35 @@ export function HomePage() {
 
       {/* Stats (live from API) */}
       {!loading && !error && (
-        <section className="py-16 bg-white">
+        <section className="py-16 bg-white-surface">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
               <div className="flex flex-col items-center">
-                <div className="bg-primary/10 p-4 rounded-full mb-4">
-                  <Star className="h-8 w-8 text-primary" />
+                <div className="bg-soft-blue p-4 rounded-full mb-4">
+                  <Star className="h-8 w-8 text-accent-blue" />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                <h3 className="text-3xl font-bold text-text-primary mb-2">
                   {formatCount(reviewCount)}
                 </h3>
-                <p className="text-gray-600">Total Reviews</p>
+                <p className="text-text-secondary">Total Reviews</p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="bg-primary/10 p-4 rounded-full mb-4">
-                  <TrendingUp className="h-8 w-8 text-primary" />
+                <div className="bg-soft-blue p-4 rounded-full mb-4">
+                  <TrendingUp className="h-8 w-8 text-accent-blue" />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                <h3 className="text-3xl font-bold text-text-primary mb-2">
                   {formatCount(productCount)}
                 </h3>
-                <p className="text-gray-600">Products Listed</p>
+                <p className="text-text-secondary">Products Listed</p>
               </div>
               <div className="flex flex-col items-center">
-                <div className="bg-primary/10 p-4 rounded-full mb-4">
-                  <Users className="h-8 w-8 text-primary" />
+                <div className="bg-soft-blue p-4 rounded-full mb-4">
+                  <Users className="h-8 w-8 text-accent-blue" />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-2">
+                <h3 className="text-3xl font-bold text-text-primary mb-2">
                   {formatCount(categoryCount)}
                 </h3>
-                <p className="text-gray-600">Categories Covered</p>
+                <p className="text-text-secondary">Categories Covered</p>
               </div>
             </div>
           </div>
@@ -234,19 +233,19 @@ export function HomePage() {
       )}
 
       {/* Categories Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Browse by Category</h2>
-            <p className="text-xl text-gray-600">Find reviews for products in every category</p>
+            <p className="text-sm text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>
+            <h2 className="text-2xl font-semibold text-text-primary">Browse by Category</h2>
           </div>
 
           {loading ? (
             <div className="flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
             </div>
           ) : error ? (
-            // If error, still show static categories so the section isn’t empty
+            // If error, still show static categories so the section isn't empty
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {STATIC_CATEGORIES.map((category) => (
                 <Link
@@ -254,15 +253,15 @@ export function HomePage() {
                   to={buildCategoryHref(category)}
                   className="group"
                 >
-                  <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                  <Card className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-md">
                     <CardContent className="p-6 text-center">
-                      <img 
-                        src={category.img} 
+                      <img
+                        src={category.img}
                         alt={category.name}
-                        className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform"
+                        className="w-8 h-8 mx-auto mb-4 group-hover:scale-110 transition-transform"
                       />
-                      <h3 className="font-semibold text-gray-900 mb-2">{category.name}</h3>
-                      <p className="text-sm text-gray-600">Explore products</p>
+                      <h3 className="font-semibold text-text-primary mb-2">{category.name}</h3>
+                      <p className="text-sm text-text-secondary">Explore products</p>
                     </CardContent>
                   </Card>
                 </Link>
@@ -281,15 +280,15 @@ export function HomePage() {
                     to={href}
                     className="group"
                   >
-                    <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                    <Card className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-md">
                       <CardContent className="p-6 text-center">
-                        <img 
+                        <img
                           src={img}
                           alt={name}
-                          className="w-16 h-16 mx-auto mb-4 group-hover:scale-110 transition-transform"
+                          className="w-8 h-8 mx-auto mb-4 group-hover:scale-110 transition-transform"
                         />
-                        <h3 className="font-semibold text-gray-900 mb-2">{name}</h3>
-                        <p className="text-sm text-gray-600">
+                        <h3 className="font-semibold text-text-primary mb-2">{name}</h3>
+                        <p className="text-sm text-text-secondary">
                           {category.product_count ?? 'Explore products'}
                         </p>
                       </CardContent>
@@ -303,16 +302,16 @@ export function HomePage() {
       </section>
 
       {/* Recent Reviews Section */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Recent Reviews</h2>
-            <p className="text-xl text-gray-600">See what our community is saying</p>
+            <p className="text-sm text-text-secondary uppercase tracking-[0.1em] mb-2">Community</p>
+            <h2 className="text-2xl font-semibold text-text-primary">Recent Reviews</h2>
           </div>
 
           {loading ? (
             <div className="flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -363,18 +362,18 @@ export function HomePage() {
                   productId ? (
                     <Link
                       to={`/product/${productId}`}
-                      className="font-semibold text-gray-900 hover:text-primary transition-colors"
+                      className="font-semibold text-text-primary hover:text-accent-blue transition-colors"
                     >
                       {children}
                     </Link>
                   ) : (
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-text-primary">
                       {children}
                     </span>
                   )
 
                 return (
-                  <Card key={review.id} className="hover:shadow-lg transition-shadow">
+                  <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
@@ -382,20 +381,20 @@ export function HomePage() {
                             {productName}
                           </ReviewProductWrapper>
                           {productBrand && (
-                            <p className="text-sm text-gray-600">{productBrand}</p>
+                            <p className="text-sm text-text-secondary">{productBrand}</p>
                           )}
                         </div>
                         {renderStars(review.rating)}
                       </div>
 
-                      <h4 className="font-medium text-gray-900 mb-2">
+                      <h4 className="font-medium text-text-primary mb-2">
                         {reviewTitle}
                       </h4>
-                      <p className="text-gray-700 text-sm mb-4 line-clamp-3">
+                      <p className="text-text-secondary text-sm mb-4 line-clamp-3">
                         {review.comment || review.content}
                       </p>
 
-                      <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center justify-between text-xs text-text-secondary">
                         <div className="flex items-center space-x-2">
                           <span>
                             By{' '}
@@ -424,6 +423,7 @@ export function HomePage() {
             <Button
               variant="outline"
               size="lg"
+              className="border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md"
               onClick={() => navigate('/search?tab=reviews')}
             >
               View All Reviews
@@ -434,7 +434,7 @@ export function HomePage() {
 
       {/* Personalized Recommendations (for authenticated users) */}
       {isAuthenticated && (
-        <section className="py-16 bg-gray-50">
+        <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <RecommendationSection
               title="Recommended for You"
@@ -447,7 +447,7 @@ export function HomePage() {
       )}
 
       {/* Trending Products */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RecommendationSection
             title="Trending Products"
@@ -459,16 +459,17 @@ export function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-primary text-white">
+      <section className="py-16 bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4">Join Our Community</h2>
-          <p className="text-xl mb-8 opacity-90">
+          <p className="text-sm uppercase tracking-[0.1em] mb-2 opacity-80">Get Started</p>
+          <h2 className="text-2xl font-semibold mb-4">Join Our Community</h2>
+          <p className="text-lg mb-8 opacity-90">
             Share your experiences and help others make better purchasing decisions
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              variant="secondary"
+              className="bg-white text-accent-blue hover:bg-white/90 rounded-md px-8"
               onClick={() => navigate('/search')}
             >
               Write Your First Review
@@ -476,7 +477,7 @@ export function HomePage() {
             <Button
               size="lg"
               variant="outline"
-              className="text-white border-white hover:bg-white hover:text-primary"
+              className="text-white border-white hover:bg-white hover:text-accent-blue rounded-md px-8"
               onClick={() => navigate('/search?tab=products')}
             >
               Browse Products

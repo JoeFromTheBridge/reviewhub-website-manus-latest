@@ -53,11 +53,12 @@ export default {
         "soft-blue": "#E3F2FD",
         "soft-lavender": "#F3E5F5",
         "accent-blue": "#5B7DD4",
-        "star-gold": "#FFC107",
+        "star-gold": "#F59E0B",
         "white-surface": "#FFFFFF",
         "text-primary": "#1A1A1A",
-        "text-secondary": "#6B7280",
+        "text-secondary": "#8B8B8B",
         "border-light": "#E5E7EB",
+        "border-subtle": "rgba(0,0,0,0.03)",
       },
       borderRadius: {
         sm: '8px',
@@ -69,6 +70,7 @@ export default {
         'card': '0 2px 8px rgba(0, 0, 0, 0.08)',
         'card-hover': '0 8px 24px rgba(0, 0, 0, 0.12)',
         'input': '0 2px 4px rgba(0, 0, 0, 0.06)',
+        'sleek': '0 4px 20px rgba(0, 0, 0, 0.05)',
       },
       transitionTimingFunction: {
         'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
