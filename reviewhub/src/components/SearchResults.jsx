@@ -556,8 +556,7 @@ export function SearchResults() {
             {/* Reset Filters Button */}
             <Button
               onClick={clearFilters}
-              variant="outline"
-              className="w-full border-border-light hover:bg-soft-blue hover:text-accent-blue hover:border-accent-blue transition-smooth"
+              className="w-full bg-accent-blue hover:bg-accent-blue/90 text-white transition-smooth"
             >
               Reset Filters
             </Button>
