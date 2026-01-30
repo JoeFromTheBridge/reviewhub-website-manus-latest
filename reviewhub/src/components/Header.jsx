@@ -67,7 +67,7 @@ export function Header() {
   return (
     <>
       <header className="bg-white-surface shadow-card border-b border-border-light sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center h-16 gap-4">
             {/* Logo - Far Left (acts as Home link) */}
             <Link to="/" className="flex-shrink-0">
@@ -83,7 +83,7 @@ export function Header() {
             {/* Search Bar - Primary Focus, Wide */}
             <form
               onSubmit={handleSearch}
-              className="hidden md:flex flex-1 max-w-2xl"
+              className="hidden md:flex flex-1 max-w-xl"
             >
               <div className="relative w-full">
                 <input
@@ -106,14 +106,14 @@ export function Header() {
             {/* Categories - Right of Search */}
             <Link
               to="/categories"
-              className="hidden md:flex items-center gap-1 px-4 py-2 text-text-secondary hover:text-accent-blue font-medium transition-smooth"
+              className="hidden md:flex items-center gap-1 px-3 py-2 text-text-secondary hover:text-accent-blue font-medium transition-smooth whitespace-nowrap"
             >
               Categories
               <ChevronDown className="h-4 w-4" />
             </Link>
 
             {/* Spacer to push auth to far right */}
-            <div className="hidden md:block flex-1" />
+            <div className="flex-1" />
 
             {/* Auth / Profile Actions - Far Right */}
             <div className="hidden md:flex items-center gap-3">
@@ -216,13 +216,13 @@ export function Header() {
                   <Button
                     variant="ghost"
                     onClick={() => setShowLoginModal(true)}
-                    className="text-text-secondary hover:text-accent-blue hover:bg-soft-blue/50"
+                    className="text-text-secondary hover:text-purple-600 hover:bg-soft-lavender/50"
                   >
                     Sign In
                   </Button>
                   <Button
                     onClick={() => setShowRegisterModal(true)}
-                    className="bg-accent-blue hover:bg-accent-blue/90 text-white"
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
                   >
                     Sign Up
                   </Button>
@@ -374,7 +374,7 @@ export function Header() {
                       Sign In
                     </Button>
                     <Button
-                      className="w-full bg-accent-blue hover:bg-accent-blue/90"
+                      className="w-full bg-purple-600 hover:bg-purple-700"
                       onClick={() => {
                         setShowRegisterModal(true)
                         setIsMenuOpen(false)
