@@ -446,7 +446,7 @@ export function SearchResults() {
             {!loading && !error && products.length === 0 && (
               <div className="text-center py-12">
                 <p className="text-gray-600 mb-4">No products found matching your criteria.</p>
-                <Button onClick={clearFilters}>Clear Filters</Button>
+                <Button onClick={clearFilters} variant="outline">Reset Filters</Button>
               </div>
             )}
 
