@@ -282,13 +282,19 @@ export function HomePage() {
 
                 const productImage =
                   matchedProduct?.image_url ||
+                  matchedProduct?.imageUrl ||
+                  matchedProduct?.image ||
+                  matchedProduct?.thumbnail ||
+                  matchedProduct?.thumbnail_url ||
                   review.product?.image_url ||
+                  review.product?.imageUrl ||
+                  review.product?.image ||
                   null
 
                 const priceDisplay = formatPrice(matchedProduct)
 
-                // Get review images/photos if available
-                const reviewImages = review.images || review.photos || []
+                // Get review images/photos if available (check multiple possible field names)
+                const reviewImages = review.images || review.photos || review.image_urls || review.photo_urls || review.media || []
                 const firstReviewImage = reviewImages.length > 0 ? reviewImages[0]?.url || reviewImages[0] : null
 
                 const reviewTitle =
@@ -296,20 +302,22 @@ export function HomePage() {
                     ? review.title
                     : `Review of ${productName}`
 
+                // Fallback placeholder image when no product image available
+                const placeholderImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'
+                const displayImage = productImage || placeholderImage
+
                 return (
                   <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md overflow-hidden">
-                    {/* Product Image at Top of Tile */}
-                    {productImage && (
-                      <Link to={productId ? `/product/${productId}` : '#'}>
-                        <div className="w-full h-40 bg-soft-blue">
-                          <img
-                            src={productImage}
-                            alt={productName}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </Link>
-                    )}
+                    {/* Product Image at Top of Tile - always shown */}
+                    <Link to={productId ? `/product/${productId}` : '#'}>
+                      <div className="w-full h-40 bg-soft-blue">
+                        <img
+                          src={displayImage}
+                          alt={productName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </Link>
                     <CardContent className="p-6">
                       {/* Category Badge */}
                       {productCategory && (
@@ -426,8 +434,8 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Categories Section - Directly after Recent Reviews */}
-      <section className="py-16">
+      {/* Categories Section - Directly after Recent Reviews with gradient background */}
+      <section className="py-16 bg-gradient-to-br from-soft-blue to-soft-lavender">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>
