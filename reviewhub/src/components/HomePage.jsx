@@ -227,8 +227,8 @@ export function HomePage() {
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-sm text-text-secondary uppercase tracking-[0.1em] mb-2">Community</p>
-            <h2 className="text-2xl font-semibold text-text-primary">Recent Reviews</h2>
+            <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Community</p>
+            <h2 className="text-3xl font-semibold text-text-primary">Recent Reviews</h2>
           </div>
 
           {loading ? (
@@ -297,7 +297,19 @@ export function HomePage() {
                     : `Review of ${productName}`
 
                 return (
-                  <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md">
+                  <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md overflow-hidden">
+                    {/* Product Image at Top of Tile */}
+                    {productImage && (
+                      <Link to={productId ? `/product/${productId}` : '#'}>
+                        <div className="w-full h-40 bg-soft-blue">
+                          <img
+                            src={productImage}
+                            alt={productName}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </Link>
+                    )}
                     <CardContent className="p-6">
                       {/* Category Badge */}
                       {productCategory && (
@@ -359,18 +371,6 @@ export function HomePage() {
                         </div>
                       )}
 
-                      {/* Product image thumbnail if no review images */}
-                      {reviewImages.length === 0 && productImage && (
-                        <div className="mb-3">
-                          <Link to={productId ? `/product/${productId}` : '#'}>
-                            <img
-                              src={productImage}
-                              alt={productName}
-                              className="w-16 h-16 object-cover rounded-sm"
-                            />
-                          </Link>
-                        </div>
-                      )}
 
                       <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
                         <div className="flex items-center space-x-2">
@@ -416,9 +416,8 @@ export function HomePage() {
 
           <div className="text-center mt-8">
             <Button
-              variant="outline"
               size="lg"
-              className="border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md"
+              className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity rounded-md px-8"
               onClick={() => navigate('/search?tab=reviews')}
             >
               View All Reviews
@@ -427,49 +426,12 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Stats (live from API) - with gradient background */}
-      {!loading && !error && (
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              <div className="flex flex-col items-center">
-                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                  <Star className="h-8 w-8 text-accent-blue" />
-                </div>
-                <h3 className="text-3xl font-bold text-text-primary mb-2">
-                  {formatCount(reviewCount)}
-                </h3>
-                <p className="text-text-secondary">Total Reviews</p>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                  <TrendingUp className="h-8 w-8 text-accent-blue" />
-                </div>
-                <h3 className="text-3xl font-bold text-text-primary mb-2">
-                  {formatCount(productCount)}
-                </h3>
-                <p className="text-text-secondary">Products Listed</p>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                  <Users className="h-8 w-8 text-accent-blue" />
-                </div>
-                <h3 className="text-3xl font-bold text-text-primary mb-2">
-                  {formatCount(categoryCount)}
-                </h3>
-                <p className="text-text-secondary">Categories Covered</p>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Categories Section */}
-      <section className="py-16 bg-white-surface">
+      {/* Categories Section - Directly after Recent Reviews */}
+      <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <p className="text-sm text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>
-            <h2 className="text-2xl font-semibold text-text-primary">Browse by Category</h2>
+            <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>
+            <h2 className="text-3xl font-semibold text-text-primary">Browse by Category</h2>
           </div>
 
           {loading ? (
@@ -531,6 +493,47 @@ export function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Stats (live from API) - with gradient background */}
+      {!loading && !error && (
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Statistics</p>
+              <h2 className="text-3xl font-semibold text-text-primary">Our Community</h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+              <div className="flex flex-col items-center">
+                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
+                  <Star className="h-8 w-8 text-accent-blue" />
+                </div>
+                <h3 className="text-4xl font-bold text-text-primary mb-2">
+                  {formatCount(reviewCount)}
+                </h3>
+                <p className="text-lg text-text-secondary">Total Reviews</p>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
+                  <TrendingUp className="h-8 w-8 text-accent-blue" />
+                </div>
+                <h3 className="text-4xl font-bold text-text-primary mb-2">
+                  {formatCount(productCount)}
+                </h3>
+                <p className="text-lg text-text-secondary">Products Listed</p>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
+                  <Users className="h-8 w-8 text-accent-blue" />
+                </div>
+                <h3 className="text-4xl font-bold text-text-primary mb-2">
+                  {formatCount(categoryCount)}
+                </h3>
+                <p className="text-lg text-text-secondary">Categories Covered</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Personalized Recommendations (for authenticated users) */}
       {isAuthenticated && (
