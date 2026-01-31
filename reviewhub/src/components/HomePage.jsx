@@ -302,22 +302,20 @@ export function HomePage() {
                     ? review.title
                     : `Review of ${productName}`
 
-                // Fallback placeholder image when no product image available
-                const placeholderImage = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'
-                const displayImage = productImage || placeholderImage
-
                 return (
                   <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md overflow-hidden">
-                    {/* Product Image at Top of Tile - always shown */}
-                    <Link to={productId ? `/product/${productId}` : '#'}>
-                      <div className="w-full h-40 bg-soft-blue">
-                        <img
-                          src={displayImage}
-                          alt={productName}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    </Link>
+                    {/* Product Image at Top of Tile - only shown if product has an image */}
+                    {productImage && (
+                      <Link to={productId ? `/product/${productId}` : '#'}>
+                        <div className="w-full h-40 bg-soft-blue">
+                          <img
+                            src={productImage}
+                            alt={productName}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      </Link>
+                    )}
                     <CardContent className="p-6">
                       {/* Category Badge */}
                       {productCategory && (
@@ -558,7 +556,7 @@ export function HomePage() {
       )}
 
       {/* Trending Products */}
-      <section className="py-16 bg-white-surface">
+      <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <RecommendationSection
             title="Trending Products"
