@@ -5,33 +5,70 @@ export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-gray-900 text-gray-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer
+      className="border-t"
+      style={{
+        backgroundColor: '#1F2A44',
+        borderTopColor: 'rgba(0,0,0,0.05)'
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand Column */}
           <div>
-            <h3 className="text-white font-semibold text-lg mb-4">ReviewHub</h3>
-            <p className="text-sm text-gray-400">
-              Helping you make smarter purchase decisions with authentic reviews from real customers.
+            <h3
+              className="font-semibold text-lg mb-3"
+              style={{ color: 'rgba(255,255,255,0.85)' }}
+            >
+              ReviewHub
+            </h3>
+            <p
+              className="text-sm"
+              style={{ color: 'rgba(255,255,255,0.6)' }}
+            >
+              Community-driven product reviews.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-white font-medium mb-4">Quick Links</h4>
+            <h4
+              className="font-medium mb-4 text-sm"
+              style={{ color: 'rgba(255,255,255,0.85)' }}
+            >
+              Quick Links
+            </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/search?tab=products" className="hover:text-white transition-colors">
+                <Link
+                  to="/search?tab=products"
+                  className="hover:underline transition-colors"
+                  style={{ color: '#B9C7F3' }}
+                  onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
+                  onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
+                >
                   Browse Products
                 </Link>
               </li>
               <li>
-                <Link to="/search?tab=reviews" className="hover:text-white transition-colors">
+                <Link
+                  to="/search?tab=reviews"
+                  className="hover:underline transition-colors"
+                  style={{ color: '#B9C7F3' }}
+                  onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
+                  onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
+                >
                   Read Reviews
                 </Link>
               </li>
               <li>
-                <Link to="/about" className="hover:text-white transition-colors">
+                <Link
+                  to="/about"
+                  className="hover:underline transition-colors"
+                  style={{ color: '#B9C7F3' }}
+                  onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
+                  onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
+                >
                   About ReviewHub
                 </Link>
               </li>
@@ -40,20 +77,43 @@ export function Footer() {
 
           {/* Legal Links */}
           <div>
-            <h4 className="text-white font-medium mb-4">Legal</h4>
+            <h4
+              className="font-medium mb-4 text-sm"
+              style={{ color: 'rgba(255,255,255,0.85)' }}
+            >
+              Legal
+            </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link to="/privacy-policy" className="hover:text-white transition-colors">
+                <Link
+                  to="/privacy"
+                  className="hover:underline transition-colors"
+                  style={{ color: '#B9C7F3' }}
+                  onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
+                  onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
+                >
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="hover:text-white transition-colors">
+                <Link
+                  to="/terms"
+                  className="hover:underline transition-colors"
+                  style={{ color: '#B9C7F3' }}
+                  onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
+                  onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
+                >
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <a href="mailto:support@thereviewhub.ca" className="hover:text-white transition-colors">
+                <a
+                  href="mailto:support@thereviewhub.ca"
+                  className="hover:underline transition-colors"
+                  style={{ color: '#B9C7F3' }}
+                  onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
+                  onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
+                >
                   Contact Support
                 </a>
               </li>
@@ -62,7 +122,13 @@ export function Footer() {
         </div>
 
         {/* Copyright */}
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-500">
+        <div
+          className="mt-8 pt-8 text-center text-xs"
+          style={{
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.6)'
+          }}
+        >
           <p>&copy; {currentYear} ReviewHub. All rights reserved.</p>
         </div>
       </div>

@@ -182,7 +182,7 @@ function App() {
               }
             />
             <Route
-              path="/privacy-policy"
+              path="/privacy"
               element={
                 <>
                   <Header />
@@ -213,7 +213,7 @@ function App() {
               }
             />
             <Route
-              path="/privacy"
+              path="/privacy-settings"
               element={
                 <PrivateRoute>
                   <PrivacyPage />
