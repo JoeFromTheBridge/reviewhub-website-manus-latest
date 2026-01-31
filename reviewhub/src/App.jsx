@@ -19,6 +19,7 @@ import AdminVoiceSearch from './components/admin/AdminVoiceSearch'
 import { useAuth } from './contexts/AuthContext'
 import EmailVerification from './components/auth/EmailVerification'
 import { PasswordReset } from './components/auth/PasswordReset'
+import { RegisterPage } from './components/auth/RegisterPage'
 import ProfilePage from './components/profile/ProfilePage'
 import DevSeedPage from './components/DevSeedPage'
 
@@ -158,6 +159,10 @@ function App() {
                   <PasswordReset />
                 </>
               }
+            />
+            <Route
+              path="/signup"
+              element={<RegisterPage />}
             />
 
             {/* Public static pages */}

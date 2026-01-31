@@ -5,14 +5,12 @@ import { Search, User, Menu, X, LogOut, Settings, TrendingUp, Shield, ChevronDow
 import { Button } from '@/components/ui/button'
 import { useAuth } from '../contexts/AuthContext'
 import { LoginModal } from './auth/LoginModal'
-import { RegisterModal } from './auth/RegisterModal'
 import logoImage from '../assets/reviewhub_logo.png'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [showLoginModal, setShowLoginModal] = useState(false)
-  const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
 
   const navigate = useNavigate()
@@ -45,12 +43,7 @@ export function Header() {
 
   const switchToRegister = () => {
     setShowLoginModal(false)
-    setShowRegisterModal(true)
-  }
-
-  const switchToLogin = () => {
-    setShowRegisterModal(false)
-    setShowLoginModal(true)
+    navigate('/signup')
   }
 
   // Close user menu when clicking outside
@@ -221,7 +214,7 @@ export function Header() {
                     Sign In
                   </Button>
                   <Button
-                    onClick={() => setShowRegisterModal(true)}
+                    onClick={() => navigate('/signup')}
                     className="text-white hover:opacity-90"
                     style={{ backgroundColor: '#6A5CFF' }}
                   >
@@ -378,7 +371,7 @@ export function Header() {
                       className="w-full text-white hover:opacity-90"
                       style={{ backgroundColor: '#6A5CFF' }}
                       onClick={() => {
-                        setShowRegisterModal(true)
+                        navigate('/signup')
                         setIsMenuOpen(false)
                       }}
                     >
@@ -392,16 +385,11 @@ export function Header() {
         )}
       </header>
 
-      {/* Auth Modals */}
+      {/* Auth Modal */}
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
         onSwitchToRegister={switchToRegister}
-      />
-      <RegisterModal
-        isOpen={showRegisterModal}
-        onClose={() => setShowRegisterModal(false)}
-        onSwitchToLogin={switchToLogin}
       />
     </>
   )
