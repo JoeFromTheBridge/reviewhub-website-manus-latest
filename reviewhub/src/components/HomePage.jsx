@@ -297,18 +297,8 @@ export function HomePage() {
                     : `Review of ${productName}`
 
                 return (
-                  <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md overflow-hidden">
-                    {/* Product/Review Image */}
-                    {(productImage || firstReviewImage) && (
-                      <Link to={productId ? `/product/${productId}` : '#'}>
-                        <img
-                          src={firstReviewImage || productImage}
-                          alt={productName}
-                          className="w-full h-40 object-cover"
-                        />
-                      </Link>
-                    )}
-                    <CardContent className="p-4">
+                  <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md">
+                    <CardContent className="p-6">
                       {/* Category Badge */}
                       {productCategory && (
                         <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm mb-2">
@@ -334,6 +324,7 @@ export function HomePage() {
                             <p className="text-sm text-text-secondary">{productBrand}</p>
                           )}
                         </div>
+                        {renderStars(review.rating)}
                       </div>
 
                       {/* Price */}
@@ -341,42 +332,47 @@ export function HomePage() {
                         <p className="text-lg font-bold text-accent-blue mb-2">{priceDisplay}</p>
                       )}
 
-                      {/* Rating */}
-                      <div className="flex items-center gap-2 mb-2">
-                        {renderStars(review.rating)}
-                        <span className="text-sm text-text-secondary">
-                          {review.rating?.toFixed(1) || '0.0'}
-                        </span>
-                      </div>
-
                       {/* Review Title & Content */}
-                      <h4 className="font-medium text-text-primary text-sm mb-1 line-clamp-1">
+                      <h4 className="font-medium text-text-primary mb-2">
                         {reviewTitle}
                       </h4>
-                      <p className="text-text-secondary text-sm mb-3 line-clamp-2">
+                      <p className="text-text-secondary text-sm mb-3 line-clamp-3">
                         {review.comment || review.content}
                       </p>
 
-                      {/* Review thumbnails if multiple images */}
-                      {reviewImages.length > 1 && (
+                      {/* Review image thumbnails */}
+                      {reviewImages.length > 0 && (
                         <div className="flex gap-1 mb-3">
-                          {reviewImages.slice(0, 3).map((img, idx) => (
+                          {reviewImages.slice(0, 4).map((img, idx) => (
                             <img
                               key={idx}
                               src={img?.url || img}
                               alt={`Review photo ${idx + 1}`}
-                              className="w-10 h-10 object-cover rounded-sm"
+                              className="w-12 h-12 object-cover rounded-sm"
                             />
                           ))}
-                          {reviewImages.length > 3 && (
-                            <div className="w-10 h-10 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
-                              +{reviewImages.length - 3}
+                          {reviewImages.length > 4 && (
+                            <div className="w-12 h-12 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
+                              +{reviewImages.length - 4}
                             </div>
                           )}
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between text-xs text-text-secondary">
+                      {/* Product image thumbnail if no review images */}
+                      {reviewImages.length === 0 && productImage && (
+                        <div className="mb-3">
+                          <Link to={productId ? `/product/${productId}` : '#'}>
+                            <img
+                              src={productImage}
+                              alt={productName}
+                              className="w-16 h-16 object-cover rounded-sm"
+                            />
+                          </Link>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
                         <div className="flex items-center space-x-2">
                           <span>
                             By{' '}
@@ -393,6 +389,24 @@ export function HomePage() {
                         </div>
                         <span>{review.helpful_count || 0} helpful</span>
                       </div>
+
+                      {/* Review This Product Button */}
+                      {productId && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md"
+                          onClick={() => {
+                            if (isAuthenticated) {
+                              navigate(`/product/${productId}?writeReview=true`)
+                            } else {
+                              navigate('/signup', { state: { from: `/product/${productId}?writeReview=true` } })
+                            }
+                          }}
+                        >
+                          Review This Product
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 )
