@@ -2,11 +2,15 @@
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { Header } from './components/Header'
+import { Footer } from './components/Footer'
 import { HomePage } from './components/HomePage'
 import { ProductPage } from './components/ProductPage'
 import { SearchResults } from './components/SearchResults'
 import UserAnalyticsPage from './components/profile/UserAnalyticsPage'
 import PrivacyPage from './components/privacy/PrivacyPage'
+import AboutPage from './components/pages/AboutPage'
+import TermsPage from './components/pages/TermsPage'
+import PrivacyPolicyPage from './components/pages/PrivacyPolicyPage'
 import AdminLayout from './components/admin/AdminLayout'
 import AdminDashboard from './components/admin/AdminDashboard'
 import AdminUsers from './components/admin/AdminUsers'
@@ -152,6 +156,38 @@ function App() {
                 <>
                   <Header />
                   <PasswordReset />
+                </>
+              }
+            />
+
+            {/* Public static pages */}
+            <Route
+              path="/about"
+              element={
+                <>
+                  <Header />
+                  <AboutPage />
+                  <Footer />
+                </>
+              }
+            />
+            <Route
+              path="/terms"
+              element={
+                <>
+                  <Header />
+                  <TermsPage />
+                  <Footer />
+                </>
+              }
+            />
+            <Route
+              path="/privacy-policy"
+              element={
+                <>
+                  <Header />
+                  <PrivacyPolicyPage />
+                  <Footer />
                 </>
               }
             />

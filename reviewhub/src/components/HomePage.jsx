@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import RecommendationSection from './recommendations/RecommendationSection'
 import ImageOptimizer from './ui/image-optimizer'
+import Footer from './Footer'
 import { useAuth } from '../contexts/AuthContext'
 import apiService from '../services/api'
 
@@ -222,37 +223,47 @@ export function HomePage() {
     )
   }
 
+  // Handle write review button - auth-aware navigation
+  const handleWriteReview = () => {
+    if (isAuthenticated) {
+      navigate('/search?tab=products')
+    } else {
+      navigate('/signup', { state: { from: '/search?tab=products' } })
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-soft-blue to-soft-lavender">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-soft-blue to-soft-lavender flex flex-col">
+      {/* Hero Section - with softened CTA gradient */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-[#5B7DD4]/75 to-[#A391E2]/75">
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[120px] pb-[80px]">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="text-center lg:text-left">
-              <h1 className="text-3xl md:text-[48px] font-semibold text-text-primary mb-6 leading-tight">
+              <h1 className="text-3xl md:text-[48px] font-semibold text-white mb-6 leading-tight">
                 Make Smarter
-                <span className="block text-accent-blue">Purchase Decisions</span>
+                <span className="block text-white/90">Purchase Decisions</span>
               </h1>
-              <p className="text-lg text-text-secondary mb-8">
+              <p className="text-lg text-white/80 mb-8">
                 Read authentic reviews from real customers and share your own experiences
                 to help others make informed choices.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                {/* From hero, go to SearchPage showing review results */}
+                {/* Primary: Browse Products */}
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity rounded-md px-8"
-                  onClick={() => navigate('/search?tab=reviews')}
+                  className="bg-white text-accent-blue hover:bg-white/90 rounded-md px-8 font-medium"
+                  onClick={() => navigate('/search?tab=products')}
                 >
-                  Explore Reviews
+                  Browse Products
                 </Button>
+                {/* Secondary: Write Your First Review */}
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md px-8"
-                  onClick={() => navigate('/search')}
+                  className="text-white border-white hover:bg-white hover:text-accent-blue rounded-md px-8"
+                  onClick={handleWriteReview}
                 >
-                  Write a Review
+                  Write Your First Review
                 </Button>
               </div>
             </div>
@@ -270,386 +281,364 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Recent Reviews Section - Directly after Hero */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Community</p>
-            <h2 className="text-3xl font-semibold text-text-primary">Recent Reviews</h2>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+      {/* Main content wrapper */}
+      <div className="flex-1">
+        {/* Recent Reviews Section - Directly after Hero */}
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Community</p>
+              <h2 className="text-3xl font-semibold text-text-primary">Recent Reviews</h2>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredReviews.map((review) => {
-                // Product id from review
-                const productId =
-                  review.product?.id ??
-                  review.product?.product_id ??
-                  review.product_id ??
-                  review.productId ??
-                  null
 
-                // Try to find the full product in the products list
-                const matchedProduct = productId
-                  ? products.find(
-                      (p) =>
-                        p.id === productId ||
-                        p.product_id === productId
-                    )
-                  : null
+            {loading ? (
+              <div className="flex justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredReviews.map((review) => {
+                  // Product id from review
+                  const productId =
+                    review.product?.id ??
+                    review.product?.product_id ??
+                    review.product_id ??
+                    review.productId ??
+                    null
 
-                const productName =
-                  matchedProduct?.name ||
-                  matchedProduct?.title ||
-                  matchedProduct?.product_name ||
-                  review.product?.name ||
-                  review.product?.product_name ||
-                  review.product_name ||
-                  (review.title && review.title !== 'Review'
-                    ? review.title
-                    : 'Product')
+                  // Try to find the full product in the products list
+                  const matchedProduct = productId
+                    ? products.find(
+                        (p) =>
+                          p.id === productId ||
+                          p.product_id === productId
+                      )
+                    : null
 
-                const productBrand =
-                  matchedProduct?.brand ||
-                  matchedProduct?.manufacturer ||
-                  review.product?.brand ||
-                  review.product?.manufacturer ||
-                  review.brand ||
-                  review.product_brand ||
-                  null
+                  const productName =
+                    matchedProduct?.name ||
+                    matchedProduct?.title ||
+                    matchedProduct?.product_name ||
+                    review.product?.name ||
+                    review.product?.product_name ||
+                    review.product_name ||
+                    (review.title && review.title !== 'Review'
+                      ? review.title
+                      : 'Product')
 
-                const productCategory =
-                  matchedProduct?.category ||
-                  review.product?.category ||
-                  null
+                  const productBrand =
+                    matchedProduct?.brand ||
+                    matchedProduct?.manufacturer ||
+                    review.product?.brand ||
+                    review.product?.manufacturer ||
+                    review.brand ||
+                    review.product_brand ||
+                    null
 
-                const productImage =
-                  matchedProduct?.image_url ||
-                  matchedProduct?.imageUrl ||
-                  matchedProduct?.image ||
-                  matchedProduct?.thumbnail ||
-                  matchedProduct?.thumbnail_url ||
-                  review.product?.image_url ||
-                  review.product?.imageUrl ||
-                  review.product?.image ||
-                  null
+                  const productCategory =
+                    matchedProduct?.category ||
+                    review.product?.category ||
+                    null
 
-                const priceDisplay = formatPrice(matchedProduct)
+                  const productImage =
+                    matchedProduct?.image_url ||
+                    matchedProduct?.imageUrl ||
+                    matchedProduct?.image ||
+                    matchedProduct?.thumbnail ||
+                    matchedProduct?.thumbnail_url ||
+                    review.product?.image_url ||
+                    review.product?.imageUrl ||
+                    review.product?.image ||
+                    null
 
-                // Get review images/photos if available (check multiple possible field names)
-                const reviewImages = review.images || review.photos || review.image_urls || review.photo_urls || review.media || []
-                const firstReviewImage = reviewImages.length > 0 ? reviewImages[0]?.url || reviewImages[0] : null
+                  const priceDisplay = formatPrice(matchedProduct)
 
-                const reviewTitle =
-                  review.title && review.title !== 'Review'
-                    ? review.title
-                    : `Review of ${productName}`
+                  // Get review images/photos if available (check multiple possible field names)
+                  const reviewImages = review.images || review.photos || review.image_urls || review.photo_urls || review.media || []
+                  const firstReviewImage = reviewImages.length > 0 ? reviewImages[0]?.url || reviewImages[0] : null
 
-                return (
-                  <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md overflow-hidden">
-                    {/* Product Image at Top of Tile - only shown if product has an image */}
-                    {productImage && (
-                      <Link to={productId ? `/product/${productId}` : '#'}>
-                        <div className="w-full h-40 bg-soft-blue">
-                          <img
-                            src={productImage}
-                            alt={productName}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </Link>
-                    )}
-                    <CardContent className="p-6">
-                      {/* Category Badge */}
-                      {productCategory && (
-                        <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm mb-2">
-                          {productCategory}
-                        </Badge>
+                  const reviewTitle =
+                    review.title && review.title !== 'Review'
+                      ? review.title
+                      : `Review of ${productName}`
+
+                  return (
+                    <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md overflow-hidden">
+                      {/* Product Image at Top of Tile - only shown if product has an image */}
+                      {productImage && (
+                        <Link to={productId ? `/product/${productId}` : '#'}>
+                          <div className="w-full h-40 bg-soft-blue">
+                            <img
+                              src={productImage}
+                              alt={productName}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        </Link>
                       )}
+                      <CardContent className="p-6">
+                        {/* Category Badge */}
+                        {productCategory && (
+                          <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm mb-2">
+                            {productCategory}
+                          </Badge>
+                        )}
 
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1 min-w-0">
-                          {productId ? (
-                            <Link
-                              to={`/product/${productId}`}
-                              className="font-semibold text-text-primary hover:text-accent-blue transition-colors line-clamp-1"
-                            >
-                              {productName}
-                            </Link>
-                          ) : (
-                            <span className="font-semibold text-text-primary line-clamp-1">
-                              {productName}
-                            </span>
-                          )}
-                          {productBrand && (
-                            <p className="text-sm text-text-secondary">{productBrand}</p>
-                          )}
-                        </div>
-                        {renderStars(review.rating)}
-                      </div>
-
-                      {/* Price */}
-                      {priceDisplay && (
-                        <p className="text-lg font-bold text-accent-blue mb-2">{priceDisplay}</p>
-                      )}
-
-                      {/* Review Title & Content */}
-                      <h4 className="font-medium text-text-primary mb-2">
-                        {reviewTitle}
-                      </h4>
-                      <p className="text-text-secondary text-sm mb-3 line-clamp-3">
-                        {review.comment || review.content}
-                      </p>
-
-                      {/* Review image thumbnails */}
-                      {(() => {
-                        // Extract valid image URLs using helper
-                        const validImages = reviewImages
-                          .map(img => getReviewImageUrl(img))
-                          .filter(url => url && url.length > 0)
-
-                        if (validImages.length === 0) return null
-
-                        return (
-                          <div className="flex gap-1 mb-3">
-                            {validImages.slice(0, 4).map((imgUrl, idx) => (
-                              <img
-                                key={idx}
-                                src={imgUrl}
-                                alt={`Review photo ${idx + 1}`}
-                                className="w-12 h-12 object-cover rounded-sm"
-                              />
-                            ))}
-                            {validImages.length > 4 && (
-                              <div className="w-12 h-12 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
-                                +{validImages.length - 4}
-                              </div>
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1 min-w-0">
+                            {productId ? (
+                              <Link
+                                to={`/product/${productId}`}
+                                className="font-semibold text-text-primary hover:text-accent-blue transition-colors line-clamp-1"
+                              >
+                                {productName}
+                              </Link>
+                            ) : (
+                              <span className="font-semibold text-text-primary line-clamp-1">
+                                {productName}
+                              </span>
+                            )}
+                            {productBrand && (
+                              <p className="text-sm text-text-secondary">{productBrand}</p>
                             )}
                           </div>
-                        )
-                      })()}
-
-
-                      <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
-                        <div className="flex items-center space-x-2">
-                          <span>
-                            By{' '}
-                            {review.user?.username ||
-                              review.user_username ||
-                              review.user_name ||
-                              'Anonymous'}
-                          </span>
-                          {(review.is_verified || review.verified_purchase) && (
-                            <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
-                              Verified
-                            </span>
-                          )}
+                          {renderStars(review.rating)}
                         </div>
-                        <span>{review.helpful_count || 0} helpful</span>
-                      </div>
 
-                      {/* Review This Product Button */}
-                      {productId && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="w-full border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md"
-                          onClick={() => {
-                            if (isAuthenticated) {
-                              navigate(`/product/${productId}?writeReview=true`)
-                            } else {
-                              navigate('/signup', { state: { from: `/product/${productId}?writeReview=true` } })
-                            }
-                          }}
-                        >
-                          Review This Product
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                )
-              })}
+                        {/* Price */}
+                        {priceDisplay && (
+                          <p className="text-lg font-bold text-accent-blue mb-2">{priceDisplay}</p>
+                        )}
+
+                        {/* Review Title & Content */}
+                        <h4 className="font-medium text-text-primary mb-2">
+                          {reviewTitle}
+                        </h4>
+                        <p className="text-text-secondary text-sm mb-3 line-clamp-3">
+                          {review.comment || review.content}
+                        </p>
+
+                        {/* Review image thumbnails */}
+                        {(() => {
+                          // Extract valid image URLs using helper
+                          const validImages = reviewImages
+                            .map(img => getReviewImageUrl(img))
+                            .filter(url => url && url.length > 0)
+
+                          if (validImages.length === 0) return null
+
+                          return (
+                            <div className="flex gap-1 mb-3">
+                              {validImages.slice(0, 4).map((imgUrl, idx) => (
+                                <img
+                                  key={idx}
+                                  src={imgUrl}
+                                  alt={`Review photo ${idx + 1}`}
+                                  className="w-12 h-12 object-cover rounded-sm"
+                                />
+                              ))}
+                              {validImages.length > 4 && (
+                                <div className="w-12 h-12 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
+                                  +{validImages.length - 4}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
+
+
+                        <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
+                          <div className="flex items-center space-x-2">
+                            <span>
+                              By{' '}
+                              {review.user?.username ||
+                                review.user_username ||
+                                review.user_name ||
+                                'Anonymous'}
+                            </span>
+                            {(review.is_verified || review.verified_purchase) && (
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                                Verified
+                              </span>
+                            )}
+                          </div>
+                          <span>{review.helpful_count || 0} helpful</span>
+                        </div>
+
+                        {/* Review This Product Button */}
+                        {productId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md"
+                            onClick={() => {
+                              if (isAuthenticated) {
+                                navigate(`/product/${productId}?writeReview=true`)
+                              } else {
+                                navigate('/signup', { state: { from: `/product/${productId}?writeReview=true` } })
+                              }
+                            }}
+                          >
+                            Review This Product
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="text-center mt-8">
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity rounded-md px-8"
+                onClick={() => navigate('/search?tab=reviews')}
+              >
+                View All Reviews
+              </Button>
             </div>
-          )}
-
-          <div className="text-center mt-8">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity rounded-md px-8"
-              onClick={() => navigate('/search?tab=reviews')}
-            >
-              View All Reviews
-            </Button>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Categories Section - Directly after Recent Reviews with gradient background */}
-      <section className="py-16 bg-gradient-to-br from-soft-blue to-soft-lavender">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>
-            <h2 className="text-3xl font-semibold text-text-primary">Browse by Category</h2>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+        {/* Categories Section - Directly after Recent Reviews with gradient background */}
+        <section className="py-16 bg-gradient-to-br from-soft-blue to-soft-lavender">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>
+              <h2 className="text-3xl font-semibold text-text-primary">Browse by Category</h2>
             </div>
-          ) : error ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {STATIC_CATEGORIES.map((category) => (
-                <Link
-                  key={category.id}
-                  to={buildCategoryHref(category)}
-                  className="group"
-                >
-                  <Card className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-md">
-                    <CardContent className="p-6 text-center">
-                      <img
-                        src={category.img}
-                        alt={category.name}
-                        className="w-8 h-8 mx-auto mb-4 group-hover:scale-110 transition-transform"
-                      />
-                      <h3 className="font-semibold text-text-primary mb-2">{category.name}</h3>
-                      <p className="text-sm text-text-secondary">Explore products</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {(categories.length ? categories : STATIC_CATEGORIES).map((category) => {
-                const name = category.name || category.title || 'Category'
-                const href = buildCategoryHref(category)
-                const img = category.img || getCategoryIcon(name)
 
-                return (
+            {loading ? (
+              <div className="flex justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+              </div>
+            ) : error ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {STATIC_CATEGORIES.map((category) => (
                   <Link
-                    key={category.id || category.slug || name}
-                    to={href}
+                    key={category.id}
+                    to={buildCategoryHref(category)}
                     className="group"
                   >
                     <Card className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-md">
                       <CardContent className="p-6 text-center">
                         <img
-                          src={img}
-                          alt={name}
+                          src={category.img}
+                          alt={category.name}
                           className="w-8 h-8 mx-auto mb-4 group-hover:scale-110 transition-transform"
                         />
-                        <h3 className="font-semibold text-text-primary mb-2">{name}</h3>
-                        <p className="text-sm text-text-secondary">
-                          {category.product_count ?? 'Explore products'}
-                        </p>
+                        <h3 className="font-semibold text-text-primary mb-2">{category.name}</h3>
+                        <p className="text-sm text-text-secondary">Explore products</p>
                       </CardContent>
                     </Card>
                   </Link>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </section>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {(categories.length ? categories : STATIC_CATEGORIES).map((category) => {
+                  const name = category.name || category.title || 'Category'
+                  const href = buildCategoryHref(category)
+                  const img = category.img || getCategoryIcon(name)
 
-      {/* Stats (live from API) - with gradient background */}
-      {!loading && !error && (
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Statistics</p>
-              <h2 className="text-3xl font-semibold text-text-primary">Our Community</h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-              <div className="flex flex-col items-center">
-                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                  <Star className="h-8 w-8 text-accent-blue" />
-                </div>
-                <h3 className="text-4xl font-bold text-text-primary mb-2">
-                  {formatCount(reviewCount)}
-                </h3>
-                <p className="text-lg text-text-secondary">Total Reviews</p>
+                  return (
+                    <Link
+                      key={category.id || category.slug || name}
+                      to={href}
+                      className="group"
+                    >
+                      <Card className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-md">
+                        <CardContent className="p-6 text-center">
+                          <img
+                            src={img}
+                            alt={name}
+                            className="w-8 h-8 mx-auto mb-4 group-hover:scale-110 transition-transform"
+                          />
+                          <h3 className="font-semibold text-text-primary mb-2">{name}</h3>
+                          <p className="text-sm text-text-secondary">
+                            {category.product_count ?? 'Explore products'}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  )
+                })}
               </div>
-              <div className="flex flex-col items-center">
-                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                  <TrendingUp className="h-8 w-8 text-accent-blue" />
-                </div>
-                <h3 className="text-4xl font-bold text-text-primary mb-2">
-                  {formatCount(productCount)}
-                </h3>
-                <p className="text-lg text-text-secondary">Products Listed</p>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                  <Users className="h-8 w-8 text-accent-blue" />
-                </div>
-                <h3 className="text-4xl font-bold text-text-primary mb-2">
-                  {formatCount(categoryCount)}
-                </h3>
-                <p className="text-lg text-text-secondary">Categories Covered</p>
-              </div>
-            </div>
+            )}
           </div>
         </section>
-      )}
 
-      {/* Personalized Recommendations (for authenticated users) */}
-      {isAuthenticated && (
+        {/* Stats (live from API) */}
+        {!loading && !error && (
+          <section className="py-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-12">
+                <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Statistics</p>
+                <h2 className="text-3xl font-semibold text-text-primary">Our Community</h2>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div className="flex flex-col items-center">
+                  <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
+                    <Star className="h-8 w-8 text-accent-blue" />
+                  </div>
+                  <h3 className="text-4xl font-bold text-text-primary mb-2">
+                    {formatCount(reviewCount)}
+                  </h3>
+                  <p className="text-lg text-text-secondary">Total Reviews</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
+                    <TrendingUp className="h-8 w-8 text-accent-blue" />
+                  </div>
+                  <h3 className="text-4xl font-bold text-text-primary mb-2">
+                    {formatCount(productCount)}
+                  </h3>
+                  <p className="text-lg text-text-secondary">Products Listed</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
+                    <Users className="h-8 w-8 text-accent-blue" />
+                  </div>
+                  <h3 className="text-4xl font-bold text-text-primary mb-2">
+                    {formatCount(categoryCount)}
+                  </h3>
+                  <p className="text-lg text-text-secondary">Categories Covered</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Personalized Recommendations (for authenticated users) */}
+        {isAuthenticated && (
+          <section className="py-16">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <RecommendationSection
+                title="Recommended for You"
+                type="user"
+                limit={6}
+                showReasons={true}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* Trending Products */}
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <RecommendationSection
-              title="Recommended for You"
-              type="user"
+              title="Trending Products"
+              type="trending"
               limit={6}
-              showReasons={true}
+              showReasons={false}
             />
           </div>
         </section>
-      )}
+      </div>
 
-      {/* Trending Products */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <RecommendationSection
-            title="Trending Products"
-            type="trending"
-            limit={6}
-            showReasons={false}
-          />
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm uppercase tracking-[0.1em] mb-2 opacity-80">Get Started</p>
-          <h2 className="text-2xl font-semibold mb-4">Join Our Community</h2>
-          <p className="text-lg mb-8 opacity-90">
-            Share your experiences and help others make better purchasing decisions
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-white text-accent-blue hover:bg-white/90 rounded-md px-8"
-              onClick={() => navigate('/search')}
-            >
-              Write Your First Review
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-white border-white hover:bg-white hover:text-accent-blue rounded-md px-8"
-              onClick={() => navigate('/search?tab=products')}
-            >
-              Browse Products
-            </Button>
-          </div>
-        </div>
-      </section>
+      {/* Footer */}
+      <Footer />
     </div>
   )
 }
