@@ -16,6 +16,53 @@ import automotiveIcon from '../assets/category_automotive.png'
 import homeIcon from '../assets/category_home.png'
 import beautyIcon from '../assets/category_beauty.png'
 
+// Helper to safely extract image URL from various API response structures
+function getReviewImageUrl(image) {
+  if (!image) return ''
+
+  // Plain string - check if it's a valid URL
+  if (typeof image === 'string') {
+    const trimmed = image.trim()
+    if (!trimmed) return ''
+    if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+      return trimmed
+    }
+    return `/${trimmed.replace(/^\/+/, '')}`
+  }
+
+  // If backend nests inside an `image` field
+  if (image.image && typeof image.image === 'string') {
+    return getReviewImageUrl(image.image)
+  }
+  if (image.image && typeof image.image === 'object') {
+    const nested = getReviewImageUrl(image.image)
+    if (nested) return nested
+  }
+
+  // Try various common field names
+  const candidate =
+    image.file_url ||
+    image.url ||
+    image.image_url ||
+    image.file_path ||
+    image.path ||
+    image.location ||
+    image.src ||
+    image.thumbnail_url ||
+    null
+
+  if (!candidate) return ''
+
+  const trimmed = String(candidate).trim()
+  if (!trimmed) return ''
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+    return trimmed
+  }
+
+  return `/${trimmed.replace(/^\/+/, '')}`
+}
+
 export function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [categories, setCategories] = useState([])
@@ -359,23 +406,32 @@ export function HomePage() {
                       </p>
 
                       {/* Review image thumbnails */}
-                      {reviewImages.length > 0 && (
-                        <div className="flex gap-1 mb-3">
-                          {reviewImages.slice(0, 4).map((img, idx) => (
-                            <img
-                              key={idx}
-                              src={img?.url || img}
-                              alt={`Review photo ${idx + 1}`}
-                              className="w-12 h-12 object-cover rounded-sm"
-                            />
-                          ))}
-                          {reviewImages.length > 4 && (
-                            <div className="w-12 h-12 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
-                              +{reviewImages.length - 4}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {(() => {
+                        // Extract valid image URLs using helper
+                        const validImages = reviewImages
+                          .map(img => getReviewImageUrl(img))
+                          .filter(url => url && url.length > 0)
+
+                        if (validImages.length === 0) return null
+
+                        return (
+                          <div className="flex gap-1 mb-3">
+                            {validImages.slice(0, 4).map((imgUrl, idx) => (
+                              <img
+                                key={idx}
+                                src={imgUrl}
+                                alt={`Review photo ${idx + 1}`}
+                                className="w-12 h-12 object-cover rounded-sm"
+                              />
+                            ))}
+                            {validImages.length > 4 && (
+                              <div className="w-12 h-12 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
+                                +{validImages.length - 4}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
 
 
                       <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
