@@ -222,7 +222,8 @@ export function Header() {
                   </Button>
                   <Button
                     onClick={() => setShowRegisterModal(true)}
-                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                    className="text-white hover:opacity-90"
+                    style={{ backgroundColor: '#6A5CFF' }}
                   >
                     Sign Up
                   </Button>
@@ -374,7 +375,8 @@ export function Header() {
                       Sign In
                     </Button>
                     <Button
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full text-white hover:opacity-90"
+                      style={{ backgroundColor: '#6A5CFF' }}
                       onClick={() => {
                         setShowRegisterModal(true)
                         setIsMenuOpen(false)
