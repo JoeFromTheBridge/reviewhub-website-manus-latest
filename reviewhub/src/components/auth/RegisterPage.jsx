@@ -28,6 +28,7 @@ export function RegisterPage() {
     first_name: '',
     last_name: '',
   })
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -47,6 +48,10 @@ export function RegisterPage() {
   }
 
   const validateForm = () => {
+    if (!agreedToTerms) {
+      setError('You must agree to the Terms of Service')
+      return false
+    }
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
       return false
@@ -93,6 +98,7 @@ export function RegisterPage() {
         first_name: '',
         last_name: '',
       })
+      setAgreedToTerms(false)
     } catch (error) {
       setError(error.message)
     } finally {
@@ -418,6 +424,36 @@ export function RegisterPage() {
                     )}
                   </button>
                 </div>
+              </div>
+
+              {/* Terms of Service checkbox */}
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="agreedToTerms"
+                  checked={agreedToTerms}
+                  onChange={(e) => {
+                    setAgreedToTerms(e.target.checked)
+                    if (error) setError('')
+                  }}
+                  disabled={isLoading}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  style={{ accentColor: '#6A5CFF' }}
+                />
+                <label
+                  htmlFor="agreedToTerms"
+                  className="text-sm"
+                  style={{ color: '#6B7280' }}
+                >
+                  I agree to the{' '}
+                  <Link
+                    to="/terms"
+                    className="font-medium hover:underline"
+                    style={{ color: '#6A5CFF' }}
+                  >
+                    Terms of Service
+                  </Link>
+                </label>
               </div>
 
               <Button
