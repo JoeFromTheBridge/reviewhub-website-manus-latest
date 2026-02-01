@@ -1,7 +1,7 @@
 # ReviewHub Design Manifest
 
 ## Theme: White, Sleek, Sophisticated
-This document is the single source of truth for the ReviewHub interface. It moves from global foundations to specific page implementations to ensure AI implementation consistency.
+This document is the single source of truth for the ReviewHub interface, moving from global foundations to specific page implementations.
 
 ---
 
@@ -32,33 +32,26 @@ This document is the single source of truth for the ReviewHub interface. It move
 ## 1. Page-Specific Implementations (The Recipes)
 
 ### 🏠 Homepage Layout
-* **Navigation:** Pure white background, `height: 72px`. `1px` bottom border of `--border-subtle`.
-* **Hero Section:**
-    * **Padding:** `120px` top, `80px` bottom (Force high whitespace).
-    * **Typography:** Headline `text-3xl`, centered, Serif or Semi-bold Sans.
-    * **Main CTA:** Large button using **Hero/CTA Gradient**.
-* **Section Headers:** Centered text, `--text-secondary`, uppercase with `0.1em` letter-spacing.
-* **"Why ReviewHub" Grid:** * 3-column layout. 
-    * Icons: `32px` size, monotone using `--accent-blue`.
+* **Hero Section Padding:** `120px` top, `80px` bottom.
+* **Featured Products:** 3-column grid of white cards.
+* **Why ReviewHub Icons:** `32px` monotone icons on light lavender/blue backgrounds.
 
 ### 🔍 Search & Results Page
-* **Layout Structure:** Two-column Dashboard.
-    * **Sidebar (Filters):** Fixed width `280px`. Pure white background, `1px` right border.
-    * **Main Content:** Flexible Product Grid.
-* **Search Bar:** `height: 56px`, `12px` radius, centered within a white header wrapper.
-* **Product Cards:**
-    * Image Area: `object-fit: contain` on white background.
-    * Typography: Title `16px` Bold, Brand `12px` Gray.
-    * Price/Rating: Use `--accent-blue` and `--star-gold`.
+* **Layout Structure:** Sidebar (280px) + Flexible Main Grid.
+* **Product Grid:** Responsive (1 to 4 columns).
 
 ### 🔐 Create Account / Auth Page
-* **Layout Structure:** Centralized Split-Card (`max-width: 900px`).
-    * **Left Pane (Value Prop):** 40% width. Features the Logo, Title, and a vertical list of benefits.
-    * **Right Pane (Form):** 60% width. Standardized vertical form.
-* **Benefit Items:** Icons use a `32px` circular background in `rgba(91, 125, 212, 0.1)` (Faint Blue Accent).
-* **Form Inputs:** `height: 48px`, `border: 1px solid var(--border-subtle)`.
-* **Social Auth Grid:** 2-column layout for Google/Apple buttons.
-* **Primary Action:** Full-width button using **Hero/CTA Gradient**.
+* **Split-Card Layout:** 40% Brand/Value Prop | 60% Functional Form.
+* **Auth Buttons:** Social logins use "Ghost" style to prioritize the main "Sign Up" gradient button.
+
+### 📦 Product Detail Page (PDP)
+* **Hero Area:** Two-column split.
+    * **Left (Image):** Standard white card (`--radius-md`) with `object-fit: contain`.
+    * **Right (Info):** Large serif headline, bold price, and standard star rating component.
+* **Review Overview:**
+    * **Progress Bars:** Height `8px`, `--radius-sm`. Fill color: `--star-gold`.
+* **Review Feed:** * Individual review cards use standard card styling.
+    * Action buttons (Helpful/Not Helpful) use secondary "Ghost" button styling.
 
 ---
 
@@ -69,7 +62,7 @@ This document is the single source of truth for the ReviewHub interface. It move
 * **Secondary / Ghost:** `background: #FFFFFF`, `border: 1px solid var(--border-subtle)`, `color: var(--text-primary)`.
 
 ### Typography Scale
-* `--text-xs`: `12px` (Labels/Small Captions)
+* `--text-xs`: `12px` (Labels)
 * `--text-sm`: `14px` (Secondary text)
 * `--text-base`: `16px` (Body text)
 * `--text-xl`: `24px` (Card Titles / Section Headers)
@@ -78,7 +71,7 @@ This document is the single source of truth for the ReviewHub interface. It move
 ---
 
 ## 3. Implementation Rules for AI
-1. **The "Soft Border" Rule:** Avoid pure black or high-contrast borders. Use `--border-subtle`.
-2. **Form Focus:** On input focus, transition the border color to `--accent-blue` and add a tiny `2px` glow using `rgba(91, 125, 212, 0.2)`.
-3. **Empty States:** Maintain the global background gradient even on auth pages to ensure brand continuity.
+1. **Consistency:** Never hardcode hex values; always reference the variables above.
+2. **Whitespace:** Maintain high padding (increments of 16px/24px/32px) to ensure the "Sleek" feel.
+3. **Softness:** Avoid pure black or sharp edges. Use `--border-subtle` for all visible lines.
 4. 
