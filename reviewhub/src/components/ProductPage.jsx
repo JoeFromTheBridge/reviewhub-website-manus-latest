@@ -615,13 +615,20 @@ export function ProductPage() {
     return [...Array(5)].map((_, i) => (
       <Star
         key={i}
-        className={`h-4 w-4 ${
-          i < Math.floor(value)
-            ? 'text-yellow-400 fill-current'
+        className="h-4 w-4"
+        style={{
+          color: i < Math.floor(value)
+            ? '#FFC107'
             : i < Math.ceil(value) && value % 1 >= 0.5
-            ? 'text-yellow-400 fill-current opacity-50'
-            : 'text-gray-300'
-        }`}
+            ? '#FFC107'
+            : '#E5E7EB',
+          fill: i < Math.floor(value)
+            ? '#FFC107'
+            : i < Math.ceil(value) && value % 1 >= 0.5
+            ? '#FFC107'
+            : 'none',
+          opacity: i < Math.ceil(value) && value % 1 >= 0.5 && i >= Math.floor(value) ? 0.5 : 1,
+        }}
       />
     ));
   };
@@ -637,24 +644,39 @@ export function ProductPage() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <p className="text-center text-gray-600">Loading product details…</p>
+      <div
+        className="min-h-screen py-16"
+        style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center" style={{ color: '#6B7280' }}>Loading product details…</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <p className="text-center text-red-600">{error}</p>
+      <div
+        className="min-h-screen py-16"
+        style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-red-600">{error}</p>
+        </div>
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <p className="text-center text-gray-600">Product not found.</p>
+      <div
+        className="min-h-screen py-16"
+        style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center" style={{ color: '#6B7280' }}>Product not found.</p>
+        </div>
       </div>
     );
   }
@@ -695,273 +717,410 @@ export function ProductPage() {
     'No detailed description has been provided for this product yet.';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Product Header */}
-      <div className="grid lg:grid-cols-2 gap-8 mb-12">
-        <div>
-          <img
-            src={imageUrl}
-            alt={productName}
-            className="w-full h-96 object-cover rounded-lg shadow-lg"
-            onError={(e) => {
-              e.currentTarget.onerror = null;
-              e.currentTarget.src =
-                'https://via.placeholder.com/800x400?text=Image+unavailable';
-            }}
-          />
-        </div>
-
-        <div>
-          <div className="mb-4">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {productName}
-            </h1>
-            {productBrand && (
-              <p className="text-lg text-gray-600">{productBrand}</p>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-4 mb-6">
-            <div className="flex items-center space-x-1">
-              {renderStars(ratingStats.average || product.average_rating)}
-              <span className="text-lg font-semibold ml-2">
-                {ratingStats.total
-                  ? ratingStats.average.toFixed(1)
-                  : product.average_rating?.toFixed?.(1) || 'N/A'}
-              </span>
+    <div
+      className="min-h-screen"
+      style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Product Header Card */}
+        <div
+          className="mb-12 p-6 md:p-8"
+          style={{
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          }}
+        >
+          <div className="grid lg:grid-cols-2 gap-8">
+            <div>
+              <img
+                src={imageUrl}
+                alt={productName}
+                className="w-full h-96 object-cover"
+                style={{ borderRadius: '12px' }}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src =
+                    'https://via.placeholder.com/800x400?text=Image+unavailable';
+                }}
+              />
             </div>
-            <span className="text-gray-600">
-              ({ratingStats.total || product.review_count || 0} reviews)
-            </span>
-          </div>
 
-          {ratingStats.photoCount > 0 && (
-            <div className="mb-4 text-sm text-gray-700">
-              {ratingStats.photoCount} review
-              {ratingStats.photoCount === 1 ? '' : 's'} include photos.
-            </div>
-          )}
-
-          {specs && Array.isArray(specs) && specs.length > 0 && (
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">
-                Specifications
-              </h3>
-              <ul className="space-y-2">
-                {specs.map((spec, index) => (
-                  <li key={index} className="text-gray-700">
-                    • {spec}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="mb-6">
-            <p className="text-gray-700">{description}</p>
-          </div>
-
-          {product.price_min != null || product.price_max != null ? (
-            <div className="mb-6">
-              <p className="text-lg font-semibold text-gray-900">
-                Price Range{' '}
-                {product.price_min != null && product.price_max != null
-                  ? `$${product.price_min} - $${product.price_max}`
-                  : product.price_min != null
-                  ? `$${product.price_min}+`
-                  : product.price_max != null
-                  ? `Up to $${product.price_max}`
-                  : 'N/A'}
-              </p>
-            </div>
-          ) : null}
-
-          <div className="flex space-x-4">
-            <Button size="lg" className="flex-1">
-              Compare Prices
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={handleWriteReviewClick}
-            >
-              Write Review
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Reviews Section */}
-      <div
-        id="reviews-section"
-        className="grid lg:grid-cols-3 gap-8"
-      >
-        {/* Rating Summary */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Reviews</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center mb-6">
-                <div className="text-4xl font-bold text-gray-900 mb-2">
-                  {ratingStats.total
-                    ? ratingStats.average.toFixed(1)
-                    : product.average_rating?.toFixed?.(1) || 'N/A'}
-                </div>
-                <div className="flex justify-center mb-2">
-                  {renderStars(ratingStats.average || product.average_rating)}
-                </div>
-                <p className="text-gray-600">
-                  {ratingStats.total || product.review_count || 0} total reviews
-                </p>
-                {ratingStats.photoCount > 0 && (
-                  <p className="mt-1 text-xs text-gray-600">
-                    {ratingStats.photoCount} review
-                    {ratingStats.photoCount === 1 ? '' : 's'} with photos
+            <div>
+              <div className="mb-4">
+                <h1
+                  className="text-3xl font-bold mb-2"
+                  style={{ color: '#1A1A1A' }}
+                >
+                  {productName}
+                </h1>
+                {productBrand && (
+                  <p className="text-lg" style={{ color: '#6B7280' }}>
+                    {productBrand}
                   </p>
                 )}
               </div>
 
-              <div className="space-y-3">
-                {ratingStats.distribution.map((item) => (
-                  <div key={item.stars} className="flex items-center space-x-3">
-                    <span className="text-sm w-6">{item.stars}★</span>
-                    <Progress value={item.percentage} className="flex-1" />
-                    <span className="text-sm text-gray-600 w-12">
-                      {item.count}
-                    </span>
-                  </div>
-                ))}
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="flex items-center space-x-1">
+                  {renderStars(ratingStats.average || product.average_rating)}
+                  <span
+                    className="text-lg font-semibold ml-2"
+                    style={{ color: '#1A1A1A' }}
+                  >
+                    {ratingStats.total
+                      ? ratingStats.average.toFixed(1)
+                      : product.average_rating?.toFixed?.(1) || 'N/A'}
+                  </span>
+                </div>
+                <span style={{ color: '#6B7280' }}>
+                  ({ratingStats.total || product.review_count || 0} reviews)
+                </span>
               </div>
-            </CardContent>
-          </Card>
+
+              {ratingStats.photoCount > 0 && (
+                <div className="mb-4 text-sm" style={{ color: '#6B7280' }}>
+                  {ratingStats.photoCount} review
+                  {ratingStats.photoCount === 1 ? '' : 's'} include photos.
+                </div>
+              )}
+
+              {specs && Array.isArray(specs) && specs.length > 0 && (
+                <div className="mb-6">
+                  <h3
+                    className="font-semibold mb-3"
+                    style={{ color: '#1A1A1A' }}
+                  >
+                    Specifications
+                  </h3>
+                  <ul className="space-y-2">
+                    {specs.map((spec, index) => (
+                      <li key={index} style={{ color: '#6B7280' }}>
+                        • {spec}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="mb-6">
+                <p style={{ color: '#6B7280' }}>{description}</p>
+              </div>
+
+              {product.price_min != null || product.price_max != null ? (
+                <div className="mb-6">
+                  <p className="text-lg font-semibold" style={{ color: '#1A1A1A' }}>
+                    Price Range{' '}
+                    {product.price_min != null && product.price_max != null
+                      ? `$${product.price_min} - $${product.price_max}`
+                      : product.price_min != null
+                      ? `$${product.price_min}+`
+                      : product.price_max != null
+                      ? `Up to $${product.price_max}`
+                      : 'N/A'}
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="flex space-x-4">
+                <Button
+                  size="lg"
+                  className="flex-1 text-white transition-all"
+                  style={{
+                    background: '#2196F3',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 4px rgba(33, 150, 243, 0.2)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#1976D2';
+                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = '#2196F3';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.2)';
+                  }}
+                >
+                  Compare Prices
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleWriteReviewClick}
+                  style={{
+                    borderRadius: '8px',
+                    borderColor: '#E5E7EB',
+                    color: '#374151',
+                  }}
+                >
+                  Write Review
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Reviews List + Form */}
-        <div className="lg:col-span-2">
-          {/* Review Form */}
-          {showReviewForm && (
-            <div className="mb-8">
-              <ReviewForm
-                productId={numericId}
-                onReviewSubmitted={handleReviewSubmitted}
-                onCancel={() => setShowReviewForm(false)}
-                maxImages={MAX_REVIEW_IMAGES}
-              />
-            </div>
-          )}
+        {/* Reviews Section */}
+        <div
+          id="reviews-section"
+          className="grid lg:grid-cols-3 gap-8"
+        >
+          {/* Rating Summary */}
+          <div className="lg:col-span-1">
+            <div
+              style={{
+                background: '#FFFFFF',
+                borderRadius: '12px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+              }}
+            >
+              <div className="p-6">
+                <h3
+                  className="text-lg font-semibold mb-4"
+                  style={{ color: '#1A1A1A' }}
+                >
+                  Customer Reviews
+                </h3>
+                <div className="text-center mb-6">
+                  <div
+                    className="text-4xl font-bold mb-2"
+                    style={{ color: '#1A1A1A' }}
+                  >
+                    {ratingStats.total
+                      ? ratingStats.average.toFixed(1)
+                      : product.average_rating?.toFixed?.(1) || 'N/A'}
+                  </div>
+                  <div className="flex justify-center mb-2">
+                    {renderStars(ratingStats.average || product.average_rating)}
+                  </div>
+                  <p style={{ color: '#6B7280' }}>
+                    {ratingStats.total || product.review_count || 0} total reviews
+                  </p>
+                  {ratingStats.photoCount > 0 && (
+                    <p className="mt-1 text-xs" style={{ color: '#6B7280' }}>
+                      {ratingStats.photoCount} review
+                      {ratingStats.photoCount === 1 ? '' : 's'} with photos
+                    </p>
+                  )}
+                </div>
 
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4 mb-6 items-center">
-            <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-600" />
-              <span className="text-sm font-medium">Sort by:</span>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="border rounded px-3 py-1 text-sm"
-              >
-                <option value="helpful">Most Helpful</option>
-                <option value="recent">Most Recent</option>
-                <option value="rating">Highest Rating</option>
-                <option value="photos">Most Photos</option>
-              </select>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium">Rating:</span>
-              <select
-                value={filterRating}
-                onChange={(e) => setFilterRating(e.target.value)}
-                className="border rounded px-3 py-1 text-sm"
-              >
-                <option value="all">All Ratings</option>
-                <option value="5">5 Stars</option>
-                <option value="4">4 Stars</option>
-                <option value="3">3 Stars</option>
-                <option value="2">2 Stars</option>
-                <option value="1">1 Star</option>
-              </select>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <input
-                id="only-with-photos"
-                type="checkbox"
-                checked={onlyWithPhotos}
-                onChange={(e) => setOnlyWithPhotos(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label
-                htmlFor="only-with-photos"
-                className="text-sm text-gray-700 cursor-pointer"
-              >
-                Only reviews with photos
-              </label>
+                <div className="space-y-3">
+                  {ratingStats.distribution.map((item) => (
+                    <div key={item.stars} className="flex items-center space-x-3">
+                      <span
+                        className="text-sm w-6"
+                        style={{ color: '#FFC107' }}
+                      >
+                        {item.stars}★
+                      </span>
+                      <Progress value={item.percentage} className="flex-1" />
+                      <span
+                        className="text-sm w-12"
+                        style={{ color: '#6B7280' }}
+                      >
+                        {item.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Individual Reviews */}
-          <div className="space-y-6">
-            {filteredAndSortedReviews.length === 0 ? (
-              <div className="text-gray-600">
-                {reviews.length === 0 ? (
-                  <p>There are no reviews for this product yet.</p>
-                ) : hasActiveFilters ? (
-                  <div className="space-y-2">
-                    <p>No reviews match these filters.</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearFilters}
-                    >
-                      Clear filters
-                    </Button>
-                  </div>
-                ) : (
-                  <p>No reviews to display.</p>
-                )}
+          {/* Reviews List + Form */}
+          <div className="lg:col-span-2">
+            {/* Review Form */}
+            {showReviewForm && (
+              <div className="mb-8">
+                <ReviewForm
+                  productId={numericId}
+                  onReviewSubmitted={handleReviewSubmitted}
+                  onCancel={() => setShowReviewForm(false)}
+                  maxImages={MAX_REVIEW_IMAGES}
+                />
               </div>
-            ) : (
-              filteredAndSortedReviews.map((review) => {
-                const isVerified =
-                  review.verified_purchase || review.is_verified;
-                const helpful = review.helpful_count || 0;
-                const createdAt = review.created_at
-                  ? new Date(review.created_at).toLocaleDateString()
-                  : '';
+            )}
 
-                const images = collectReviewImages(review);
-                const hasImages = images.length > 0;
+            {/* Filters Panel */}
+            <div
+              className="flex flex-wrap gap-4 mb-6 items-center p-4"
+              style={{
+                background: '#FFFFFF',
+                borderRadius: '12px',
+                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.06)',
+                border: '1px solid #E5E7EB',
+              }}
+            >
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4" style={{ color: '#6B7280' }} />
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: '#374151' }}
+                >
+                  Sort by:
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-3 py-1.5 text-sm"
+                  style={{
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    color: '#374151',
+                    background: '#FFFFFF',
+                  }}
+                >
+                  <option value="helpful">Most Helpful</option>
+                  <option value="recent">Most Recent</option>
+                  <option value="rating">Highest Rating</option>
+                  <option value="photos">Most Photos</option>
+                </select>
+              </div>
 
-                const reviewerName =
-                  review.user?.username ||
-                  review.user_username ||
-                  review.user_name ||
-                  'Anonymous';
+              <div className="flex items-center space-x-2">
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: '#374151' }}
+                >
+                  Rating:
+                </span>
+                <select
+                  value={filterRating}
+                  onChange={(e) => setFilterRating(e.target.value)}
+                  className="px-3 py-1.5 text-sm"
+                  style={{
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    color: '#374151',
+                    background: '#FFFFFF',
+                  }}
+                >
+                  <option value="all">All Ratings</option>
+                  <option value="5">5 Stars</option>
+                  <option value="4">4 Stars</option>
+                  <option value="3">3 Stars</option>
+                  <option value="2">2 Stars</option>
+                  <option value="1">1 Star</option>
+                </select>
+              </div>
 
-                const lightboxImages = images.map((img) => ({
-                  ...img,
-                  captionTitle: review.title || 'Review',
-                  captionMeta: createdAt
-                    ? `${reviewerName} • ${createdAt}`
-                    : reviewerName,
-                }));
+              <div className="flex items-center space-x-2">
+                <input
+                  id="only-with-photos"
+                  type="checkbox"
+                  checked={onlyWithPhotos}
+                  onChange={(e) => setOnlyWithPhotos(e.target.checked)}
+                  className="h-4 w-4 rounded"
+                  style={{
+                    borderColor: '#E5E7EB',
+                    accentColor: '#2196F3',
+                  }}
+                />
+                <label
+                  htmlFor="only-with-photos"
+                  className="text-sm cursor-pointer"
+                  style={{ color: '#6B7280' }}
+                >
+                  Only reviews with photos
+                </label>
+              </div>
+            </div>
 
-                return (
-                  <Card key={review.id}>
-                    <CardContent className="p-6">
+            {/* Individual Reviews */}
+            <div className="space-y-6">
+              {filteredAndSortedReviews.length === 0 ? (
+                <div
+                  className="p-6"
+                  style={{
+                    background: '#FFFFFF',
+                    borderRadius: '12px',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                    color: '#6B7280',
+                  }}
+                >
+                  {reviews.length === 0 ? (
+                    <p>There are no reviews for this product yet.</p>
+                  ) : hasActiveFilters ? (
+                    <div className="space-y-2">
+                      <p>No reviews match these filters.</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={clearFilters}
+                        style={{
+                          borderRadius: '8px',
+                          borderColor: '#E5E7EB',
+                          color: '#374151',
+                        }}
+                      >
+                        Clear filters
+                      </Button>
+                    </div>
+                  ) : (
+                    <p>No reviews to display.</p>
+                  )}
+                </div>
+              ) : (
+                filteredAndSortedReviews.map((review) => {
+                  const isVerified =
+                    review.verified_purchase || review.is_verified;
+                  const helpful = review.helpful_count || 0;
+                  const createdAt = review.created_at
+                    ? new Date(review.created_at).toLocaleDateString()
+                    : '';
+
+                  const images = collectReviewImages(review);
+                  const hasImages = images.length > 0;
+
+                  const reviewerName =
+                    review.user?.username ||
+                    review.user_username ||
+                    review.user_name ||
+                    'Anonymous';
+
+                  const lightboxImages = images.map((img) => ({
+                    ...img,
+                    captionTitle: review.title || 'Review',
+                    captionMeta: createdAt
+                      ? `${reviewerName} • ${createdAt}`
+                      : reviewerName,
+                  }));
+
+                  return (
+                    <div
+                      key={review.id}
+                      className="p-6 transition-all duration-300"
+                      style={{
+                        background: '#FFFFFF',
+                        borderRadius: '12px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12)';
+                        e.currentTarget.style.transform = 'translateY(-4px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <div className="flex items-center space-x-2 mb-2">
-                            <span className="font-semibold">
+                            <span
+                              className="font-semibold"
+                              style={{ color: '#1A1A1A' }}
+                            >
                               {reviewerName}
                             </span>
                             {isVerified && (
                               <Badge
                                 variant="secondary"
-                                className="bg-green-100 text-green-800"
+                                className="text-xs"
+                                style={{
+                                  background: '#E8F5E9',
+                                  color: '#2E7D32',
+                                  borderRadius: '8px',
+                                }}
                               >
                                 <Shield className="h-3 w-3 mr-1" />
                                 Verified Purchase
@@ -973,7 +1132,10 @@ export function ProductPage() {
                               {renderStars(review.rating)}
                             </div>
                             {createdAt && (
-                              <span className="text-sm text-gray-600">
+                              <span
+                                className="text-sm"
+                                style={{ color: '#6B7280' }}
+                              >
                                 {createdAt}
                               </span>
                             )}
@@ -982,20 +1144,28 @@ export function ProductPage() {
                       </div>
 
                       <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-gray-900">
+                        <h4
+                          className="font-semibold"
+                          style={{ color: '#1A1A1A' }}
+                        >
                           {review.title || 'Review'}
                         </h4>
                         {hasImages && (
                           <Badge
                             variant="outline"
-                            className="text-xs border-blue-500 text-blue-600"
+                            className="text-xs"
+                            style={{
+                              borderColor: '#2196F3',
+                              color: '#2196F3',
+                              borderRadius: '8px',
+                            }}
                           >
                             Includes photos
                           </Badge>
                         )}
                       </div>
 
-                      <p className="text-gray-700 mb-4">
+                      <p className="mb-4" style={{ color: '#6B7280' }}>
                         {review.content || review.comment}
                       </p>
 
@@ -1008,12 +1178,13 @@ export function ProductPage() {
                               onClick={() =>
                                 openLightbox(lightboxImages, index)
                               }
-                              className="focus:outline-none"
+                              className="focus:outline-none transition-opacity"
                             >
                               <img
                                 src={img.thumb}
                                 alt="Review"
-                                className="w-20 h-20 object-cover rounded hover:opacity-80 transition"
+                                className="w-20 h-20 object-cover hover:opacity-80 transition"
+                                style={{ borderRadius: '8px' }}
                                 onError={(e) => {
                                   e.currentTarget.onerror = null;
                                   e.currentTarget.src =
@@ -1029,7 +1200,7 @@ export function ProductPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-gray-600"
+                          style={{ color: '#6B7280', borderRadius: '8px' }}
                         >
                           <ThumbsUp className="h-4 w-4 mr-2" />
                           Helpful ({helpful})
@@ -1037,216 +1208,261 @@ export function ProductPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-gray-600"
+                          style={{ color: '#6B7280', borderRadius: '8px' }}
                         >
                           Reply
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-
-          <div className="text-center mt-8">
-            <Button variant="outline">Load More Reviews</Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Visual Similar Products Section */}
-      {numericId && (
-        <div className="mt-16">
-          <SimilarProducts productId={numericId} />
-        </div>
-      )}
-
-      {/* Similar Products Section */}
-      {numericId && (
-        <div className="mt-16">
-          <RecommendationSection
-            title="Similar Products"
-            type="similar"
-            productId={numericId}
-            limit={6}
-            showReasons={false}
-          />
-        </div>
-      )}
-
-      {/* Lightbox Modal */}
-      {lightbox.open && lightbox.images.length > 0 && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
-          onClick={closeLightbox}
-        >
-          <div
-            ref={lightboxContainerRef}
-            className="relative w-full max-w-5xl mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              className="relative bg-black rounded-lg shadow-lg overflow-hidden flex flex-col"
-              style={{ height: isFullscreen ? '94vh' : '80vh' }}
-            >
-              {/* Close button */}
-              <button
-                type="button"
-                onClick={closeLightbox}
-                aria-label="Close image viewer"
-                className="absolute top-3 right-3 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
-              >
-                <X className="h-5 w-5" />
-              </button>
-
-              {/* Fullscreen toggle */}
-              <button
-                type="button"
-                onClick={toggleFullscreen}
-                aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
-                className="absolute top-3 right-12 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
-              >
-                {isFullscreen ? (
-                  <Minimize2 className="h-5 w-5" />
-                ) : (
-                  <Maximize2 className="h-5 w-5" />
-                )}
-              </button>
-
-              {/* Fixed-height image area; arrows stay centered; wheel scrolls images */}
-              <div
-                className={`relative flex items-center justify-center ${
-                  isFullscreen ? 'h-[78vh]' : 'h-[60vh]'
-                }`}
-                style={{ touchAction: 'none' }}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                onWheel={handleWheel}
-              >
-                {lightbox.images.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={showPrevImage}
-                    aria-label="Previous image"
-                    className="absolute left-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                )}
-
-                <img
-                  src={lightbox.images[lightbox.currentIndex]?.full}
-                  alt={`Review image ${lightbox.currentIndex + 1}`}
-                  className="max-h-full max-w-full object-contain"
-                  style={{
-                    transform: `scale(${lightbox.scale || 1})`,
-                  }}
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src =
-                      'https://via.placeholder.com/800x600?text=Image+unavailable';
-                  }}
-                />
-
-                {lightbox.images.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={showNextImage}
-                    aria-label="Next image"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center rounded-full bg-black/70 p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Fixed bottom info area: index + progress + captions */}
-              <div className="px-4 py-3 border-t border-white/10 text-sm text-gray-100 text-center">
-                <div>
-                  Image {lightbox.currentIndex + 1} of {lightbox.images.length}
-                </div>
-                <div className="mt-2 mx-auto w-40 h-1.5 rounded-full bg-white/20 overflow-hidden">
-                  <div
-                    className="h-full bg-white/80"
-                    style={{
-                      width: `${
-                        ((lightbox.currentIndex + 1) /
-                          lightbox.images.length) *
-                        100
-                      }%`,
-                    }}
-                  />
-                </div>
-                {(() => {
-                  const current = lightbox.images[lightbox.currentIndex] || {};
-                  return (
-                    <>
-                      {current.captionTitle && (
-                        <div className="mt-2 font-medium">
-                          {current.captionTitle}
-                        </div>
-                      )}
-                      {current.captionMeta && (
-                        <div className="mt-0.5 text-xs text-gray-300">
-                          {current.captionMeta}
-                        </div>
-                      )}
-                    </>
+                    </div>
                   );
-                })()}
-              </div>
-
-              {/* Thumbnail strip pinned at very bottom */}
-              {lightbox.images.length > 1 && (
-                <div className="px-4 pb-3 pt-1 border-t border-white/10">
-                  <div className="flex justify-center gap-2 overflow-x-auto">
-                    {lightbox.images.map((img, idx) => {
-                      const isActive = idx === lightbox.currentIndex;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          ref={(el) => {
-                            thumbRefs.current[idx] = el;
-                          }}
-                          onClick={() =>
-                            setLightbox((prev) => ({
-                              ...prev,
-                              currentIndex: idx,
-                              scale: 1,
-                            }))
-                          }
-                          className={`border rounded ${
-                            isActive
-                              ? 'border-white/80'
-                              : 'border-white/20 hover:border-white/50'
-                          }`}
-                          aria-label={`Go to image ${idx + 1}`}
-                        >
-                          <img
-                            src={img.thumb}
-                            alt={`Thumbnail ${idx + 1}`}
-                            className={`h-14 w-14 object-cover rounded ${
-                              isActive ? 'opacity-100' : 'opacity-70'
-                            }`}
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.src =
-                                'https://via.placeholder.com/80?text=Img';
-                            }}
-                          />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                })
               )}
+            </div>
+
+            <div className="text-center mt-8">
+              <Button
+                variant="outline"
+                style={{
+                  borderRadius: '8px',
+                  borderColor: '#E5E7EB',
+                  color: '#374151',
+                  background: '#F3F4F6',
+                }}
+              >
+                Load More Reviews
+              </Button>
             </div>
           </div>
         </div>
-      )}
+
+        {/* Visual Similar Products Section */}
+        {numericId && (
+          <div className="mt-16">
+            <SimilarProducts productId={numericId} />
+          </div>
+        )}
+
+        {/* Similar Products Section */}
+        {numericId && (
+          <div className="mt-16">
+            <RecommendationSection
+              title="Similar Products"
+              type="similar"
+              productId={numericId}
+              limit={6}
+              showReasons={false}
+            />
+          </div>
+        )}
+
+        {/* Lightbox Modal */}
+        {lightbox.open && lightbox.images.length > 0 && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+            onClick={closeLightbox}
+          >
+            <div
+              ref={lightboxContainerRef}
+              className="relative w-full max-w-5xl mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div
+                className="relative overflow-hidden flex flex-col"
+                style={{
+                  background: '#000000',
+                  borderRadius: '16px',
+                  height: isFullscreen ? '94vh' : '80vh',
+                }}
+              >
+                {/* Close button */}
+                <button
+                  type="button"
+                  onClick={closeLightbox}
+                  aria-label="Close image viewer"
+                  className="absolute top-3 right-3 z-20 inline-flex items-center justify-center p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    borderRadius: '50%',
+                  }}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
+                {/* Fullscreen toggle */}
+                <button
+                  type="button"
+                  onClick={toggleFullscreen}
+                  aria-label={isFullscreen ? 'Exit full screen' : 'Enter full screen'}
+                  className="absolute top-3 right-12 z-20 inline-flex items-center justify-center p-1.5 text-gray-100 hover:bg-black/90 focus:outline-none"
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.7)',
+                    borderRadius: '50%',
+                  }}
+                >
+                  {isFullscreen ? (
+                    <Minimize2 className="h-5 w-5" />
+                  ) : (
+                    <Maximize2 className="h-5 w-5" />
+                  )}
+                </button>
+
+                {/* Fixed-height image area; arrows stay centered; wheel scrolls images */}
+                <div
+                  className={`relative flex items-center justify-center ${
+                    isFullscreen ? 'h-[78vh]' : 'h-[60vh]'
+                  }`}
+                  style={{ touchAction: 'none' }}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                  onWheel={handleWheel}
+                >
+                  {lightbox.images.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={showPrevImage}
+                      aria-label="Previous image"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        borderRadius: '50%',
+                      }}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                  )}
+
+                  <img
+                    src={lightbox.images[lightbox.currentIndex]?.full}
+                    alt={`Review image ${lightbox.currentIndex + 1}`}
+                    className="max-h-full max-w-full object-contain"
+                    style={{
+                      transform: `scale(${lightbox.scale || 1})`,
+                    }}
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src =
+                        'https://via.placeholder.com/800x600?text=Image+unavailable';
+                    }}
+                  />
+
+                  {lightbox.images.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={showNextImage}
+                      aria-label="Next image"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 z-20 inline-flex items-center justify-center p-2 text-gray-100 hover:bg-black/90 focus:outline-none"
+                      style={{
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        borderRadius: '50%',
+                      }}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Fixed bottom info area: index + progress + captions */}
+                <div
+                  className="px-4 py-3 text-sm text-gray-100 text-center"
+                  style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}
+                >
+                  <div>
+                    Image {lightbox.currentIndex + 1} of {lightbox.images.length}
+                  </div>
+                  <div
+                    className="mt-2 mx-auto w-40 h-1.5 overflow-hidden"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <div
+                      className="h-full"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.8)',
+                        width: `${
+                          ((lightbox.currentIndex + 1) /
+                            lightbox.images.length) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
+                  {(() => {
+                    const current = lightbox.images[lightbox.currentIndex] || {};
+                    return (
+                      <>
+                        {current.captionTitle && (
+                          <div className="mt-2 font-medium">
+                            {current.captionTitle}
+                          </div>
+                        )}
+                        {current.captionMeta && (
+                          <div className="mt-0.5 text-xs text-gray-300">
+                            {current.captionMeta}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Thumbnail strip pinned at very bottom */}
+                {lightbox.images.length > 1 && (
+                  <div
+                    className="px-4 pb-3 pt-1"
+                    style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}
+                  >
+                    <div className="flex justify-center gap-2 overflow-x-auto">
+                      {lightbox.images.map((img, idx) => {
+                        const isActive = idx === lightbox.currentIndex;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            ref={(el) => {
+                              thumbRefs.current[idx] = el;
+                            }}
+                            onClick={() =>
+                              setLightbox((prev) => ({
+                                ...prev,
+                                currentIndex: idx,
+                                scale: 1,
+                              }))
+                            }
+                            style={{
+                              border: isActive
+                                ? '2px solid rgba(255, 255, 255, 0.8)'
+                                : '2px solid rgba(255, 255, 255, 0.2)',
+                              borderRadius: '8px',
+                            }}
+                            aria-label={`Go to image ${idx + 1}`}
+                          >
+                            <img
+                              src={img.thumb}
+                              alt={`Thumbnail ${idx + 1}`}
+                              className={`h-14 w-14 object-cover ${
+                                isActive ? 'opacity-100' : 'opacity-70'
+                              }`}
+                              style={{ borderRadius: '6px' }}
+                              onError={(e) => {
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src =
+                                  'https://via.placeholder.com/80?text=Img';
+                              }}
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
