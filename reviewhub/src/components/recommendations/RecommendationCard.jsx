@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Star, TrendingUp, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Star } from 'lucide-react';
 import { Badge } from '../ui/badge';
 
 const RecommendationCard = ({ product, type = 'recommendation', showReasons = true }) => {
@@ -12,145 +11,165 @@ const RecommendationCard = ({ product, type = 'recommendation', showReasons = tr
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
-            className={`h-4 w-4 ${
-              i < Math.floor(value)
-                ? 'fill-yellow-400 text-yellow-400'
+            className="h-4 w-4"
+            style={{
+              color: i < Math.floor(value)
+                ? '#FFC107'
                 : i < Math.ceil(value) && value % 1 >= 0.5
-                ? 'fill-yellow-400 text-yellow-400 opacity-50'
-                : 'text-gray-300'
-            }`}
+                ? '#FFC107'
+                : '#E5E7EB',
+              fill: i < Math.floor(value)
+                ? '#FFC107'
+                : i < Math.ceil(value) && value % 1 >= 0.5
+                ? '#FFC107'
+                : 'none',
+              opacity: i < Math.ceil(value) && value % 1 >= 0.5 && i >= Math.floor(value) ? 0.5 : 1,
+            }}
           />
         ))}
-        <span className="ml-1 text-sm text-gray-600">
-          {value.toFixed(1)}
-        </span>
       </div>
     );
   };
 
-  const getTypeIcon = () => {
-    switch (type) {
-      case 'trending':
-        return <TrendingUp className="h-4 w-4 text-orange-500" />;
-      case 'similar':
-        return <Users className="h-4 w-4 text-blue-500" />;
-      default:
-        return <Star className="h-4 w-4 text-purple-500" />;
-    }
-  };
-
-  const getTypeLabel = () => {
-    switch (type) {
-      case 'trending':
-        return 'Trending';
-      case 'similar':
-        return 'Similar';
-      default:
-        return 'Recommended';
-    }
-  };
-
   const getScoreDisplay = () => {
-    if (type === 'trending' && product.trend_score) {
-      return `Trend Score: ${product.trend_score.toFixed(1)}`;
-    }
     if (type === 'similar' && product.similarity_score) {
       return `${(product.similarity_score * 100).toFixed(0)}% Similar`;
     }
     if (product.recommendation_score) {
-      return `Match: ${(product.recommendation_score * 100).toFixed(0)}%`;
+      return `${(product.recommendation_score * 100).toFixed(0)}% Match`;
     }
     return null;
   };
 
+  const scoreDisplay = getScoreDisplay();
+
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200 h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-2">
-            {getTypeIcon()}
-            <Badge variant="outline" className="text-xs">
-              {getTypeLabel()}
-            </Badge>
-          </div>
-          {getScoreDisplay() && (
-            <span className="text-xs text-gray-500">{getScoreDisplay()}</span>
-          )}
-        </div>
-        <CardTitle className="text-lg">
-          <Link 
-            to={`/product/${product.id}`}
-            className="hover:text-blue-600 transition-colors"
+    <div
+      className="h-full overflow-hidden transition-all duration-300"
+      style={{
+        background: '#FFFFFF',
+        borderRadius: '12px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12)';
+        e.currentTarget.style.transform = 'translateY(-4px)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
+    >
+      {/* Product Image at Top */}
+      {product.image_url && (
+        <Link to={`/product/${product.id}`}>
+          <div
+            className="w-full h-40"
+            style={{ background: '#E3F2FD' }}
           >
-            {product.name}
-          </Link>
-        </CardTitle>
-        {product.brand && (
-          <p className="text-sm text-gray-500">{product.brand}</p>
-        )}
-      </CardHeader>
-      
-      <CardContent>
-        {product.image_url && (
-          <img 
-            src={product.image_url} 
-            alt={product.name}
-            className="w-full h-32 object-cover rounded-md mb-3"
-          />
-        )}
-        
-        <p className="text-gray-700 text-sm mb-3 line-clamp-2">
-          {product.description}
-        </p>
-        
-        <div className="flex items-center justify-between mb-3">
-          {renderStars(product.average_rating || 0)}
-          <span className="text-sm text-gray-500">
-            {product.review_count || 0} reviews
-          </span>
-        </div>
-        
-        {product.price_min && product.price_max && (
-          <div className="mb-3">
-            <span className="text-lg font-semibold text-green-600">
-              ${product.price_min} - ${product.price_max}
-            </span>
+            <img
+              src={product.image_url}
+              alt={product.name}
+              className="w-full h-full object-cover"
+            />
           </div>
-        )}
-        
+        </Link>
+      )}
+
+      <div className="p-6">
+        {/* Category Badge */}
         {product.category && (
-          <Badge variant="secondary" className="mb-3">
+          <Badge
+            variant="secondary"
+            className="mb-2"
+            style={{
+              background: '#E3F2FD',
+              color: '#2196F3',
+              borderRadius: '4px',
+            }}
+          >
             {product.category}
           </Badge>
         )}
-        
-        {/* Recommendation Reasons */}
-        {showReasons && product.recommendation_reasons && product.recommendation_reasons.length > 0 && (
-          <div className="mt-3 pt-3 border-t">
-            <p className="text-xs font-medium text-gray-600 mb-1">Why recommended:</p>
-            <ul className="text-xs text-gray-500 space-y-1">
-              {product.recommendation_reasons.slice(0, 2).map((reason, index) => (
-                <li key={index} className="flex items-start">
-                  <span className="w-1 h-1 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-                  {reason}
-                </li>
-              ))}
-            </ul>
+
+        <div className="flex items-start justify-between mb-2">
+          <div className="flex-1 min-w-0">
+            <Link
+              to={`/product/${product.id}`}
+              className="font-semibold hover:opacity-80 transition-colors line-clamp-1"
+              style={{ color: '#1A1A1A' }}
+            >
+              {product.name}
+            </Link>
+            {product.brand && (
+              <p className="text-sm" style={{ color: '#6B7280' }}>{product.brand}</p>
+            )}
           </div>
+          {renderStars(product.average_rating || 0)}
+        </div>
+
+        {/* Price */}
+        {product.price_min && product.price_max && (
+          <p
+            className="text-lg font-bold mb-2"
+            style={{ color: '#2196F3' }}
+          >
+            ${product.price_min} - ${product.price_max}
+          </p>
         )}
-        
-        {/* Trending specific info */}
-        {type === 'trending' && product.recent_interactions && (
-          <div className="mt-3 pt-3 border-t">
-            <p className="text-xs text-gray-500">
-              {product.recent_interactions} recent interactions this week
-            </p>
-          </div>
+
+        {/* Description */}
+        {product.description && (
+          <p
+            className="text-sm mb-3 line-clamp-2"
+            style={{ color: '#6B7280' }}
+          >
+            {product.description}
+          </p>
         )}
-      </CardContent>
-    </Card>
+
+        {/* Footer info */}
+        <div
+          className="flex items-center justify-between text-xs mb-3"
+          style={{ color: '#6B7280' }}
+        >
+          <span>{product.review_count || 0} reviews</span>
+          {scoreDisplay && (
+            <span
+              className="px-2 py-1 rounded-full"
+              style={{
+                background: '#E8F5E9',
+                color: '#2E7D32',
+              }}
+            >
+              {scoreDisplay}
+            </span>
+          )}
+        </div>
+
+        {/* View Product Button */}
+        <Link
+          to={`/product/${product.id}`}
+          className="block w-full text-center py-2 text-sm font-medium transition-colors"
+          style={{
+            border: '1px solid #2196F3',
+            color: '#2196F3',
+            borderRadius: '8px',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#2196F3';
+            e.currentTarget.style.color = '#FFFFFF';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'transparent';
+            e.currentTarget.style.color = '#2196F3';
+          }}
+        >
+          View Product
+        </Link>
+      </div>
+    </div>
   );
 };
 
 export default RecommendationCard;
-

@@ -17,7 +17,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import RecommendationSection from './recommendations/RecommendationSection';
-import SimilarProducts from './search/SimilarProducts';
 import { ReviewForm } from './reviews/ReviewForm';
 import apiService from '../services/api';
 
@@ -825,34 +824,24 @@ export function ProductPage() {
               <div className="flex space-x-4">
                 <Button
                   size="lg"
-                  className="flex-1 text-white transition-all"
+                  className="flex-1 bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity"
                   style={{
-                    background: '#2196F3',
                     borderRadius: '8px',
-                    boxShadow: '0 2px 4px rgba(33, 150, 243, 0.2)',
                   }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#1976D2';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(33, 150, 243, 0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#2196F3';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(33, 150, 243, 0.2)';
-                  }}
+                  onClick={handleWriteReviewClick}
                 >
-                  Compare Prices
+                  Write Review
                 </Button>
                 <Button
                   size="lg"
                   variant="outline"
-                  onClick={handleWriteReviewClick}
                   style={{
                     borderRadius: '8px',
                     borderColor: '#E5E7EB',
                     color: '#374151',
                   }}
                 >
-                  Write Review
+                  Compare Prices
                 </Button>
               </div>
             </div>
@@ -1221,12 +1210,9 @@ export function ProductPage() {
 
             <div className="text-center mt-8">
               <Button
-                variant="outline"
+                className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity px-8"
                 style={{
                   borderRadius: '8px',
-                  borderColor: '#E5E7EB',
-                  color: '#374151',
-                  background: '#F3F4F6',
                 }}
               >
                 Load More Reviews
@@ -1234,13 +1220,6 @@ export function ProductPage() {
             </div>
           </div>
         </div>
-
-        {/* Visual Similar Products Section */}
-        {numericId && (
-          <div className="mt-16">
-            <SimilarProducts productId={numericId} />
-          </div>
-        )}
 
         {/* Similar Products Section */}
         {numericId && (

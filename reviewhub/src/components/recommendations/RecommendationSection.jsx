@@ -4,14 +4,14 @@ import { Button } from '../ui/button';
 import RecommendationCard from './RecommendationCard';
 import { api } from '../../services/api';
 
-const RecommendationSection = ({ 
-  title, 
-  type = 'recommendation', 
-  userId = null, 
-  productId = null, 
+const RecommendationSection = ({
+  title,
+  type = 'recommendation',
+  userId = null,
+  productId = null,
   categoryId = null,
   limit = 6,
-  showReasons = true 
+  showReasons = true
 }) => {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,28 +25,28 @@ const RecommendationSection = ({
   const fetchRecommendations = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       let data;
-      
+
       switch (type) {
         case 'user':
           data = await api.getUserRecommendations(limit);
           setRecommendations(data.recommendations || []);
           break;
-          
+
         case 'similar':
           if (productId) {
             data = await api.getSimilarProducts(productId, limit);
             setRecommendations(data.similar_products || []);
           }
           break;
-          
+
         case 'trending':
           data = await api.getTrendingProducts(categoryId, limit);
           setRecommendations(data.trending_products || []);
           break;
-          
+
         default:
           setRecommendations([]);
       }
@@ -72,9 +72,22 @@ const RecommendationSection = ({
   if (loading) {
     return (
       <div className="py-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">{title}</h2>
+        <div className="text-center mb-8">
+          <p
+            className="text-base uppercase tracking-[0.1em] mb-2"
+            style={{ color: '#6B7280' }}
+          >
+            Discover
+          </p>
+          <h2
+            className="text-2xl font-semibold"
+            style={{ color: '#1A1A1A' }}
+          >
+            {title}
+          </h2>
+        </div>
         <div className="flex justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <Loader2 className="h-8 w-8 animate-spin" style={{ color: '#2196F3' }} />
         </div>
       </div>
     );
@@ -83,7 +96,20 @@ const RecommendationSection = ({
   if (error) {
     return (
       <div className="py-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">{title}</h2>
+        <div className="text-center mb-8">
+          <p
+            className="text-base uppercase tracking-[0.1em] mb-2"
+            style={{ color: '#6B7280' }}
+          >
+            Discover
+          </p>
+          <h2
+            className="text-2xl font-semibold"
+            style={{ color: '#1A1A1A' }}
+          >
+            {title}
+          </h2>
+        </div>
         <div className="text-center text-red-600">{error}</div>
       </div>
     );
@@ -95,9 +121,22 @@ const RecommendationSection = ({
 
   return (
     <div className="py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-        
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <p
+            className="text-base uppercase tracking-[0.1em] mb-2"
+            style={{ color: '#6B7280' }}
+          >
+            Discover
+          </p>
+          <h2
+            className="text-2xl font-semibold"
+            style={{ color: '#1A1A1A' }}
+          >
+            {title}
+          </h2>
+        </div>
+
         {recommendations.length > itemsPerPage && (
           <div className="flex space-x-2">
             <Button
@@ -106,6 +145,11 @@ const RecommendationSection = ({
               onClick={prevSlide}
               disabled={currentIndex === 0}
               className="p-2"
+              style={{
+                borderRadius: '8px',
+                borderColor: '#E5E7EB',
+                color: currentIndex === 0 ? '#9CA3AF' : '#374151',
+              }}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -115,6 +159,11 @@ const RecommendationSection = ({
               onClick={nextSlide}
               disabled={currentIndex >= maxIndex}
               className="p-2"
+              style={{
+                borderRadius: '8px',
+                borderColor: '#E5E7EB',
+                color: currentIndex >= maxIndex ? '#9CA3AF' : '#374151',
+              }}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -123,17 +172,17 @@ const RecommendationSection = ({
       </div>
 
       <div className="relative overflow-hidden">
-        <div 
+        <div
           className="flex transition-transform duration-300 ease-in-out"
           style={{ transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)` }}
         >
           {recommendations.map((product, index) => (
-            <div 
-              key={product.id || index} 
-              className="w-1/3 flex-shrink-0 px-2"
+            <div
+              key={product.id || index}
+              className="w-1/3 flex-shrink-0 px-3"
             >
-              <RecommendationCard 
-                product={product} 
+              <RecommendationCard
+                product={product}
                 type={type}
                 showReasons={showReasons}
               />
@@ -144,14 +193,15 @@ const RecommendationSection = ({
 
       {/* Dots indicator */}
       {recommendations.length > itemsPerPage && (
-        <div className="flex justify-center mt-4 space-x-2">
+        <div className="flex justify-center mt-6 space-x-2">
           {Array.from({ length: maxIndex + 1 }).map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                index === currentIndex ? 'bg-blue-600' : 'bg-gray-300'
-              }`}
+              className="w-2 h-2 rounded-full transition-colors"
+              style={{
+                background: index === currentIndex ? '#2196F3' : '#E5E7EB',
+              }}
             />
           ))}
         </div>
@@ -161,4 +211,3 @@ const RecommendationSection = ({
 };
 
 export default RecommendationSection;
-
