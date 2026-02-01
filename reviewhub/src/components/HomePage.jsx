@@ -281,8 +281,8 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Main content wrapper */}
-      <div className="flex-1">
+      {/* Main content wrapper - gradient flows across all sections */}
+      <div className="flex-1 bg-gradient-to-br from-soft-blue to-soft-lavender">
         {/* Recent Reviews Section - Directly after Hero */}
         <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -501,8 +501,8 @@ export function HomePage() {
           </div>
         </section>
 
-        {/* Categories Section - Directly after Recent Reviews with gradient background */}
-        <section className="py-16 bg-gradient-to-br from-soft-blue to-soft-lavender">
+        {/* Categories Section - Directly after Recent Reviews */}
+        <section className="py-16">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>

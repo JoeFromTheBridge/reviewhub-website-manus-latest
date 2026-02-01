@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { Button } from '../ui/button';
+import { Loader2 } from 'lucide-react';
 import RecommendationCard from './RecommendationCard';
 import { api } from '../../services/api';
 
@@ -16,7 +15,6 @@ const RecommendationSection = ({
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     fetchRecommendations();
@@ -56,17 +54,6 @@ const RecommendationSection = ({
     } finally {
       setLoading(false);
     }
-  };
-
-  const itemsPerPage = 3;
-  const maxIndex = Math.max(0, recommendations.length - itemsPerPage);
-
-  const nextSlide = () => {
-    setCurrentIndex(prev => Math.min(prev + 1, maxIndex));
-  };
-
-  const prevSlide = () => {
-    setCurrentIndex(prev => Math.max(prev - 1, 0));
   };
 
   if (loading) {
@@ -121,91 +108,32 @@ const RecommendationSection = ({
 
   return (
     <div className="py-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <p
-            className="text-base uppercase tracking-[0.1em] mb-2"
-            style={{ color: '#6B7280' }}
-          >
-            Discover
-          </p>
-          <h2
-            className="text-2xl font-semibold"
-            style={{ color: '#1A1A1A' }}
-          >
-            {title}
-          </h2>
-        </div>
-
-        {recommendations.length > itemsPerPage && (
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={prevSlide}
-              disabled={currentIndex === 0}
-              className="p-2"
-              style={{
-                borderRadius: '8px',
-                borderColor: '#E5E7EB',
-                color: currentIndex === 0 ? '#9CA3AF' : '#374151',
-              }}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={nextSlide}
-              disabled={currentIndex >= maxIndex}
-              className="p-2"
-              style={{
-                borderRadius: '8px',
-                borderColor: '#E5E7EB',
-                color: currentIndex >= maxIndex ? '#9CA3AF' : '#374151',
-              }}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <div className="relative overflow-hidden">
-        <div
-          className="flex transition-transform duration-300 ease-in-out"
-          style={{ transform: `translateX(-${currentIndex * (100 / itemsPerPage)}%)` }}
+      <div className="text-center mb-8">
+        <p
+          className="text-base uppercase tracking-[0.1em] mb-2"
+          style={{ color: '#6B7280' }}
         >
-          {recommendations.map((product, index) => (
-            <div
-              key={product.id || index}
-              className="w-1/3 flex-shrink-0 px-3"
-            >
-              <RecommendationCard
-                product={product}
-                type={type}
-                showReasons={showReasons}
-              />
-            </div>
-          ))}
-        </div>
+          Discover
+        </p>
+        <h2
+          className="text-2xl font-semibold"
+          style={{ color: '#1A1A1A' }}
+        >
+          {title}
+        </h2>
       </div>
 
-      {/* Dots indicator */}
-      {recommendations.length > itemsPerPage && (
-        <div className="flex justify-center mt-6 space-x-2">
-          {Array.from({ length: maxIndex + 1 }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentIndex(index)}
-              className="w-2 h-2 rounded-full transition-colors"
-              style={{
-                background: index === currentIndex ? '#2196F3' : '#E5E7EB',
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Responsive grid - same as homepage Recent Reviews */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {recommendations.map((product, index) => (
+          <RecommendationCard
+            key={product.id || index}
+            product={product}
+            type={type}
+            showReasons={showReasons}
+          />
+        ))}
+      </div>
     </div>
   );
 };
