@@ -153,6 +153,41 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Global defensive rules for constrained viewports */
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Prevent images and media from causing horizontal overflow */
+  img, video, iframe, embed, object {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Ensure text doesn't overflow containers */
+  h1, h2, h3, h4, h5, h6, p {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+  }
+
+  /* Ensure tables don't cause horizontal overflow */
+  table {
+    max-width: 100%;
+    overflow-x: auto;
+    display: block;
+  }
+
+  /* Minimum tap target size for interactive elements */
+  button, a, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+  }
+
+  /* Exception for small inline links */
+  a:not(.btn):not([role="button"]) {
+    min-height: auto;
+  }
 }
 
 @layer utilities {
