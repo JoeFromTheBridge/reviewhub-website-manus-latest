@@ -34,7 +34,17 @@ A stable foundation avoids later re‑work. Finishing Phase 0 ensures users can 
 
 Phase 1 – Core Review Product (MVP)
 
+> **Status:** In Progress | **Last Updated:** 2026-02-02
+
 Purpose: deliver a credible review site that people can use to evaluate products and leave feedback.
+
+### Completed UI/UX Polish (2026-02-02)
+
+- [x] **Sign Up page overhaul** – Replaced modal with dedicated /signup page; updated subtitle to "Read Reviews · Share Opinions · Help Others"; added Google OAuth placeholder (UI ready); added required Terms of Service checkbox with validation
+- [x] **Product page aesthetic update** – Applied DESIGN_MANIFEST styling: gradient background, white surface cards with sleek shadows, star-gold (#FFC107) ratings, proper typography hierarchy (#1A1A1A primary, #6B7280 secondary)
+- [x] **Product page button refinements** – Swapped Write Review (now primary with gradient) and Compare Prices (now outline) positions; Load More Reviews button updated to gradient style matching "View All Reviews"
+- [x] **Similar Products section** – Removed "Visually Similar Products" section; restyled recommendation tiles to match homepage Recent Reviews aesthetic; fixed mobile layout (responsive grid instead of carousel)
+- [x] **Homepage gradient unification** – Gradient now flows continuously across Recent Reviews, Browse by Category, and Our Community sections instead of separate section backgrounds
 
 Product & UX features
 
