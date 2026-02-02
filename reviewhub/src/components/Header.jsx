@@ -1,5 +1,5 @@
 // src/components/Header.jsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Search, User, Menu, X, LogOut, Settings, TrendingUp, Shield, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -17,17 +17,41 @@ export function Header() {
   const location = useLocation()
   const { user, logout, isAuthenticated } = useAuth()
 
+  // Open modal with history state for back button support
+  const openLoginModal = useCallback(() => {
+    setShowLoginModal(true)
+    // Push state to history so back button can close modal
+    window.history.pushState({ modalOpen: true }, '', location.pathname + location.search)
+  }, [location.pathname, location.search])
+
+  // Close modal and handle history
+  const closeLoginModal = useCallback(() => {
+    setShowLoginModal(false)
+  }, [])
+
+  // Handle browser back button to close modal
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (showLoginModal) {
+        setShowLoginModal(false)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [showLoginModal])
+
   // Open login modal when redirected from a protected route with ?login=1
   useEffect(() => {
     if (!isAuthenticated) {
       const params = new URLSearchParams(location.search)
       if (params.get('login') === '1') {
-        setShowLoginModal(true)
+        openLoginModal()
         // Clean up URL so refreshing doesn't keep triggering the modal
         navigate('/', { replace: true })
       }
     }
-  }, [location.search, isAuthenticated, navigate])
+  }, [location.search, isAuthenticated, navigate, openLoginModal])
 
   const handleSearch = (e) => {
     e.preventDefault()
@@ -60,14 +84,19 @@ export function Header() {
   return (
     <>
       <header className="bg-white-surface shadow-card border-b border-border-light sticky top-0 z-50">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16 gap-4">
+        <div className="w-full px-3 sm:px-4 lg:px-8">
+          <div
+            className="flex items-center gap-3 lg:gap-4"
+            style={{
+              height: 'clamp(52px, 8vh, 64px)',
+            }}
+          >
             {/* Logo - Far Left (acts as Home link) */}
             <Link to="/" className="flex-shrink-0">
               <img
                 src={logoImage}
                 alt="ReviewHub - Home"
-                className="h-10 w-auto md:h-12 object-contain"
+                className="h-8 w-auto md:h-10 lg:h-12 object-contain"
                 loading="eager"
                 fetchPriority="high"
               />
@@ -76,22 +105,22 @@ export function Header() {
             {/* Search Bar - Primary Focus, Wide */}
             <form
               onSubmit={handleSearch}
-              className="hidden md:flex flex-1 max-w-xl"
+              className="hidden md:flex flex-1 max-w-xl min-w-0"
             >
               <div className="relative w-full">
                 <input
                   type="text"
-                  placeholder="Search products, brands, reviews..."
+                  placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-10 pl-4 pr-12 text-sm border border-border-light rounded-md bg-white-surface shadow-input focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
+                  className="w-full h-9 lg:h-10 pl-3 lg:pl-4 pr-10 lg:pr-12 text-sm border border-border-light rounded-md bg-white-surface shadow-input focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
                 />
                 <button
                   type="submit"
-                  className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-text-secondary hover:text-accent-blue transition-smooth"
+                  className="absolute right-0 top-0 h-9 lg:h-10 w-9 lg:w-10 flex items-center justify-center text-text-secondary hover:text-accent-blue transition-smooth"
                   aria-label="Search"
                 >
-                  <Search className="h-5 w-5" />
+                  <Search className="h-4 w-4 lg:h-5 lg:w-5" />
                 </button>
               </div>
             </form>
@@ -99,10 +128,10 @@ export function Header() {
             {/* Categories - Right of Search */}
             <Link
               to="/categories"
-              className="hidden md:flex items-center gap-1 px-3 py-2 text-text-secondary hover:text-accent-blue font-medium transition-smooth whitespace-nowrap"
+              className="hidden lg:flex items-center gap-1 px-2 lg:px-3 py-1.5 lg:py-2 text-sm lg:text-base text-text-secondary hover:text-accent-blue font-medium transition-smooth whitespace-nowrap"
             >
               Categories
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3 lg:h-4 lg:w-4" />
             </Link>
 
             {/* Spacer to push auth to far right */}
@@ -208,14 +237,16 @@ export function Header() {
                 <>
                   <Button
                     variant="ghost"
-                    onClick={() => setShowLoginModal(true)}
-                    className="text-text-secondary hover:text-purple-600 hover:bg-soft-lavender/50"
+                    size="sm"
+                    onClick={openLoginModal}
+                    className="text-text-secondary hover:text-purple-600 hover:bg-soft-lavender/50 text-sm lg:text-base px-2 lg:px-4"
                   >
                     Sign In
                   </Button>
                   <Button
+                    size="sm"
                     onClick={() => navigate('/signup')}
-                    className="text-white hover:opacity-90"
+                    className="text-white hover:opacity-90 text-sm lg:text-base px-3 lg:px-4"
                     style={{ backgroundColor: '#6A5CFF' }}
                   >
                     Sign Up
@@ -228,10 +259,9 @@ export function Header() {
             <div className="md:hidden ml-auto">
               <Button
                 variant="ghost"
-                size="sm"
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 aria-label="Toggle menu"
-                className="text-text-secondary"
+                className="text-text-secondary p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 {isMenuOpen ? (
                   <X className="h-6 w-6" />
@@ -361,7 +391,7 @@ export function Header() {
                       variant="outline"
                       className="w-full border-border-light"
                       onClick={() => {
-                        setShowLoginModal(true)
+                        openLoginModal()
                         setIsMenuOpen(false)
                       }}
                     >
@@ -388,7 +418,7 @@ export function Header() {
       {/* Auth Modal */}
       <LoginModal
         isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
+        onClose={closeLoginModal}
         onSwitchToRegister={switchToRegister}
       />
     </>

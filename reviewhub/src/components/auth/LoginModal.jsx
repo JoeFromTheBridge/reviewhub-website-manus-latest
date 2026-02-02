@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Eye, EyeOff, Loader2, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '../../contexts/AuthContext';
+
+// Check if demo credentials should be shown (only in development)
+const SHOW_DEMO_CREDENTIALS = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === 'true';
 
 export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
   const [formData, setFormData] = useState({
@@ -17,7 +20,83 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
   const [forgotPasswordMessage, setForgotPasswordMessage] = useState('');
   const [emailVerificationError, setEmailVerificationError] = useState(false);
 
+  const modalRef = useRef(null);
+  const firstFocusableRef = useRef(null);
+  const lastFocusableRef = useRef(null);
+
   const { login, forgotPassword, resendVerificationEmail } = useAuth();
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+
+      // Get scrollbar width to prevent layout shift
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+    }
+  }, [isOpen]);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        resetForgotPasswordForm();
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [isOpen, onClose]);
+
+  // Focus trapping
+  const handleKeyDown = useCallback((e) => {
+    if (e.key !== 'Tab' || !modalRef.current) return;
+
+    const focusableElements = modalRef.current.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (e.shiftKey) {
+      if (document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      }
+    } else {
+      if (document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    }
+  }, []);
+
+  // Set initial focus when modal opens
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      const firstInput = modalRef.current.querySelector('input');
+      if (firstInput) {
+        setTimeout(() => firstInput.focus(), 100);
+      }
+    }
+  }, [isOpen, showForgotPassword]);
 
   const handleChange = (e) => {
     setFormData({
@@ -92,8 +171,28 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6 relative max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto"
+      onClick={(e) => {
+        // Close modal when clicking backdrop
+        if (e.target === e.currentTarget) {
+          resetForgotPasswordForm();
+          onClose();
+        }
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="login-modal-title"
+    >
+      <div
+        ref={modalRef}
+        onKeyDown={handleKeyDown}
+        className="bg-white rounded-lg max-w-md w-full p-6 relative my-4 sm:my-8"
+        style={{
+          maxHeight: 'calc(100vh - 2rem)',
+          overflowY: 'auto',
+        }}
+      >
         {/* Close button */}
         <button
           onClick={() => {
@@ -176,7 +275,7 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
           // Login Form
           <>
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In</h2>
+              <h2 id="login-modal-title" className="text-2xl font-bold text-gray-900 mb-2">Sign In</h2>
               <p className="text-gray-600">Welcome back to ReviewHub</p>
             </div>
 
@@ -305,12 +404,14 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
               </p>
             </div>
 
-            {/* Demo credentials */}
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-              <p className="text-blue-800 text-sm font-medium mb-1">Demo Credentials:</p>
-              <p className="text-blue-700 text-xs">Username: john_doe</p>
-              <p className="text-blue-700 text-xs">Password: password123</p>
-            </div>
+            {/* Demo credentials - only shown in development */}
+            {SHOW_DEMO_CREDENTIALS && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-blue-800 text-sm font-medium mb-1">Demo Credentials:</p>
+                <p className="text-blue-700 text-xs">Username: john_doe</p>
+                <p className="text-blue-700 text-xs">Password: password123</p>
+              </div>
+            )}
           </>
         )}
       </div>

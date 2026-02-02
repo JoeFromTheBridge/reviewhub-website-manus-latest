@@ -720,23 +720,26 @@ export function ProductPage() {
       className="min-h-screen"
       style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 lg:py-8">
         {/* Product Header Card */}
         <div
-          className="mb-12 p-6 md:p-8"
+          className="mb-8 lg:mb-12 p-4 md:p-6 lg:p-8"
           style={{
             background: '#FFFFFF',
-            borderRadius: '16px',
+            borderRadius: '12px',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
           }}
         >
-          <div className="grid lg:grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
             <div>
               <img
                 src={imageUrl}
                 alt={productName}
-                className="w-full h-96 object-cover"
-                style={{ borderRadius: '12px' }}
+                className="w-full object-cover"
+                style={{
+                  borderRadius: '12px',
+                  height: 'clamp(200px, 40vh, 384px)',
+                }}
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src =
@@ -746,21 +749,24 @@ export function ProductPage() {
             </div>
 
             <div>
-              <div className="mb-4">
+              <div className="mb-3 lg:mb-4">
                 <h1
-                  className="text-3xl font-bold mb-2"
-                  style={{ color: '#1A1A1A' }}
+                  className="font-bold mb-1 lg:mb-2"
+                  style={{
+                    color: '#1A1A1A',
+                    fontSize: 'clamp(1.5rem, 3vw, 1.875rem)',
+                  }}
                 >
                   {productName}
                 </h1>
                 {productBrand && (
-                  <p className="text-lg" style={{ color: '#6B7280' }}>
+                  <p className="text-base lg:text-lg" style={{ color: '#6B7280' }}>
                     {productBrand}
                   </p>
                 )}
               </div>
 
-              <div className="flex items-center space-x-4 mb-6">
+              <div className="flex items-center flex-wrap gap-2 lg:space-x-4 mb-4 lg:mb-6">
                 <div className="flex items-center space-x-1">
                   {renderStars(ratingStats.average || product.average_rating)}
                   <span
@@ -821,10 +827,9 @@ export function ProductPage() {
                 </div>
               ) : null}
 
-              <div className="flex space-x-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
-                  size="lg"
-                  className="flex-1 bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity"
+                  className="flex-1 bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity min-h-[44px]"
                   style={{
                     borderRadius: '8px',
                   }}
@@ -833,8 +838,8 @@ export function ProductPage() {
                   Write Review
                 </Button>
                 <Button
-                  size="lg"
                   variant="outline"
+                  className="flex-1 min-h-[44px]"
                   style={{
                     borderRadius: '8px',
                     borderColor: '#E5E7EB',
@@ -851,7 +856,7 @@ export function ProductPage() {
         {/* Reviews Section */}
         <div
           id="reviews-section"
-          className="grid lg:grid-cols-3 gap-8"
+          className="grid lg:grid-cols-3 gap-4 lg:gap-8"
         >
           {/* Rating Summary */}
           <div className="lg:col-span-1">
@@ -862,7 +867,7 @@ export function ProductPage() {
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
               }}
             >
-              <div className="p-6">
+              <div className="p-4 lg:p-6">
                 <h3
                   className="text-lg font-semibold mb-4"
                   style={{ color: '#1A1A1A' }}
