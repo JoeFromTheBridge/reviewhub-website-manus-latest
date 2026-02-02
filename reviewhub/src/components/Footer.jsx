@@ -12,18 +12,18 @@ export function Footer() {
         borderTopColor: 'rgba(0,0,0,0.05)'
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 md:py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-          {/* Brand Column */}
-          <div>
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 md:py-6 lg:py-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+          {/* Brand Column - full width on mobile */}
+          <div className="col-span-2 md:col-span-1 mb-2 md:mb-0">
             <h3
-              className="font-semibold text-base mb-2"
+              className="font-semibold text-sm md:text-base mb-1 md:mb-2"
               style={{ color: 'rgba(255,255,255,0.85)' }}
             >
               ReviewHub
             </h3>
             <p
-              className="text-sm"
+              className="text-xs md:text-sm"
               style={{ color: 'rgba(255,255,255,0.7)' }}
             >
               Community-driven product reviews.
@@ -33,12 +33,12 @@ export function Footer() {
           {/* Quick Links */}
           <div>
             <h4
-              className="font-medium mb-3 text-sm"
+              className="font-medium mb-2 md:mb-3 text-xs md:text-sm"
               style={{ color: 'rgba(255,255,255,0.85)' }}
             >
               Quick Links
             </h4>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
               <li>
                 <Link
                   to="/search?tab=products"
@@ -69,7 +69,7 @@ export function Footer() {
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
                 >
-                  About ReviewHub
+                  About
                 </Link>
               </li>
             </ul>
@@ -78,12 +78,12 @@ export function Footer() {
           {/* Legal Links */}
           <div>
             <h4
-              className="font-medium mb-3 text-sm"
+              className="font-medium mb-2 md:mb-3 text-xs md:text-sm"
               style={{ color: 'rgba(255,255,255,0.85)' }}
             >
               Legal
             </h4>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
               <li>
                 <Link
                   to="/privacy"
@@ -114,7 +114,7 @@ export function Footer() {
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
                 >
-                  Contact Support
+                  Contact
                 </a>
               </li>
             </ul>
@@ -123,7 +123,7 @@ export function Footer() {
 
         {/* Copyright */}
         <div
-          className="mt-6 pt-6 text-center text-xs"
+          className="mt-4 md:mt-6 pt-4 md:pt-6 text-center text-[10px] md:text-xs"
           style={{
             borderTop: '1px solid rgba(255,255,255,0.08)',
             color: 'rgba(255,255,255,0.55)'

@@ -236,31 +236,53 @@ export function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-soft-blue to-soft-lavender flex flex-col">
       {/* Hero Section - with softened CTA gradient */}
       <section className="relative overflow-hidden bg-gradient-to-r from-[#5B7DD4]/75 to-[#A391E2]/75">
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[120px] pb-[80px]">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div
+          className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+          style={{
+            paddingTop: 'clamp(48px, 10vh, 120px)',
+            paddingBottom: 'clamp(32px, 6vh, 80px)',
+          }}
+        >
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="text-center lg:text-left">
-              <h1 className="text-3xl md:text-[48px] font-semibold text-white mb-6 leading-tight">
+              <h1
+                className="font-semibold text-white mb-4 lg:mb-6 leading-tight"
+                style={{
+                  fontSize: 'clamp(1.75rem, 4vw, 3rem)',
+                }}
+              >
                 Make Smarter
                 <span className="block text-white/90">Purchase Decisions</span>
               </h1>
-              <p className="text-lg text-white/80 mb-8">
+              <p
+                className="text-white/80 mb-6 lg:mb-8 max-w-lg mx-auto lg:mx-0"
+                style={{
+                  fontSize: 'clamp(0.875rem, 1.5vw, 1.125rem)',
+                }}
+              >
                 Read authentic reviews from real customers and share your own experiences
                 to help others make informed choices.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                {/* Primary: Browse Products */}
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                {/* Primary: Browse Products - larger, more prominent */}
                 <Button
                   size="lg"
-                  className="bg-white text-accent-blue hover:bg-white/90 rounded-md px-8 font-medium"
+                  className="bg-white text-accent-blue hover:bg-white/90 rounded-md font-medium min-w-[160px]"
+                  style={{
+                    padding: '0.75rem 2rem',
+                  }}
                   onClick={() => navigate('/search?tab=products')}
                 >
                   Browse Products
                 </Button>
-                {/* Secondary: Write Your First Review */}
+                {/* Secondary: Write Your First Review - visually subordinate */}
                 <Button
-                  size="lg"
                   variant="outline"
-                  className="text-white border-white hover:bg-white hover:text-accent-blue rounded-md px-8"
+                  className="text-white border-white hover:bg-white hover:text-accent-blue rounded-md min-w-[160px]"
+                  style={{
+                    padding: '0.625rem 1.5rem',
+                    fontSize: '0.875rem',
+                  }}
                   onClick={handleWriteReview}
                 >
                   Write Your First Review
@@ -296,7 +318,12 @@ export function HomePage() {
                 <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div
+                className="grid gap-4 lg:gap-6"
+                style={{
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
+                }}
+              >
                 {featuredReviews.map((review) => {
                   // Product id from review
                   const productId =
@@ -376,45 +403,47 @@ export function HomePage() {
                           </div>
                         </Link>
                       )}
-                      <CardContent className="p-6">
+                      <CardContent className="p-4 lg:p-6">
                         {/* Category Badge */}
                         {productCategory && (
-                          <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm mb-2">
+                          <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm mb-2 text-xs">
                             {productCategory}
                           </Badge>
                         )}
 
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-start justify-between gap-2 mb-2">
                           <div className="flex-1 min-w-0">
                             {productId ? (
                               <Link
                                 to={`/product/${productId}`}
-                                className="font-semibold text-text-primary hover:text-accent-blue transition-colors line-clamp-1"
+                                className="font-semibold text-text-primary hover:text-accent-blue transition-colors line-clamp-1 text-sm lg:text-base"
                               >
                                 {productName}
                               </Link>
                             ) : (
-                              <span className="font-semibold text-text-primary line-clamp-1">
+                              <span className="font-semibold text-text-primary line-clamp-1 text-sm lg:text-base">
                                 {productName}
                               </span>
                             )}
                             {productBrand && (
-                              <p className="text-sm text-text-secondary">{productBrand}</p>
+                              <p className="text-xs lg:text-sm text-text-secondary truncate">{productBrand}</p>
                             )}
                           </div>
-                          {renderStars(review.rating)}
+                          <div className="flex-shrink-0">
+                            {renderStars(review.rating)}
+                          </div>
                         </div>
 
                         {/* Price */}
                         {priceDisplay && (
-                          <p className="text-lg font-bold text-accent-blue mb-2">{priceDisplay}</p>
+                          <p className="text-base lg:text-lg font-bold text-accent-blue mb-2">{priceDisplay}</p>
                         )}
 
                         {/* Review Title & Content */}
-                        <h4 className="font-medium text-text-primary mb-2">
+                        <h4 className="font-medium text-text-primary mb-2 text-sm lg:text-base line-clamp-1">
                           {reviewTitle}
                         </h4>
-                        <p className="text-text-secondary text-sm mb-3 line-clamp-3">
+                        <p className="text-text-secondary text-xs lg:text-sm mb-3 line-clamp-3">
                           {review.comment || review.content}
                         </p>
 
@@ -469,8 +498,7 @@ export function HomePage() {
                         {productId && (
                           <Button
                             variant="outline"
-                            size="sm"
-                            className="w-full border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md"
+                            className="w-full border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md min-h-[44px] text-sm"
                             onClick={() => {
                               if (isAuthenticated) {
                                 navigate(`/product/${productId}?writeReview=true`)
@@ -514,7 +542,12 @@ export function HomePage() {
                 <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
               </div>
             ) : error ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div
+                className="grid gap-4 lg:gap-6"
+                style={{
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
+                }}
+              >
                 {STATIC_CATEGORIES.map((category) => (
                   <Link
                     key={category.id}
@@ -536,7 +569,12 @@ export function HomePage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div
+                className="grid gap-4 lg:gap-6"
+                style={{
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
+                }}
+              >
                 {(categories.length ? categories : STATIC_CATEGORIES).map((category) => {
                   const name = category.name || category.title || 'Category'
                   const href = buildCategoryHref(category)
@@ -549,14 +587,14 @@ export function HomePage() {
                       className="group"
                     >
                       <Card className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-md">
-                        <CardContent className="p-6 text-center">
+                        <CardContent className="p-4 lg:p-6 text-center">
                           <img
                             src={img}
                             alt={name}
-                            className="w-8 h-8 mx-auto mb-4 group-hover:scale-110 transition-transform"
+                            className="w-6 h-6 lg:w-8 lg:h-8 mx-auto mb-3 lg:mb-4 group-hover:scale-110 transition-transform"
                           />
-                          <h3 className="font-semibold text-text-primary mb-2">{name}</h3>
-                          <p className="text-sm text-text-secondary">
+                          <h3 className="font-semibold text-text-primary mb-1 lg:mb-2 text-sm lg:text-base">{name}</h3>
+                          <p className="text-xs lg:text-sm text-text-secondary">
                             {category.product_count ?? 'Explore products'}
                           </p>
                         </CardContent>
