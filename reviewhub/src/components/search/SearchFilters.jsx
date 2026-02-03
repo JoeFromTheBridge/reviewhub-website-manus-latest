@@ -22,13 +22,14 @@ import { Slider } from '../ui/slider';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
-const SearchFilters = ({ 
-  filters, 
-  onFiltersChange, 
+const SearchFilters = ({
+  filters,
+  onFiltersChange,
   onApplyFilters,
   onResetFilters,
   className = '',
-  availableFilters = {}
+  availableFilters = {},
+  hideActionButtons = false, // Hide Apply/Reset buttons when used in modal
 }) => {
   const [localFilters, setLocalFilters] = useState(filters || {});
   const [expandedSections, setExpandedSections] = useState({
@@ -320,30 +321,32 @@ const SearchFilters = ({
 
   return (
     <Card className={`${className} rounded-md shadow-card bg-white-surface`}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-text-primary">
-            <Filter className="h-5 w-5" />
-            Filters
-            {getActiveFiltersCount() > 0 && (
-              <Badge variant="secondary" className="ml-2 rounded-sm bg-soft-blue text-accent-blue">
-                {getActiveFiltersCount()}
-              </Badge>
-            )}
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleResetFilters}
-            disabled={getActiveFiltersCount() === 0}
-            className="transition-smooth hover:text-accent-blue"
-          >
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Reset
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
+      {!hideActionButtons && (
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-text-primary">
+              <Filter className="h-5 w-5" />
+              Filters
+              {getActiveFiltersCount() > 0 && (
+                <Badge variant="secondary" className="ml-2 rounded-sm bg-soft-blue text-accent-blue">
+                  {getActiveFiltersCount()}
+                </Badge>
+              )}
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleResetFilters}
+              disabled={getActiveFiltersCount() === 0}
+              className="transition-smooth hover:text-accent-blue"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+          </div>
+        </CardHeader>
+      )}
+      <CardContent className={hideActionButtons ? "p-0 pt-0" : "p-0"}>
         {/* Active Filters */}
         {getActiveFiltersCount() > 0 && (
           <div className="p-3 bg-soft-blue border-b border-border-light">
@@ -434,16 +437,18 @@ const SearchFilters = ({
           </div>
         )}
 
-        {/* Apply Filters Button */}
-        <div className="p-3 border-t border-border-light">
-          <Button
-            onClick={handleApplyFilters}
-            className="w-full rounded-sm bg-accent-blue hover:bg-accent-blue/90 transition-smooth min-h-[44px]"
-            disabled={getActiveFiltersCount() === 0}
-          >
-            Apply Filters ({getActiveFiltersCount()})
-          </Button>
-        </div>
+        {/* Apply Filters Button - hidden when used in modal */}
+        {!hideActionButtons && (
+          <div className="p-3 border-t border-border-light">
+            <Button
+              onClick={handleApplyFilters}
+              className="w-full rounded-sm bg-accent-blue hover:bg-accent-blue/90 transition-smooth min-h-[44px]"
+              disabled={getActiveFiltersCount() === 0}
+            >
+              Apply Filters ({getActiveFiltersCount()})
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
