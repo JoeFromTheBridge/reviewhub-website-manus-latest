@@ -204,9 +204,10 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                     id="first_name"
                     name="first_name"
                     type="text"
+                    autoComplete="given-name"
                     value={formData.first_name}
                     onChange={handleChange}
-                    placeholder="John"
+                    placeholder="First name"
                     disabled={isLoading}
                   />
                 </div>
@@ -218,9 +219,10 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                     id="last_name"
                     name="last_name"
                     type="text"
+                    autoComplete="family-name"
                     value={formData.last_name}
                     onChange={handleChange}
-                    placeholder="Doe"
+                    placeholder="Last name"
                     disabled={isLoading}
                   />
                 </div>
@@ -234,10 +236,11 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                   id="username"
                   name="username"
                   type="text"
+                  autoComplete="username"
                   required
                   value={formData.username}
                   onChange={handleChange}
-                  placeholder="johndoe"
+                  placeholder="Choose a username"
                   disabled={isLoading}
                 />
               </div>
@@ -250,10 +253,11 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  placeholder="john@example.com"
+                  placeholder="you@example.com"
                   disabled={isLoading}
                 />
               </div>
@@ -267,6 +271,7 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     required
                     value={formData.password}
                     onChange={handleChange}
@@ -301,6 +306,7 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin }) {
                     id="confirmPassword"
                     name="confirmPassword"
                     type={showConfirmPassword ? 'text' : 'password'}
+                    autoComplete="new-password"
                     required
                     value={formData.confirmPassword}
                     onChange={handleChange}
