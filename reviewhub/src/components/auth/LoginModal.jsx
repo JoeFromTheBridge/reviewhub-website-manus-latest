@@ -3,6 +3,7 @@ import { X, Eye, EyeOff, Loader2, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 // Check if demo credentials should be shown (only in development)
 const SHOW_DEMO_CREDENTIALS = import.meta.env.DEV || import.meta.env.VITE_SHOW_DEMO_CREDENTIALS === 'true';
@@ -26,26 +27,8 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
 
   const { login, forgotPassword, resendVerificationEmail } = useAuth();
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      const originalOverflow = document.body.style.overflow;
-      const originalPaddingRight = document.body.style.paddingRight;
-
-      // Get scrollbar width to prevent layout shift
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-
-      document.body.style.overflow = 'hidden';
-      if (scrollbarWidth > 0) {
-        document.body.style.paddingRight = `${scrollbarWidth}px`;
-      }
-
-      return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.paddingRight = originalPaddingRight;
-      };
-    }
-  }, [isOpen]);
+  // Use iOS-safe scroll lock
+  useBodyScrollLock(isOpen);
 
   // Handle Escape key to close modal
   useEffect(() => {
@@ -172,7 +155,7 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 p-4 overflow-y-auto"
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-start sm:items-center justify-center z-50 p-4"
       onClick={(e) => {
         // Close modal when clicking backdrop
         if (e.target === e.currentTarget) {
@@ -187,10 +170,13 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
       <div
         ref={modalRef}
         onKeyDown={handleKeyDown}
+        data-scroll-lock-scrollable
         className="bg-white rounded-lg max-w-md w-full p-6 relative my-4 sm:my-8"
         style={{
           maxHeight: 'calc(100vh - 2rem)',
           overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {/* Close button */}
