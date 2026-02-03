@@ -364,7 +364,12 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full text-white hover:opacity-90 transition-opacity"
+                style={{
+                  backgroundColor: '#6A5CFF',
+                  borderRadius: '8px',
+                  padding: '10px 20px',
+                }}
                 disabled={isLoading}
               >
                 {isLoading ? (
