@@ -311,6 +311,7 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
                   id="username"
                   name="username"
                   type="text"
+                  autoComplete="username"
                   required
                   value={formData.username}
                   onChange={handleChange}
@@ -338,6 +339,7 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister }) {
                     id="password"
                     name="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     required
                     value={formData.password}
                     onChange={handleChange}
