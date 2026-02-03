@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  X, 
-  ChevronDown, 
-  ChevronUp, 
+import {
+  Search,
+  Filter,
+  X,
+  ChevronDown,
+  ChevronUp,
   History,
   Bookmark,
   Settings,
@@ -19,11 +19,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import SearchAutocomplete from './SearchAutocomplete';
 import SearchFilters from './SearchFilters';
 import SearchHistory from './SearchHistory';
+import MobileFiltersModal from './MobileFiltersModal';
 import apiService from '../../services/api';
 
-const EnhancedAdvancedSearch = ({ 
-  onSearch, 
-  onFiltersChange, 
+const EnhancedAdvancedSearch = ({
+  onSearch,
+  onFiltersChange,
   initialFilters = {},
   className = ''
 }) => {
@@ -41,15 +42,16 @@ const EnhancedAdvancedSearch = ({
     dateRange: '',
     ...initialFilters
   });
-  
+
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [availableFilters, setAvailableFilters] = useState({
     categories: [],
     brands: [],
     priceRanges: [],
     features: []
   });
-  
+
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [quickFilters, setQuickFilters] = useState([]);
   const [searchStats, setSearchStats] = useState({});
@@ -64,10 +66,10 @@ const EnhancedAdvancedSearch = ({
     try {
       // Load categories
       const categoriesResponse = await apiService.getCategories();
-      
+
       // Load brands (this would need to be implemented in the backend)
       const brands = [
-        'Apple', 'Samsung', 'Google', 'Microsoft', 'Sony', 'LG', 'Dell', 
+        'Apple', 'Samsung', 'Google', 'Microsoft', 'Sony', 'LG', 'Dell',
         'HP', 'Lenovo', 'ASUS', 'Acer', 'Canon', 'Nikon', 'Nike', 'Adidas',
         'Amazon', 'Netflix', 'Spotify', 'Tesla', 'BMW', 'Mercedes', 'Toyota'
       ];
@@ -152,7 +154,7 @@ const EnhancedAdvancedSearch = ({
 
     // Save search to history
     saveSearchToHistory(searchQuery, searchFilters);
-    
+
     // Trigger search
     onSearch(searchQuery, searchFilters);
   };
@@ -186,7 +188,7 @@ const EnhancedAdvancedSearch = ({
         timestamp: new Date().toISOString(),
         results: 0 // This would be updated after getting results
       };
-      
+
       const updatedHistory = [newSearch, ...history.slice(0, 99)]; // Keep last 100 searches
       localStorage.setItem('reviewhub_search_history', JSON.stringify(updatedHistory));
     } catch (error) {
@@ -212,9 +214,22 @@ const EnhancedAdvancedSearch = ({
   };
 
   const getActiveFiltersCount = () => {
-    return Object.values(filters).filter(value => 
-      value !== undefined && value !== null && value !== '' && value !== false
+    return Object.values(filters).filter(value =>
+      value !== undefined && value !== null && value !== '' && value !== false &&
+      !(Array.isArray(value) && value.length === 0)
     ).length;
+  };
+
+  // Handle filter button click - mobile opens modal, desktop toggles inline
+  const handleFilterButtonClick = () => {
+    // Check if we're on mobile (< lg breakpoint = 1024px)
+    const isMobile = window.innerWidth < 1024;
+
+    if (isMobile) {
+      setShowMobileFilters(true);
+    } else {
+      setShowAdvanced(!showAdvanced);
+    }
   };
 
   return (
@@ -263,23 +278,27 @@ const EnhancedAdvancedSearch = ({
                   Search
                 </Button>
 
+                {/* Filter button - opens modal on mobile, toggles inline on desktop */}
                 <Button
                   variant="outline"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  onClick={handleFilterButtonClick}
                   className="flex items-center gap-1.5 sm:gap-2 rounded-sm transition-smooth hover:border-accent-blue min-h-[44px] px-3 sm:px-4"
                 >
                   <Filter className="h-4 w-4" />
-                  <span className="hidden sm:inline">Advanced</span>
+                  <span className="sm:inline">Filters</span>
                   {getActiveFiltersCount() > 0 && (
                     <Badge variant="secondary" className="ml-1 rounded-sm bg-soft-blue text-accent-blue">
                       {getActiveFiltersCount()}
                     </Badge>
                   )}
-                  {showAdvanced ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
+                  {/* Only show chevron on desktop */}
+                  <span className="hidden lg:inline">
+                    {showAdvanced ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </span>
                 </Button>
               </div>
 
@@ -292,9 +311,9 @@ const EnhancedAdvancedSearch = ({
         </CardContent>
       </Card>
 
-      {/* Advanced Search Panel */}
+      {/* Desktop Advanced Search Panel - only visible on lg+ */}
       {showAdvanced && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="hidden lg:grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Filters */}
           <div className="lg:col-span-2 order-1">
             <SearchFilters
@@ -319,14 +338,14 @@ const EnhancedAdvancedSearch = ({
                   Trends
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="history">
                 <SearchHistory
                   onSearchSelect={handleHistorySearch}
                   className="h-96"
                 />
               </TabsContent>
-              
+
               <TabsContent value="stats">
                 <Card className="rounded-md shadow-card bg-white-surface">
                   <CardHeader>
@@ -397,20 +416,21 @@ const EnhancedAdvancedSearch = ({
       {/* Active Filters Display */}
       {getActiveFiltersCount() > 0 && (
         <Card className="rounded-md shadow-card bg-white-surface">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm font-medium text-text-primary">Active filters:</span>
                 <div className="flex flex-wrap gap-1">
                   {Object.entries(filters).map(([key, value]) => {
-                    if (!value || value === false || value === '') return null;
+                    if (!value || value === false || value === '' || (Array.isArray(value) && value.length === 0)) return null;
 
+                    const displayValue = Array.isArray(value) ? value.join(', ') : value.toString();
                     return (
                       <Badge key={key} variant="secondary" className="text-xs rounded-sm bg-soft-blue text-accent-blue">
-                        {key}: {value.toString()}
+                        {key}: {displayValue}
                         <button
                           onClick={() => {
-                            const newFilters = { ...filters, [key]: '' };
+                            const newFilters = { ...filters, [key]: Array.isArray(value) ? [] : '' };
                             setFilters(newFilters);
                             handleFiltersChange(newFilters);
                           }}
@@ -427,7 +447,7 @@ const EnhancedAdvancedSearch = ({
                 variant="ghost"
                 size="sm"
                 onClick={resetFilters}
-                className="transition-smooth hover:text-accent-blue"
+                className="transition-smooth hover:text-accent-blue self-start sm:self-auto"
               >
                 Clear All
               </Button>
@@ -435,9 +455,22 @@ const EnhancedAdvancedSearch = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Mobile Filters Modal */}
+      <MobileFiltersModal
+        isOpen={showMobileFilters}
+        onClose={() => setShowMobileFilters(false)}
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        onApplyFilters={(newFilters) => {
+          handleSearch(query, newFilters);
+        }}
+        onResetFilters={resetFilters}
+        availableFilters={availableFilters}
+        activeFiltersCount={getActiveFiltersCount()}
+      />
     </div>
   );
 };
 
 export default EnhancedAdvancedSearch;
-
