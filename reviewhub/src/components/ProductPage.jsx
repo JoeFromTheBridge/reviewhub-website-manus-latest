@@ -936,7 +936,7 @@ export function ProductPage() {
 
             {/* Filters Panel */}
             <div
-              className="flex flex-wrap gap-4 mb-6 items-center p-4"
+              className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 items-start sm:items-center p-3 sm:p-4"
               style={{
                 background: '#FFFFFF',
                 borderRadius: '12px',
@@ -944,18 +944,18 @@ export function ProductPage() {
                 border: '1px solid #E5E7EB',
               }}
             >
-              <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4" style={{ color: '#6B7280' }} />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Filter className="h-4 w-4 flex-shrink-0" style={{ color: '#6B7280' }} />
                 <span
-                  className="text-sm font-medium"
+                  className="text-sm font-medium flex-shrink-0"
                   style={{ color: '#374151' }}
                 >
-                  Sort by:
+                  Sort:
                 </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-1.5 text-sm"
+                  className="flex-1 sm:flex-none px-3 py-2 text-sm min-h-[40px]"
                   style={{
                     border: '1px solid #E5E7EB',
                     borderRadius: '8px',
@@ -970,9 +970,9 @@ export function ProductPage() {
                 </select>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <span
-                  className="text-sm font-medium"
+                  className="text-sm font-medium flex-shrink-0"
                   style={{ color: '#374151' }}
                 >
                   Rating:
@@ -980,7 +980,7 @@ export function ProductPage() {
                 <select
                   value={filterRating}
                   onChange={(e) => setFilterRating(e.target.value)}
-                  className="px-3 py-1.5 text-sm"
+                  className="flex-1 sm:flex-none px-3 py-2 text-sm min-h-[40px]"
                   style={{
                     border: '1px solid #E5E7EB',
                     borderRadius: '8px',
@@ -997,26 +997,25 @@ export function ProductPage() {
                 </select>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <label className="flex items-center gap-2 cursor-pointer min-h-[40px] py-1 sm:py-0">
                 <input
                   id="only-with-photos"
                   type="checkbox"
                   checked={onlyWithPhotos}
                   onChange={(e) => setOnlyWithPhotos(e.target.checked)}
-                  className="h-4 w-4 rounded"
+                  className="h-5 w-5 rounded"
                   style={{
                     borderColor: '#E5E7EB',
                     accentColor: '#2196F3',
                   }}
                 />
-                <label
-                  htmlFor="only-with-photos"
-                  className="text-sm cursor-pointer"
+                <span
+                  className="text-sm"
                   style={{ color: '#6B7280' }}
                 >
-                  Only reviews with photos
-                </label>
-              </div>
+                  With photos only
+                </span>
+              </label>
             </div>
 
             {/* Individual Reviews */}
@@ -1177,7 +1176,7 @@ export function ProductPage() {
                               <img
                                 src={img.thumb}
                                 alt="Review"
-                                className="w-20 h-20 object-cover hover:opacity-80 transition"
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover hover:opacity-80 transition"
                                 style={{ borderRadius: '8px' }}
                                 onError={(e) => {
                                   e.currentTarget.onerror = null;

@@ -298,7 +298,7 @@ const SearchFilters = ({
     <div key={key} className="border-b border-border-light last:border-b-0">
       <button
         onClick={() => toggleSection(key)}
-        className="w-full flex items-center justify-between p-3 hover:bg-soft-blue transition-smooth"
+        className="w-full flex items-center justify-between p-3 hover:bg-soft-blue transition-smooth min-h-[48px]"
       >
         <div className="flex items-center gap-2 text-text-primary">
           {icon}
@@ -311,7 +311,7 @@ const SearchFilters = ({
         )}
       </button>
       {expandedSections[key] && (
-        <div className="px-3 pb-3">
+        <div className="px-3 pb-4">
           {content}
         </div>
       )}
@@ -438,7 +438,7 @@ const SearchFilters = ({
         <div className="p-3 border-t border-border-light">
           <Button
             onClick={handleApplyFilters}
-            className="w-full rounded-sm bg-accent-blue hover:bg-accent-blue/90 transition-smooth"
+            className="w-full rounded-sm bg-accent-blue hover:bg-accent-blue/90 transition-smooth min-h-[44px]"
             disabled={getActiveFiltersCount() === 0}
           >
             Apply Filters ({getActiveFiltersCount()})
