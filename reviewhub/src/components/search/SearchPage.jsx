@@ -380,45 +380,45 @@ const SearchPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-primary">
-      <div className="container mx-auto p-4">
-        <h1 className="text-3xl font-bold text-text-primary mb-6">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-text-primary mb-4 sm:mb-6">
           Search ReviewHub
         </h1>
 
       {/* Search Type Tabs */}
-      <div className="flex border-b border-border-light mb-6">
+      <div className="flex overflow-x-auto border-b border-border-light mb-4 sm:mb-6 -mx-3 px-3 sm:mx-0 sm:px-0">
         <button
-          className={`py-3 px-6 text-lg font-medium transition-smooth ${
+          className={`py-2.5 sm:py-3 px-3 sm:px-6 text-sm sm:text-lg font-medium transition-smooth whitespace-nowrap min-h-[44px] ${
             activeSearchTab === 'text'
               ? 'border-b-2 border-accent-blue text-accent-blue'
               : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveSearchTab('text')}
         >
-          <Search className="h-5 w-5 inline mr-2" />
-          Text Search
+          <Search className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1.5 sm:mr-2" />
+          Text
         </button>
         <button
-          className={`py-3 px-6 text-lg font-medium transition-smooth ${
+          className={`py-2.5 sm:py-3 px-3 sm:px-6 text-sm sm:text-lg font-medium transition-smooth whitespace-nowrap min-h-[44px] ${
             activeSearchTab === 'visual'
               ? 'border-b-2 border-accent-blue text-accent-blue'
               : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveSearchTab('visual')}
         >
-          <Camera className="h-5 w-5 inline mr-2" />
-          Visual Search
+          <Camera className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1.5 sm:mr-2" />
+          Visual
         </button>
         <button
-          className={`py-3 px-6 text-lg font-medium transition-smooth ${
+          className={`py-2.5 sm:py-3 px-3 sm:px-6 text-sm sm:text-lg font-medium transition-smooth whitespace-nowrap min-h-[44px] ${
             activeSearchTab === 'voice'
               ? 'border-b-2 border-accent-blue text-accent-blue'
               : 'text-text-secondary hover:text-text-primary'
           }`}
           onClick={() => setActiveSearchTab('voice')}
         >
-          <Mic className="h-5 w-5 inline mr-2" />
-          Voice Search
+          <Mic className="h-4 w-4 sm:h-5 sm:w-5 inline mr-1.5 sm:mr-2" />
+          Voice
         </button>
       </div>
 
@@ -445,9 +445,9 @@ const SearchPage = () => {
       {/* Results Section */}
       {hasResults && (
         <>
-          <div className="flex border-b border-border-light mb-4 mt-8">
+          <div className="flex border-b border-border-light mb-4 mt-6 sm:mt-8">
             <button
-              className={`py-2 px-4 text-lg font-medium transition-smooth ${
+              className={`py-2 px-3 sm:px-4 text-base sm:text-lg font-medium transition-smooth min-h-[44px] ${
                 activeResultsTab === 'products'
                   ? 'border-b-2 border-accent-blue text-accent-blue'
                   : 'text-text-secondary hover:text-text-primary'
@@ -456,19 +456,19 @@ const SearchPage = () => {
             >
               Products ({searchResults.products?.length || 0})
               {searchType === 'visual' && (
-                <span className="ml-1 text-xs bg-soft-blue text-accent-blue px-2 py-1 rounded-sm">
+                <span className="ml-1 text-xs bg-soft-blue text-accent-blue px-2 py-0.5 rounded-sm">
                   Visual
                 </span>
               )}
               {searchType === 'voice' && (
-                <span className="ml-1 text-xs bg-soft-lavender text-purple-600 px-2 py-1 rounded-sm">
+                <span className="ml-1 text-xs bg-soft-lavender text-purple-600 px-2 py-0.5 rounded-sm">
                   Voice
                 </span>
               )}
             </button>
             {searchType === 'text' && (
               <button
-                className={`py-2 px-4 text-lg font-medium transition-smooth ${
+                className={`py-2 px-3 sm:px-4 text-base sm:text-lg font-medium transition-smooth min-h-[44px] ${
                   activeResultsTab === 'reviews'
                     ? 'border-b-2 border-accent-blue text-accent-blue'
                     : 'text-text-secondary hover:text-text-primary'

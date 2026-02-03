@@ -38,11 +38,11 @@ export function Footer() {
             >
               Quick Links
             </h4>
-            <ul className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
+            <ul className="space-y-0.5 md:space-y-1 text-xs md:text-sm">
               <li>
                 <Link
                   to="/search?tab=products"
-                  className="hover:underline transition-colors"
+                  className="hover:underline transition-colors inline-block py-1.5"
                   style={{ color: '#B9C7F3' }}
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
@@ -53,7 +53,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/search?tab=reviews"
-                  className="hover:underline transition-colors"
+                  className="hover:underline transition-colors inline-block py-1.5"
                   style={{ color: '#B9C7F3' }}
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
@@ -64,7 +64,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/about"
-                  className="hover:underline transition-colors"
+                  className="hover:underline transition-colors inline-block py-1.5"
                   style={{ color: '#B9C7F3' }}
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
@@ -83,11 +83,11 @@ export function Footer() {
             >
               Legal
             </h4>
-            <ul className="space-y-1.5 md:space-y-2 text-xs md:text-sm">
+            <ul className="space-y-0.5 md:space-y-1 text-xs md:text-sm">
               <li>
                 <Link
                   to="/privacy"
-                  className="hover:underline transition-colors"
+                  className="hover:underline transition-colors inline-block py-1.5"
                   style={{ color: '#B9C7F3' }}
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
@@ -98,7 +98,7 @@ export function Footer() {
               <li>
                 <Link
                   to="/terms"
-                  className="hover:underline transition-colors"
+                  className="hover:underline transition-colors inline-block py-1.5"
                   style={{ color: '#B9C7F3' }}
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}
@@ -109,7 +109,7 @@ export function Footer() {
               <li>
                 <a
                   href="mailto:support@thereviewhub.ca"
-                  className="hover:underline transition-colors"
+                  className="hover:underline transition-colors inline-block py-1.5"
                   style={{ color: '#B9C7F3' }}
                   onMouseEnter={(e) => e.target.style.color = '#FFFFFF'}
                   onMouseLeave={(e) => e.target.style.color = '#B9C7F3'}

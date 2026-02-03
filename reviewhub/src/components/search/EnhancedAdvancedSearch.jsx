@@ -221,8 +221,8 @@ const EnhancedAdvancedSearch = ({
     <div className={`space-y-6 ${className}`}>
       {/* Main Search Bar */}
       <Card className="rounded-md shadow-input bg-white-surface border border-border-light">
-        <CardContent className="p-6">
-          <div className="space-y-4">
+        <CardContent className="p-3 sm:p-4 lg:p-6">
+          <div className="space-y-3 sm:space-y-4">
             {/* Search Input with Autocomplete */}
             <div className="relative">
               <SearchAutocomplete
@@ -235,15 +235,15 @@ const EnhancedAdvancedSearch = ({
             </div>
 
             {/* Quick Filters */}
-            <div className="flex flex-wrap gap-2">
-              <span className="text-sm font-medium text-text-primary mr-2">Quick filters:</span>
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 items-center">
+              <span className="text-xs sm:text-sm font-medium text-text-primary mr-1 sm:mr-2 w-full sm:w-auto mb-1 sm:mb-0">Quick filters:</span>
               {quickFilters.map((quickFilter, index) => (
                 <Button
                   key={index}
                   variant="outline"
                   size="sm"
                   onClick={() => handleQuickFilterClick(quickFilter)}
-                  className="text-xs rounded-sm transition-smooth hover:border-accent-blue hover:text-accent-blue"
+                  className="text-xs rounded-sm transition-smooth hover:border-accent-blue hover:text-accent-blue min-h-[36px] px-2 sm:px-3"
                 >
                   <span className="mr-1">{quickFilter.icon}</span>
                   {quickFilter.name}
@@ -252,12 +252,12 @@ const EnhancedAdvancedSearch = ({
             </div>
 
             {/* Search Actions */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Button
                   onClick={() => handleSearch()}
                   disabled={!query.trim()}
-                  className="px-6 rounded-sm bg-accent-blue hover:bg-accent-blue/90 transition-smooth"
+                  className="flex-1 sm:flex-none px-4 sm:px-6 rounded-sm bg-accent-blue hover:bg-accent-blue/90 transition-smooth min-h-[44px]"
                 >
                   <Search className="h-4 w-4 mr-2" />
                   Search
@@ -266,10 +266,10 @@ const EnhancedAdvancedSearch = ({
                 <Button
                   variant="outline"
                   onClick={() => setShowAdvanced(!showAdvanced)}
-                  className="flex items-center gap-2 rounded-sm transition-smooth hover:border-accent-blue"
+                  className="flex items-center gap-1.5 sm:gap-2 rounded-sm transition-smooth hover:border-accent-blue min-h-[44px] px-3 sm:px-4"
                 >
                   <Filter className="h-4 w-4" />
-                  Advanced
+                  <span className="hidden sm:inline">Advanced</span>
                   {getActiveFiltersCount() > 0 && (
                     <Badge variant="secondary" className="ml-1 rounded-sm bg-soft-blue text-accent-blue">
                       {getActiveFiltersCount()}
@@ -283,7 +283,7 @@ const EnhancedAdvancedSearch = ({
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <div className="hidden sm:flex items-center gap-2 text-sm text-text-secondary">
                 <Clock className="h-4 w-4" />
                 <span>{searchStats.totalSearches || 0} searches today</span>
               </div>
@@ -294,9 +294,9 @@ const EnhancedAdvancedSearch = ({
 
       {/* Advanced Search Panel */}
       {showAdvanced && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Filters */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 order-1">
             <SearchFilters
               filters={filters}
               onFiltersChange={handleFiltersChange}

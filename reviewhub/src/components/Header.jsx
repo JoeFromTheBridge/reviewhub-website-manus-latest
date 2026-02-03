@@ -84,9 +84,9 @@ export function Header() {
   return (
     <>
       <header className="bg-white-surface shadow-card border-b border-border-light sticky top-0 z-50">
-        <div className="w-full px-3 sm:px-4 lg:px-8">
+        <div className="w-full px-3 sm:px-4 lg:px-8 overflow-x-hidden">
           <div
-            className="flex items-center gap-3 lg:gap-4"
+            className="flex items-center gap-2 sm:gap-3 lg:gap-4"
             style={{
               height: 'clamp(52px, 8vh, 64px)',
             }}

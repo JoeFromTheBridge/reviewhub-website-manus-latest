@@ -239,8 +239,8 @@ export function HomePage() {
         <div
           className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
           style={{
-            paddingTop: 'clamp(48px, 10vh, 120px)',
-            paddingBottom: 'clamp(32px, 6vh, 80px)',
+            paddingTop: 'clamp(32px, 8vh, 120px)',
+            paddingBottom: 'clamp(24px, 5vh, 80px)',
           }}
         >
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
@@ -267,7 +267,7 @@ export function HomePage() {
                 {/* Primary: Browse Products - larger, more prominent */}
                 <Button
                   size="lg"
-                  className="bg-white text-accent-blue hover:bg-white/90 rounded-md font-medium min-w-[160px]"
+                  className="bg-white text-accent-blue hover:bg-white/90 rounded-md font-medium w-full sm:w-auto sm:min-w-[160px] min-h-[48px]"
                   style={{
                     padding: '0.75rem 2rem',
                   }}
@@ -278,7 +278,7 @@ export function HomePage() {
                 {/* Secondary: Write Your First Review - visually subordinate */}
                 <Button
                   variant="outline"
-                  className="text-white border-white hover:bg-white hover:text-accent-blue rounded-md min-w-[160px]"
+                  className="text-white border-white hover:bg-white hover:text-accent-blue rounded-md w-full sm:w-auto sm:min-w-[160px] min-h-[44px]"
                   style={{
                     padding: '0.625rem 1.5rem',
                     fontSize: '0.875rem',
@@ -306,11 +306,11 @@ export function HomePage() {
       {/* Main content wrapper - gradient flows across all sections */}
       <div className="flex-1 bg-gradient-to-br from-soft-blue to-soft-lavender">
         {/* Recent Reviews Section - Directly after Hero */}
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Community</p>
-              <h2 className="text-3xl font-semibold text-text-primary">Recent Reviews</h2>
+        <section className="py-8 sm:py-12 lg:py-16">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="text-center mb-6 sm:mb-8 lg:mb-12">
+              <p className="text-sm sm:text-base text-text-secondary uppercase tracking-[0.1em] mb-1 sm:mb-2">Community</p>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-text-primary">Recent Reviews</h2>
             </div>
 
             {loading ? (
@@ -457,17 +457,17 @@ export function HomePage() {
                           if (validImages.length === 0) return null
 
                           return (
-                            <div className="flex gap-1 mb-3">
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
                               {validImages.slice(0, 4).map((imgUrl, idx) => (
                                 <img
                                   key={idx}
                                   src={imgUrl}
                                   alt={`Review photo ${idx + 1}`}
-                                  className="w-12 h-12 object-cover rounded-sm"
+                                  className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-sm"
                                 />
                               ))}
                               {validImages.length > 4 && (
-                                <div className="w-12 h-12 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
+                                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
                                   +{validImages.length - 4}
                                 </div>
                               )}
@@ -530,11 +530,11 @@ export function HomePage() {
         </section>
 
         {/* Categories Section - Directly after Recent Reviews */}
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Explore</p>
-              <h2 className="text-3xl font-semibold text-text-primary">Browse by Category</h2>
+        <section className="py-8 sm:py-12 lg:py-16">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="text-center mb-6 sm:mb-8 lg:mb-12">
+              <p className="text-sm sm:text-base text-text-secondary uppercase tracking-[0.1em] mb-1 sm:mb-2">Explore</p>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-text-primary">Browse by Category</h2>
             </div>
 
             {loading ? (
@@ -609,11 +609,11 @@ export function HomePage() {
 
         {/* Stats (live from API) */}
         {!loading && !error && (
-          <section className="py-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="text-center mb-12">
-                <p className="text-base text-text-secondary uppercase tracking-[0.1em] mb-2">Statistics</p>
-                <h2 className="text-3xl font-semibold text-text-primary">Our Community</h2>
+          <section className="py-8 sm:py-12 lg:py-16">
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+              <div className="text-center mb-6 sm:mb-8 lg:mb-12">
+                <p className="text-sm sm:text-base text-text-secondary uppercase tracking-[0.1em] mb-1 sm:mb-2">Statistics</p>
+                <h2 className="text-2xl sm:text-3xl font-semibold text-text-primary">Our Community</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
                 <div className="flex flex-col items-center">
@@ -650,8 +650,8 @@ export function HomePage() {
 
         {/* Personalized Recommendations (for authenticated users) */}
         {isAuthenticated && (
-          <section className="py-16">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <section className="py-8 sm:py-12 lg:py-16">
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
               <RecommendationSection
                 title="Recommended for You"
                 type="user"
@@ -663,8 +663,8 @@ export function HomePage() {
         )}
 
         {/* Trending Products */}
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-8 sm:py-12 lg:py-16">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <RecommendationSection
               title="Trending Products"
               type="trending"
