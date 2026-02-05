@@ -209,6 +209,7 @@ export function SearchResults() {
   }
 
   const clearFilters = () => {
+    // Clear ALL search context: filters AND search query
     setFilters({
       query: '',
       category: '',
@@ -217,11 +218,12 @@ export function SearchResults() {
       maxPrice: '2000',
       sortBy: 'relevance'
     })
+    // Remove all URL params to return to "Browse all products" state
     setSearchParams({})
     setCurrentPage(1)
   }
 
-  // Count active filters for badge display
+  // Count active filters AND search query for badge/button state
   const getActiveFiltersCount = () => {
     let count = 0
     if (filters.category) count++
@@ -230,6 +232,11 @@ export function SearchResults() {
     if (parseInt(filters.maxPrice) < 2000) count++
     if (filters.sortBy && filters.sortBy !== 'relevance') count++
     return count
+  }
+
+  // Check if there's any active search context (query OR filters)
+  const hasActiveSearchContext = () => {
+    return filters.query || getActiveFiltersCount() > 0
   }
 
   // Improved star rendering with proper half-star support
@@ -625,10 +632,10 @@ export function SearchResults() {
               variant="outline"
               onClick={clearFilters}
               className="flex-1 min-h-[48px] rounded-md transition-smooth"
-              disabled={getActiveFiltersCount() === 0}
+              disabled={!hasActiveSearchContext()}
             >
               <RotateCcw className="h-4 w-4 mr-2" />
-              Reset
+              Reset All
             </Button>
             <Button
               onClick={() => setShowMobileFilters(false)}
@@ -656,49 +663,45 @@ export function SearchResults() {
           </p>
         </div>
 
-        {/* Results Toolbar - unified row for all controls */}
-        <div className="mb-4 sm:mb-6 flex items-center justify-between gap-2 flex-wrap">
-          {/* Left side: Filter controls (mobile only) */}
-          {isMobileFiltersMode && (
-            <div className="flex items-center gap-2">
-              {/* Primary Filters button */}
-              <Button
-                size="sm"
-                onClick={() => setShowMobileFilters(true)}
-                className="h-9 px-3 rounded-md bg-accent-blue text-white hover:bg-accent-blue/90 border border-black flex items-center gap-1.5"
-              >
-                <Filter className="h-4 w-4" />
-                <span className="text-sm">Filters</span>
-                {getActiveFiltersCount() > 0 && (
-                  <Badge variant="secondary" className="h-5 min-w-[20px] rounded bg-white text-accent-blue text-xs px-1.5">
-                    {getActiveFiltersCount()}
-                  </Badge>
-                )}
-              </Button>
-              {/* Secondary Reset button (ghost style) */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                className="h-9 px-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-gray-100 border border-black flex items-center gap-1.5"
-                disabled={getActiveFiltersCount() === 0}
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                <span className="text-sm">Reset</span>
-              </Button>
-            </div>
-          )}
+        {/* Results Toolbar - single cohesive control bar */}
+        {isMobileFiltersMode && (
+          <div className="mb-4 sm:mb-6 flex items-center gap-2">
+            {/* Primary Filters button */}
+            <Button
+              size="sm"
+              onClick={() => setShowMobileFilters(true)}
+              className="h-10 px-3 rounded-md bg-accent-blue text-white hover:bg-accent-blue/90 border border-black flex items-center gap-1.5"
+            >
+              <Filter className="h-4 w-4" />
+              <span className="text-sm font-medium">Filters</span>
+              {getActiveFiltersCount() > 0 && (
+                <Badge variant="secondary" className="h-5 min-w-[20px] rounded bg-white text-accent-blue text-xs px-1.5">
+                  {getActiveFiltersCount()}
+                </Badge>
+              )}
+            </Button>
 
-          {/* Spacer for desktop (pushes view toggles to right) */}
-          {!isMobileFiltersMode && <div className="flex-1" />}
+            {/* Secondary Reset button - clears filters AND search query */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={clearFilters}
+              className="h-10 px-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-gray-100 border border-black flex items-center gap-1.5"
+              disabled={!hasActiveSearchContext()}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span className="text-sm">Reset</span>
+            </Button>
 
-          {/* Right side: View toggles */}
-          <div className="flex items-center gap-1.5 ml-auto">
+            {/* Separator */}
+            <div className="w-px h-6 bg-border-light mx-1" />
+
+            {/* View toggles */}
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('grid')}
-              className={`h-9 w-9 p-0 rounded-md border border-black ${viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'hover:bg-gray-50'}`}
+              className={`h-10 w-10 p-0 rounded-md border border-black ${viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'hover:bg-gray-50'}`}
               aria-label="Grid view"
             >
               <Grid className="h-4 w-4" />
@@ -707,13 +710,37 @@ export function SearchResults() {
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className={`h-9 w-9 p-0 rounded-md border border-black ${viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'hover:bg-gray-50'}`}
+              className={`h-10 w-10 p-0 rounded-md border border-black ${viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'hover:bg-gray-50'}`}
               aria-label="List view"
             >
               <List className="h-4 w-4" />
             </Button>
           </div>
-        </div>
+        )}
+
+        {/* Desktop: just view toggles (filters are in sidebar) */}
+        {!isMobileFiltersMode && (
+          <div className="mb-4 sm:mb-6 flex items-center justify-end gap-1.5">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+              className={`h-10 w-10 p-0 rounded-md border border-black ${viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'hover:bg-gray-50'}`}
+              aria-label="Grid view"
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className={`h-10 w-10 p-0 rounded-md border border-black ${viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'hover:bg-gray-50'}`}
+              aria-label="List view"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
 
         {/* Main content area - conditional layout based on mobile/desktop */}
         <div className={`grid gap-4 sm:gap-8 items-start ${isMobileFiltersMode ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}>
