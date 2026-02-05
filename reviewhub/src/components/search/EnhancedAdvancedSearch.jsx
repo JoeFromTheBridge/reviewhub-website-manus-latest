@@ -6,9 +6,6 @@ import {
   ChevronDown,
   ChevronUp,
   History,
-  Bookmark,
-  Settings,
-  Zap,
   Clock,
   TrendingUp
 } from 'lucide-react';
@@ -20,6 +17,7 @@ import SearchAutocomplete from './SearchAutocomplete';
 import SearchFilters from './SearchFilters';
 import SearchHistory from './SearchHistory';
 import MobileFiltersModal from './MobileFiltersModal';
+import { useIsMobileFiltersMode } from '../../hooks/useIsMobileFiltersMode';
 import apiService from '../../services/api';
 
 const EnhancedAdvancedSearch = ({
@@ -43,8 +41,15 @@ const EnhancedAdvancedSearch = ({
     ...initialFilters
   });
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  // Use the hook to determine mobile vs desktop mode
+  const isMobileFiltersMode = useIsMobileFiltersMode();
+
+  // Desktop: controls whether inline filters panel is expanded
+  const [showDesktopFilters, setShowDesktopFilters] = useState(false);
+
+  // Mobile: controls whether the filter modal is open
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
   const [availableFilters, setAvailableFilters] = useState({
     categories: [],
     brands: [],
@@ -52,7 +57,6 @@ const EnhancedAdvancedSearch = ({
     features: []
   });
 
-  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [quickFilters, setQuickFilters] = useState([]);
   const [searchStats, setSearchStats] = useState({});
 
@@ -64,10 +68,8 @@ const EnhancedAdvancedSearch = ({
 
   const loadAvailableFilters = async () => {
     try {
-      // Load categories
       const categoriesResponse = await apiService.getCategories();
 
-      // Load brands (this would need to be implemented in the backend)
       const brands = [
         'Apple', 'Samsung', 'Google', 'Microsoft', 'Sony', 'LG', 'Dell',
         'HP', 'Lenovo', 'ASUS', 'Acer', 'Canon', 'Nikon', 'Nike', 'Adidas',
@@ -100,7 +102,6 @@ const EnhancedAdvancedSearch = ({
   };
 
   const loadQuickFilters = () => {
-    // Popular filter combinations
     setQuickFilters([
       {
         name: 'Highly Rated',
@@ -137,7 +138,6 @@ const EnhancedAdvancedSearch = ({
 
   const loadSearchStats = async () => {
     try {
-      // This would load search analytics from the backend
       setSearchStats({
         totalSearches: 1250,
         popularCategories: ['Electronics', 'Clothing', 'Books'],
@@ -152,10 +152,7 @@ const EnhancedAdvancedSearch = ({
   const handleSearch = (searchQuery = query, searchFilters = filters) => {
     if (!searchQuery.trim()) return;
 
-    // Save search to history
     saveSearchToHistory(searchQuery, searchFilters);
-
-    // Trigger search
     onSearch(searchQuery, searchFilters);
   };
 
@@ -186,10 +183,10 @@ const EnhancedAdvancedSearch = ({
         query: searchQuery,
         filters: searchFilters,
         timestamp: new Date().toISOString(),
-        results: 0 // This would be updated after getting results
+        results: 0
       };
 
-      const updatedHistory = [newSearch, ...history.slice(0, 99)]; // Keep last 100 searches
+      const updatedHistory = [newSearch, ...history.slice(0, 99)];
       localStorage.setItem('reviewhub_search_history', JSON.stringify(updatedHistory));
     } catch (error) {
       console.error('Error saving search to history:', error);
@@ -197,7 +194,7 @@ const EnhancedAdvancedSearch = ({
   };
 
   const resetFilters = () => {
-    const resetFilters = {
+    const emptyFilters = {
       category: '',
       brand: '',
       minPrice: '',
@@ -209,8 +206,8 @@ const EnhancedAdvancedSearch = ({
       hasImages: false,
       dateRange: ''
     };
-    setFilters(resetFilters);
-    handleFiltersChange(resetFilters);
+    setFilters(emptyFilters);
+    handleFiltersChange(emptyFilters);
   };
 
   const getActiveFiltersCount = () => {
@@ -220,15 +217,14 @@ const EnhancedAdvancedSearch = ({
     ).length;
   };
 
-  // Handle filter button click - mobile opens modal, desktop toggles inline
+  // Handle filter button click based on current mode
   const handleFilterButtonClick = () => {
-    // Check if we're on mobile (< lg breakpoint = 1024px)
-    const isMobile = window.innerWidth < 1024;
-
-    if (isMobile) {
+    if (isMobileFiltersMode) {
+      // Mobile: open the filter modal
       setShowMobileFilters(true);
     } else {
-      setShowAdvanced(!showAdvanced);
+      // Desktop: toggle inline filters panel
+      setShowDesktopFilters(!showDesktopFilters);
     }
   };
 
@@ -278,27 +274,27 @@ const EnhancedAdvancedSearch = ({
                   Search
                 </Button>
 
-                {/* Filter button - opens modal on mobile, toggles inline on desktop */}
+                {/* Filters button - always visible, behavior depends on mode */}
                 <Button
                   variant="outline"
                   onClick={handleFilterButtonClick}
                   className="flex items-center gap-1.5 sm:gap-2 rounded-sm transition-smooth hover:border-accent-blue min-h-[44px] px-3 sm:px-4"
                 >
                   <Filter className="h-4 w-4" />
-                  <span className="sm:inline">Filters</span>
+                  <span>Filters</span>
                   {getActiveFiltersCount() > 0 && (
                     <Badge variant="secondary" className="ml-1 rounded-sm bg-soft-blue text-accent-blue">
                       {getActiveFiltersCount()}
                     </Badge>
                   )}
-                  {/* Only show chevron on desktop */}
-                  <span className="hidden lg:inline">
-                    {showAdvanced ? (
+                  {/* Only show chevron on desktop when NOT in mobile mode */}
+                  {!isMobileFiltersMode && (
+                    showDesktopFilters ? (
                       <ChevronUp className="h-4 w-4" />
                     ) : (
                       <ChevronDown className="h-4 w-4" />
-                    )}
-                  </span>
+                    )
+                  )}
                 </Button>
               </div>
 
@@ -311,9 +307,9 @@ const EnhancedAdvancedSearch = ({
         </CardContent>
       </Card>
 
-      {/* Desktop Advanced Search Panel - only visible on lg+ */}
-      {showAdvanced && (
-        <div className="hidden lg:grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      {/* Desktop Filters Panel - ONLY rendered when NOT in mobile mode AND expanded */}
+      {!isMobileFiltersMode && showDesktopFilters && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Filters */}
           <div className="lg:col-span-2 order-1">
             <SearchFilters
@@ -456,19 +452,21 @@ const EnhancedAdvancedSearch = ({
         </Card>
       )}
 
-      {/* Mobile Filters Modal */}
-      <MobileFiltersModal
-        isOpen={showMobileFilters}
-        onClose={() => setShowMobileFilters(false)}
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onApplyFilters={(newFilters) => {
-          handleSearch(query, newFilters);
-        }}
-        onResetFilters={resetFilters}
-        availableFilters={availableFilters}
-        activeFiltersCount={getActiveFiltersCount()}
-      />
+      {/* Mobile Filters Modal - ONLY rendered when in mobile mode */}
+      {isMobileFiltersMode && (
+        <MobileFiltersModal
+          isOpen={showMobileFilters}
+          onClose={() => setShowMobileFilters(false)}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onApplyFilters={(newFilters) => {
+            handleSearch(query, newFilters);
+          }}
+          onResetFilters={resetFilters}
+          availableFilters={availableFilters}
+          activeFiltersCount={getActiveFiltersCount()}
+        />
+      )}
     </div>
   );
 };
