@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
-import { Star, Grid, List, Loader2 } from 'lucide-react'
+import { Star, Grid, List, Loader2, Filter, X, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import apiService from '../services/api'
+import { useIsMobileFiltersMode } from '../hooks/useIsMobileFiltersMode'
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock'
 
 export function SearchResults() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -16,6 +18,13 @@ export function SearchResults() {
   const [totalResults, setTotalResults] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const priceDebounceTimer = useRef(null)
+
+  // Mobile filters modal state
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const isMobileFiltersMode = useIsMobileFiltersMode()
+
+  // Lock body scroll when mobile filters modal is open
+  useBodyScrollLock(showMobileFilters)
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -212,6 +221,17 @@ export function SearchResults() {
     setCurrentPage(1)
   }
 
+  // Count active filters for badge display
+  const getActiveFiltersCount = () => {
+    let count = 0
+    if (filters.category) count++
+    if (filters.minRating) count++
+    if (parseInt(filters.minPrice) > 0) count++
+    if (parseInt(filters.maxPrice) < 2000) count++
+    if (filters.sortBy && filters.sortBy !== 'relevance') count++
+    return count
+  }
+
   // Improved star rendering with proper half-star support
   const renderStars = (rating) => {
     const value = Number(rating) || 0
@@ -376,6 +396,252 @@ export function SearchResults() {
     )
   }
 
+  // Filters content - reused in both sidebar and mobile modal
+  const FiltersContent = ({ inModal = false }) => (
+    <div className={inModal ? 'p-4 space-y-6' : 'space-y-6'}>
+      {/* Categories */}
+      <Card className={`bg-white-surface shadow-card rounded-md ${inModal ? 'shadow-none border-0' : ''}`}>
+        <CardContent className="p-6">
+          <h3 className="font-semibold text-text-primary mb-4">Categories</h3>
+          <div className="space-y-2">
+            <button
+              onClick={() => handleFilterChange('category', '')}
+              className={`block w-full text-left px-3 py-2 rounded-sm transition-smooth min-h-[44px] ${
+                !filters.category
+                  ? 'bg-soft-blue text-accent-blue font-medium'
+                  : 'text-text-secondary hover:bg-soft-blue/50'
+              }`}
+            >
+              All Categories
+            </button>
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => handleFilterChange('category', category.name)}
+                className={`block w-full text-left px-3 py-2 rounded-sm transition-smooth min-h-[44px] ${
+                  filters.category === category.name
+                    ? 'bg-soft-blue text-accent-blue font-medium'
+                    : 'text-text-secondary hover:bg-soft-blue/50'
+                }`}
+              >
+                {category.name}
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Price Range */}
+      <Card className={`bg-white-surface shadow-card rounded-md ${inModal ? 'shadow-none border-0' : ''}`}>
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-text-primary">Price Range</h3>
+            <span className="text-sm font-semibold text-accent-blue">
+              ${filters.minPrice || 0} - ${filters.maxPrice || 2000}
+            </span>
+          </div>
+          <div className="space-y-4">
+            {/* Dual range slider simulation with two inputs */}
+            <div className="relative pt-1">
+              <input
+                type="range"
+                min="0"
+                max="2000"
+                step="50"
+                value={filters.maxPrice || 2000}
+                onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
+                className="w-full h-2 bg-border-light rounded-full appearance-none cursor-pointer accent-accent-blue"
+              />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="text-xs text-text-secondary mb-1 block">Min ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="2000"
+                  value={filters.minPrice || '0'}
+                  onChange={(e) => handlePriceChange('minPrice', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-border-light rounded-sm bg-white-surface shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth min-h-[44px]"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs text-text-secondary mb-1 block">Max ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="2000"
+                  value={filters.maxPrice || '2000'}
+                  onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-border-light rounded-sm bg-white-surface shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth min-h-[44px]"
+                />
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Rating */}
+      <Card className={`bg-white-surface shadow-card rounded-md ${inModal ? 'shadow-none border-0' : ''}`}>
+        <CardContent className="p-6">
+          <h3 className="font-semibold text-text-primary mb-4">Rating</h3>
+          <div className="space-y-2">
+            {[
+              { value: '5', label: '5 stars' },
+              { value: '4', label: '4+ stars' },
+              { value: '3', label: '3+ stars' },
+              { value: '2', label: '2+ stars' }
+            ].map((rating) => (
+              <label
+                key={rating.value}
+                className={`flex items-center gap-3 cursor-pointer p-2 rounded-sm transition-smooth min-h-[44px] ${
+                  filters.minRating === rating.value
+                    ? 'bg-soft-blue'
+                    : 'hover:bg-soft-blue/50'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={filters.minRating === rating.value}
+                  onChange={(e) => handleFilterChange('minRating', e.target.checked ? rating.value : '')}
+                  className="rounded border-border-light text-accent-blue focus:ring-accent-blue w-5 h-5"
+                />
+                <div className="flex items-center gap-1.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`h-4 w-4 ${
+                        i < parseInt(rating.value)
+                          ? 'text-star-gold fill-star-gold'
+                          : 'text-border-light'
+                      }`}
+                    />
+                  ))}
+                  <span className="text-sm text-text-secondary ml-1">{rating.label}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Sort By */}
+      <Card className={`bg-white-surface shadow-card rounded-md ${inModal ? 'shadow-none border-0' : ''}`}>
+        <CardContent className="p-6">
+          <h3 className="font-semibold text-text-primary mb-4">Sort by:</h3>
+          <select
+            value={filters.sortBy}
+            onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+            className="w-full rounded-sm border border-border-light bg-white-surface px-3 py-2 text-sm shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth min-h-[44px]"
+          >
+            <option value="relevance">Most Popular</option>
+            <option value="rating">Highest Rated</option>
+            <option value="reviews">Most Reviews</option>
+            <option value="price_low">Price: Low to High</option>
+            <option value="price_high">Price: High to Low</option>
+            <option value="newest">Newest</option>
+          </select>
+        </CardContent>
+      </Card>
+
+      {/* Reset Filters - only show in sidebar, not modal (modal has its own buttons) */}
+      {!inModal && (
+        <Card className="bg-white-surface shadow-card rounded-md">
+          <CardContent className="p-6">
+            <Button
+              onClick={clearFilters}
+              className="w-full bg-soft-blue text-accent-blue hover:bg-soft-blue/80 transition-smooth min-h-[44px]"
+            >
+              Reset Filters
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+
+  // Mobile Filters Modal
+  const MobileFiltersModal = () => {
+    if (!showMobileFilters) return null
+
+    return (
+      <div
+        className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            setShowMobileFilters(false)
+          }
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="mobile-filters-title"
+      >
+        <div
+          className="bg-white w-full sm:max-w-md sm:mx-4 sm:rounded-lg flex flex-col"
+          style={{
+            maxHeight: '90vh',
+            borderTopLeftRadius: '16px',
+            borderTopRightRadius: '16px',
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b border-border-light flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <Filter className="h-5 w-5 text-text-primary" />
+              <h2 id="mobile-filters-title" className="text-lg font-semibold text-text-primary">
+                Filters
+              </h2>
+              {getActiveFiltersCount() > 0 && (
+                <Badge variant="secondary" className="rounded-sm bg-soft-blue text-accent-blue">
+                  {getActiveFiltersCount()}
+                </Badge>
+              )}
+            </div>
+            <button
+              onClick={() => setShowMobileFilters(false)}
+              className="p-2 -mr-2 text-text-secondary hover:text-text-primary transition-colors rounded-full hover:bg-gray-100"
+              aria-label="Close filters"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          {/* Scrollable filter content */}
+          <div
+            data-scroll-lock-scrollable
+            className="flex-1 overflow-y-auto"
+            style={{
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <FiltersContent inModal={true} />
+          </div>
+
+          {/* Sticky action bar */}
+          <div className="flex-shrink-0 p-4 border-t border-border-light bg-white flex gap-3">
+            <Button
+              variant="outline"
+              onClick={clearFilters}
+              className="flex-1 min-h-[48px] rounded-md transition-smooth"
+              disabled={getActiveFiltersCount() === 0}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
+            <Button
+              onClick={() => setShowMobileFilters(false)}
+              className="flex-1 min-h-[48px] rounded-md bg-accent-blue hover:bg-accent-blue/90 transition-smooth"
+            >
+              Show Results
+              {totalResults > 0 && ` (${totalResults})`}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-primary">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -391,11 +657,28 @@ export function SearchResults() {
           </div>
           {/* View Controls */}
           <div className="flex items-center space-x-2">
+            {/* Filters button - only shown on mobile */}
+            {isMobileFiltersMode && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMobileFilters(true)}
+                className="flex items-center gap-2 border-border-light min-h-[44px] px-4"
+              >
+                <Filter className="h-4 w-4" />
+                <span>Filters</span>
+                {getActiveFiltersCount() > 0 && (
+                  <Badge variant="secondary" className="rounded-sm bg-soft-blue text-accent-blue ml-1">
+                    {getActiveFiltersCount()}
+                  </Badge>
+                )}
+              </Button>
+            )}
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('grid')}
-              className={viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'border-border-light'}
+              className={`min-h-[44px] ${viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'border-border-light'}`}
             >
               <Grid className="h-4 w-4" />
             </Button>
@@ -403,176 +686,24 @@ export function SearchResults() {
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className={viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'border-border-light'}
+              className={`min-h-[44px] ${viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'border-border-light'}`}
             >
               <List className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
-          {/* Filters Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Categories */}
-            <Card className="bg-white-surface shadow-card rounded-md">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-text-primary mb-4">Categories</h3>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handleFilterChange('category', '')}
-                    className={`block w-full text-left px-3 py-2 rounded-sm transition-smooth ${
-                      !filters.category
-                        ? 'bg-soft-blue text-accent-blue font-medium'
-                        : 'text-text-secondary hover:bg-soft-blue/50'
-                    }`}
-                  >
-                    All Categories
-                  </button>
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => handleFilterChange('category', category.name)}
-                      className={`block w-full text-left px-3 py-2 rounded-sm transition-smooth ${
-                        filters.category === category.name
-                          ? 'bg-soft-blue text-accent-blue font-medium'
-                          : 'text-text-secondary hover:bg-soft-blue/50'
-                      }`}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Price Range */}
-            <Card className="bg-white-surface shadow-card rounded-md">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-text-primary">Price Range</h3>
-                  <span className="text-sm font-semibold text-accent-blue">
-                    ${filters.minPrice || 0} - ${filters.maxPrice || 2000}
-                  </span>
-                </div>
-                <div className="space-y-4">
-                  {/* Dual range slider simulation with two inputs */}
-                  <div className="relative pt-1">
-                    <input
-                      type="range"
-                      min="0"
-                      max="2000"
-                      step="50"
-                      value={filters.maxPrice || 2000}
-                      onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
-                      className="w-full h-2 bg-border-light rounded-full appearance-none cursor-pointer accent-accent-blue"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <div className="flex-1">
-                      <label className="text-xs text-text-secondary mb-1 block">Min ($)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="2000"
-                        value={filters.minPrice || '0'}
-                        onChange={(e) => handlePriceChange('minPrice', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-border-light rounded-sm bg-white-surface shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="text-xs text-text-secondary mb-1 block">Max ($)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="2000"
-                        value={filters.maxPrice || '2000'}
-                        onChange={(e) => handlePriceChange('maxPrice', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-border-light rounded-sm bg-white-surface shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Rating */}
-            <Card className="bg-white-surface shadow-card rounded-md">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-text-primary mb-4">Rating</h3>
-                <div className="space-y-2">
-                  {[
-                    { value: '5', label: '5 stars' },
-                    { value: '4', label: '4+ stars' },
-                    { value: '3', label: '3+ stars' },
-                    { value: '2', label: '2+ stars' }
-                  ].map((rating) => (
-                    <label
-                      key={rating.value}
-                      className={`flex items-center gap-3 cursor-pointer p-2 rounded-sm transition-smooth ${
-                        filters.minRating === rating.value
-                          ? 'bg-soft-blue'
-                          : 'hover:bg-soft-blue/50'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filters.minRating === rating.value}
-                        onChange={(e) => handleFilterChange('minRating', e.target.checked ? rating.value : '')}
-                        className="rounded border-border-light text-accent-blue focus:ring-accent-blue"
-                      />
-                      <div className="flex items-center gap-1.5">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < parseInt(rating.value)
-                                ? 'text-star-gold fill-star-gold'
-                                : 'text-border-light'
-                            }`}
-                          />
-                        ))}
-                        <span className="text-sm text-text-secondary ml-1">{rating.label}</span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Sort By */}
-            <Card className="bg-white-surface shadow-card rounded-md">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-text-primary mb-4">Sort by:</h3>
-                <select
-                  value={filters.sortBy}
-                  onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-                  className="w-full rounded-sm border border-border-light bg-white-surface px-3 py-2 text-sm shadow-input focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
-                >
-                  <option value="relevance">Most Popular</option>
-                  <option value="rating">Highest Rated</option>
-                  <option value="reviews">Most Reviews</option>
-                  <option value="price_low">Price: Low to High</option>
-                  <option value="price_high">Price: High to Low</option>
-                  <option value="newest">Newest</option>
-                </select>
-              </CardContent>
-            </Card>
-
-            {/* Reset Filters */}
-            <Card className="bg-white-surface shadow-card rounded-md">
-              <CardContent className="p-6">
-                <Button
-                  onClick={clearFilters}
-                  className="w-full bg-soft-blue text-accent-blue hover:bg-soft-blue/80 transition-smooth"
-                >
-                  Reset Filters
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Main content area - conditional layout based on mobile/desktop */}
+        <div className={`grid gap-8 items-start ${isMobileFiltersMode ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}>
+          {/* Filters Sidebar - ONLY rendered on desktop */}
+          {!isMobileFiltersMode && (
+            <div className="lg:col-span-1">
+              <FiltersContent inModal={false} />
+            </div>
+          )}
 
           {/* Results */}
-          <div className="lg:col-span-3">
+          <div className={isMobileFiltersMode ? '' : 'lg:col-span-3'}>
             {/* Loading State */}
             {loading && (
               <div className="flex items-center justify-center py-12">
@@ -645,6 +776,9 @@ export function SearchResults() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Filters Modal - ONLY rendered on mobile */}
+      {isMobileFiltersMode && <MobileFiltersModal />}
     </div>
   )
 }
