@@ -631,7 +631,7 @@ export function SearchResults() {
             </Button>
             <Button
               onClick={() => setShowMobileFilters(false)}
-              className="flex-1 min-h-[48px] rounded-md bg-accent-blue hover:bg-accent-blue/90 transition-smooth"
+              className="flex-1 min-h-[48px] rounded-md bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-smooth"
             >
               Show Results
               {totalResults > 0 && ` (${totalResults})`}
@@ -659,26 +659,38 @@ export function SearchResults() {
           <div className="flex items-center space-x-2">
             {/* Filters button - only shown on mobile */}
             {isMobileFiltersMode && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowMobileFilters(true)}
-                className="flex items-center gap-2 border-border-light min-h-[44px] px-4"
-              >
-                <Filter className="h-4 w-4" />
-                <span>Filters</span>
-                {getActiveFiltersCount() > 0 && (
-                  <Badge variant="secondary" className="rounded-sm bg-soft-blue text-accent-blue ml-1">
-                    {getActiveFiltersCount()}
-                  </Badge>
-                )}
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowMobileFilters(true)}
+                  className="flex items-center gap-2 border border-black min-h-[44px] px-4"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span>Filters</span>
+                  {getActiveFiltersCount() > 0 && (
+                    <Badge variant="secondary" className="rounded-sm bg-soft-blue text-accent-blue ml-1">
+                      {getActiveFiltersCount()}
+                    </Badge>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="flex items-center gap-2 border border-black min-h-[44px] px-4"
+                  disabled={getActiveFiltersCount() === 0}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>Reset</span>
+                </Button>
+              </>
             )}
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('grid')}
-              className={`min-h-[44px] ${viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'border-border-light'}`}
+              className={`min-h-[44px] border border-black ${viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : ''}`}
             >
               <Grid className="h-4 w-4" />
             </Button>
@@ -686,7 +698,7 @@ export function SearchResults() {
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className={`min-h-[44px] ${viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'border-border-light'}`}
+              className={`min-h-[44px] border border-black ${viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : ''}`}
             >
               <List className="h-4 w-4" />
             </Button>
@@ -756,16 +768,16 @@ export function SearchResults() {
                       variant="outline"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(currentPage - 1)}
-                      className="border-border-light disabled:opacity-50"
+                      className="border border-black disabled:opacity-50"
                     >
                       Previous
                     </Button>
-                    <Button className="bg-soft-blue text-accent-blue hover:bg-soft-blue/80">{currentPage}</Button>
+                    <Button className="bg-soft-blue text-accent-blue hover:bg-soft-blue/80 border border-black">{currentPage}</Button>
                     <Button
                       variant="outline"
                       disabled={products.length < 12}
                       onClick={() => setCurrentPage(currentPage + 1)}
-                      className="border-border-light disabled:opacity-50"
+                      className="border border-black disabled:opacity-50"
                     >
                       Next
                     </Button>
