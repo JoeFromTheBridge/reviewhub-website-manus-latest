@@ -293,29 +293,30 @@ export function SearchResults() {
 
     return (
       <Card className="bg-white-surface shadow-card card-hover-lift rounded-md overflow-hidden h-full flex flex-col">
-        <CardContent className="p-4 flex flex-col flex-1">
+        {/* Responsive padding: smaller on mobile, normal on desktop */}
+        <CardContent className="p-3 sm:p-4 flex flex-col flex-1">
           <Link to={`/product/${product.id}`}>
             <img
               src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'}
               alt={product.name}
-              className="w-full h-48 object-cover rounded-sm mb-4"
+              className="w-full h-36 sm:h-48 object-cover rounded-sm mb-3 sm:mb-4"
             />
           </Link>
-          <div className="space-y-2 flex flex-col flex-1">
+          <div className="space-y-1.5 sm:space-y-2 flex flex-col flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <Link
                   to={`/product/${product.id}`}
-                  className="font-semibold text-text-primary hover:text-accent-blue transition-smooth line-clamp-2"
+                  className="font-semibold text-sm sm:text-base text-text-primary hover:text-accent-blue transition-smooth line-clamp-2"
                 >
                   {product.name}
                 </Link>
-                <p className="text-sm text-text-secondary">{product.brand}</p>
+                <p className="text-xs sm:text-sm text-text-secondary">{product.brand}</p>
               </div>
             </div>
 
             {product.category && (
-              <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm">
+              <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm text-xs">
                 {product.category}
               </Badge>
             )}
@@ -323,18 +324,18 @@ export function SearchResults() {
             <div className="flex-1" />
 
             {priceDisplay && (
-              <p className="text-xl font-bold text-accent-blue">{priceDisplay}</p>
+              <p className="text-lg sm:text-xl font-bold text-accent-blue">{priceDisplay}</p>
             )}
 
             <div className="flex items-center justify-between">
               {renderStars(product.average_rating || 0)}
-              <span className="text-sm text-text-secondary">
-                ({product.review_count || 0} reviews)
+              <span className="text-xs sm:text-sm text-text-secondary">
+                ({product.review_count || 0})
               </span>
             </div>
 
             {product.description && (
-              <p className="text-sm text-text-secondary line-clamp-2">{product.description}</p>
+              <p className="text-xs sm:text-sm text-text-secondary line-clamp-2">{product.description}</p>
             )}
           </div>
         </CardContent>
@@ -347,47 +348,47 @@ export function SearchResults() {
 
     return (
       <Card className="bg-white-surface shadow-card card-hover-lift rounded-md overflow-hidden">
-        <CardContent className="p-4">
-          <div className="flex space-x-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex space-x-3 sm:space-x-4">
             <Link to={`/product/${product.id}`} className="flex-shrink-0">
               <img
                 src={product.image_url || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=300'}
                 alt={product.name}
-                className="w-24 h-24 object-cover rounded-sm"
+                className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-sm"
               />
             </Link>
-            <div className="flex-1 space-y-2">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
+            <div className="flex-1 space-y-1 sm:space-y-2 min-w-0">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
                   <Link
                     to={`/product/${product.id}`}
-                    className="font-semibold text-lg text-text-primary hover:text-accent-blue transition-smooth"
+                    className="font-semibold text-sm sm:text-lg text-text-primary hover:text-accent-blue transition-smooth line-clamp-2"
                   >
                     {product.name}
                   </Link>
-                  <p className="text-text-secondary">{product.brand}</p>
+                  <p className="text-xs sm:text-sm text-text-secondary">{product.brand}</p>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   {product.category && (
-                    <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm">
+                    <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm text-xs hidden sm:inline-flex">
                       {product.category}
                     </Badge>
                   )}
                   {priceDisplay && (
-                    <p className="text-lg font-bold text-accent-blue mt-1">{priceDisplay}</p>
+                    <p className="text-sm sm:text-lg font-bold text-accent-blue mt-0.5 sm:mt-1">{priceDisplay}</p>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-4">
                 {renderStars(product.average_rating || 0)}
-                <span className="text-sm text-text-secondary">
-                  ({product.review_count || 0} reviews)
+                <span className="text-xs sm:text-sm text-text-secondary">
+                  ({product.review_count || 0})
                 </span>
               </div>
 
               {product.description && (
-                <p className="text-text-secondary line-clamp-2">{product.description}</p>
+                <p className="text-xs sm:text-sm text-text-secondary line-clamp-1 sm:line-clamp-2">{product.description}</p>
               )}
             </div>
           </div>
@@ -644,53 +645,61 @@ export function SearchResults() {
 
   return (
     <div className="min-h-screen bg-gradient-primary">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary mb-1">
-              {filters.query ? `Search results for "${filters.query}"` : 'All Products'}
-            </h1>
-            <p className="text-text-secondary">
-              {loading ? 'Loading...' : `${totalResults} products found`}
-            </p>
-          </div>
-          {/* View Controls */}
-          <div className="flex items-center space-x-2">
-            {/* Filters button - only shown on mobile */}
-            {isMobileFiltersMode && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowMobileFilters(true)}
-                  className="flex items-center gap-2 border border-black min-h-[44px] px-4"
-                >
-                  <Filter className="h-4 w-4" />
-                  <span>Filters</span>
-                  {getActiveFiltersCount() > 0 && (
-                    <Badge variant="secondary" className="rounded-sm bg-soft-blue text-accent-blue ml-1">
-                      {getActiveFiltersCount()}
-                    </Badge>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="flex items-center gap-2 border border-black min-h-[44px] px-4"
-                  disabled={getActiveFiltersCount() === 0}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  <span>Reset</span>
-                </Button>
-              </>
-            )}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        {/* Page Header */}
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-text-primary">
+            {filters.query ? `Search results for "${filters.query}"` : 'All Products'}
+          </h1>
+          <p className="text-sm sm:text-base text-text-secondary mt-1">
+            {loading ? 'Loading...' : `${totalResults} products found`}
+          </p>
+        </div>
+
+        {/* Results Toolbar - unified row for all controls */}
+        <div className="mb-4 sm:mb-6 flex items-center justify-between gap-2 flex-wrap">
+          {/* Left side: Filter controls (mobile only) */}
+          {isMobileFiltersMode && (
+            <div className="flex items-center gap-2">
+              {/* Primary Filters button */}
+              <Button
+                size="sm"
+                onClick={() => setShowMobileFilters(true)}
+                className="h-9 px-3 rounded-md bg-accent-blue text-white hover:bg-accent-blue/90 border border-black flex items-center gap-1.5"
+              >
+                <Filter className="h-4 w-4" />
+                <span className="text-sm">Filters</span>
+                {getActiveFiltersCount() > 0 && (
+                  <Badge variant="secondary" className="h-5 min-w-[20px] rounded bg-white text-accent-blue text-xs px-1.5">
+                    {getActiveFiltersCount()}
+                  </Badge>
+                )}
+              </Button>
+              {/* Secondary Reset button (ghost style) */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-9 px-3 rounded-md text-text-secondary hover:text-text-primary hover:bg-gray-100 border border-black flex items-center gap-1.5"
+                disabled={getActiveFiltersCount() === 0}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span className="text-sm">Reset</span>
+              </Button>
+            </div>
+          )}
+
+          {/* Spacer for desktop (pushes view toggles to right) */}
+          {!isMobileFiltersMode && <div className="flex-1" />}
+
+          {/* Right side: View toggles */}
+          <div className="flex items-center gap-1.5 ml-auto">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('grid')}
-              className={`min-h-[44px] border border-black ${viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : ''}`}
+              className={`h-9 w-9 p-0 rounded-md border border-black ${viewMode === 'grid' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'hover:bg-gray-50'}`}
+              aria-label="Grid view"
             >
               <Grid className="h-4 w-4" />
             </Button>
@@ -698,7 +707,8 @@ export function SearchResults() {
               variant={viewMode === 'list' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setViewMode('list')}
-              className={`min-h-[44px] border border-black ${viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : ''}`}
+              className={`h-9 w-9 p-0 rounded-md border border-black ${viewMode === 'list' ? 'bg-soft-blue text-accent-blue hover:bg-soft-blue/80' : 'hover:bg-gray-50'}`}
+              aria-label="List view"
             >
               <List className="h-4 w-4" />
             </Button>
@@ -706,7 +716,7 @@ export function SearchResults() {
         </div>
 
         {/* Main content area - conditional layout based on mobile/desktop */}
-        <div className={`grid gap-8 items-start ${isMobileFiltersMode ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}>
+        <div className={`grid gap-4 sm:gap-8 items-start ${isMobileFiltersMode ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}>
           {/* Filters Sidebar - ONLY rendered on desktop */}
           {!isMobileFiltersMode && (
             <div className="lg:col-span-1">
@@ -748,13 +758,13 @@ export function SearchResults() {
             {!loading && !error && products.length > 0 && (
               <>
                 {viewMode === 'grid' ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
                     {products.map((product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {products.map((product) => (
                       <ProductListItem key={product.id} product={product} />
                     ))}
@@ -762,22 +772,29 @@ export function SearchResults() {
                 )}
 
                 {/* Pagination */}
-                <div className="flex justify-center mt-12">
-                  <div className="flex space-x-2">
+                <div className="flex justify-center mt-8 sm:mt-12">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
                     <Button
                       variant="outline"
+                      size="sm"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(currentPage - 1)}
-                      className="border border-black disabled:opacity-50"
+                      className="h-9 px-3 sm:px-4 text-sm rounded-md border border-black disabled:opacity-50"
                     >
                       Previous
                     </Button>
-                    <Button className="bg-soft-blue text-accent-blue hover:bg-soft-blue/80 border border-black">{currentPage}</Button>
+                    <Button
+                      size="sm"
+                      className="h-9 min-w-[36px] px-3 text-sm rounded-md bg-soft-blue text-accent-blue hover:bg-soft-blue/80 border border-black"
+                    >
+                      {currentPage}
+                    </Button>
                     <Button
                       variant="outline"
+                      size="sm"
                       disabled={products.length < 12}
                       onClick={() => setCurrentPage(currentPage + 1)}
-                      className="border border-black disabled:opacity-50"
+                      className="h-9 px-3 sm:px-4 text-sm rounded-md border border-black disabled:opacity-50"
                     >
                       Next
                     </Button>
