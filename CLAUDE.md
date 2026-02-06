@@ -304,6 +304,11 @@ Your job is to:
 * Ship boring, correct software
 
 ```
+# ReviewHub CLI Rules
+- Read `REVIEWHUB_SPEC.md` for project roadmap and Phase 1 goals.
+- Use `npm run dev` to start the local server.
+- Follow the "Coding Preferences" in the spec file (Functional components, Lucide icons).
+- Always run `npm test` before suggesting a commit.
 
 ---
 
