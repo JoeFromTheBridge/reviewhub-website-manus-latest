@@ -275,10 +275,10 @@ export function HomePage() {
                 >
                   Browse Products
                 </Button>
-                {/* Secondary: Write Your First Review - visually subordinate */}
+                {/* Secondary: Write Your First Review - improved visibility */}
                 <Button
                   variant="outline"
-                  className="text-white border-white hover:bg-white hover:text-accent-blue rounded-md w-full sm:w-auto sm:min-w-[160px] min-h-[44px]"
+                  className="text-white border-white/80 hover:bg-white hover:text-accent-blue rounded-md w-full sm:w-auto sm:min-w-[160px] min-h-[44px] bg-white/10 backdrop-blur-sm shadow-sm"
                   style={{
                     padding: '0.625rem 1.5rem',
                     fontSize: '0.875rem',
@@ -476,22 +476,25 @@ export function HomePage() {
                         })()}
 
 
-                        <div className="flex items-center justify-between text-xs text-text-secondary mb-3">
-                          <div className="flex items-center space-x-2">
-                            <span>
-                              By{' '}
+                        {/* Reviewer info - tighter spacing, reduced visual weight */}
+                        <div className="flex items-center justify-between text-xs text-text-secondary/70 mb-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className="truncate max-w-[120px]">
                               {review.user?.username ||
                                 review.user_username ||
                                 review.user_name ||
                                 'Anonymous'}
                             </span>
                             {(review.is_verified || review.verified_purchase) && (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
+                              <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-medium">
                                 Verified
                               </span>
                             )}
                           </div>
-                          <span>{review.helpful_count || 0} helpful</span>
+                          {/* Only show helpful count if > 0 */}
+                          {(review.helpful_count > 0) && (
+                            <span className="text-text-secondary/60">{review.helpful_count} helpful</span>
+                          )}
                         </div>
 
                         {/* Review This Product Button */}
@@ -529,7 +532,7 @@ export function HomePage() {
           </div>
         </section>
 
-        {/* Categories Section - Directly after Recent Reviews */}
+        {/* Categories Section - Redesigned as clean navigation tiles */}
         <section className="py-8 sm:py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 lg:mb-12">
@@ -541,67 +544,55 @@ export function HomePage() {
               <div className="flex justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
               </div>
-            ) : error ? (
-              <div
-                className="grid gap-4 lg:gap-6"
-                style={{
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
-                }}
-              >
-                {STATIC_CATEGORIES.map((category) => (
-                  <Link
-                    key={category.id}
-                    to={buildCategoryHref(category)}
-                    className="group"
-                  >
-                    <Card className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-md">
-                      <CardContent className="p-6 text-center">
-                        <img
-                          src={category.img}
-                          alt={category.name}
-                          className="w-8 h-8 mx-auto mb-4 group-hover:scale-110 transition-transform"
-                        />
-                        <h3 className="font-semibold text-text-primary mb-2">{category.name}</h3>
-                        <p className="text-sm text-text-secondary">Explore products</p>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
             ) : (
               <div
-                className="grid gap-4 lg:gap-6"
+                className="grid gap-3 sm:gap-4 lg:gap-5"
                 style={{
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 200px), 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))',
                 }}
               >
-                {(categories.length ? categories : STATIC_CATEGORIES).map((category) => {
-                  const name = category.name || category.title || 'Category'
-                  const href = buildCategoryHref(category)
-                  const img = category.img || getCategoryIcon(name)
+                {(() => {
+                  // Use API categories if available, fallback to static
+                  const categoryList = categories.length ? categories : STATIC_CATEGORIES
 
-                  return (
-                    <Link
-                      key={category.id || category.slug || name}
-                      to={href}
-                      className="group"
-                    >
-                      <Card className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 cursor-pointer rounded-md">
-                        <CardContent className="p-4 lg:p-6 text-center">
-                          <img
-                            src={img}
-                            alt={name}
-                            className="w-6 h-6 lg:w-8 lg:h-8 mx-auto mb-3 lg:mb-4 group-hover:scale-110 transition-transform"
-                          />
-                          <h3 className="font-semibold text-text-primary mb-1 lg:mb-2 text-sm lg:text-base">{name}</h3>
-                          <p className="text-xs lg:text-sm text-text-secondary">
-                            {category.product_count ?? 'Explore products'}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  )
-                })}
+                  // Filter out categories with 0 products (if product_count is available)
+                  const visibleCategories = categoryList.filter(cat => {
+                    // If product_count is explicitly 0, hide it
+                    if (cat.product_count === 0) return false
+                    return true
+                  })
+
+                  return visibleCategories.map((category) => {
+                    const name = category.name || category.title || 'Category'
+                    const href = buildCategoryHref(category)
+                    const productCount = category.product_count
+                    const hasProducts = productCount !== undefined && productCount !== null
+
+                    return (
+                      <Link
+                        key={category.id || category.slug || name}
+                        to={href}
+                        className="group block"
+                      >
+                        <Card className="bg-white border border-border-light/60 shadow-sm hover:shadow-md hover:border-accent-blue/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer rounded-lg overflow-hidden">
+                          <CardContent className="p-0">
+                            {/* Full-card tappable button */}
+                            <div className="min-h-[72px] sm:min-h-[80px] flex flex-col items-center justify-center px-4 py-4 sm:py-5">
+                              <h3 className="font-semibold text-text-primary text-sm sm:text-base text-center leading-tight mb-1">
+                                {name}
+                              </h3>
+                              {hasProducts && (
+                                <p className="text-xs text-text-secondary/60">
+                                  {productCount} {productCount === 1 ? 'product' : 'products'}
+                                </p>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    )
+                  })
+                })()}
               </div>
             )}
           </div>
