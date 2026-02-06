@@ -322,8 +322,12 @@ export function SearchResults() {
               </div>
             </div>
 
+            {product.description && (
+              <p className="text-xs sm:text-sm text-text-secondary line-clamp-2">{product.description}</p>
+            )}
+
             {product.category && (
-              <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm text-xs">
+              <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm text-xs w-fit">
                 {product.category}
               </Badge>
             )}
@@ -334,16 +338,12 @@ export function SearchResults() {
               <p className="text-lg sm:text-xl font-bold text-accent-blue">{priceDisplay}</p>
             )}
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
               {renderStars(product.average_rating || 0)}
               <span className="text-xs sm:text-sm text-text-secondary">
                 ({product.review_count || 0})
               </span>
             </div>
-
-            {product.description && (
-              <p className="text-xs sm:text-sm text-text-secondary line-clamp-2">{product.description}</p>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -387,16 +387,16 @@ export function SearchResults() {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 sm:space-x-4">
+              {product.description && (
+                <p className="text-xs sm:text-sm text-text-secondary line-clamp-1 sm:line-clamp-2">{product.description}</p>
+              )}
+
+              <div className="flex items-center gap-1.5">
                 {renderStars(product.average_rating || 0)}
                 <span className="text-xs sm:text-sm text-text-secondary">
                   ({product.review_count || 0})
                 </span>
               </div>
-
-              {product.description && (
-                <p className="text-xs sm:text-sm text-text-secondary line-clamp-1 sm:line-clamp-2">{product.description}</p>
-              )}
             </div>
           </div>
         </CardContent>
@@ -588,12 +588,13 @@ export function SearchResults() {
           className="bg-white w-full sm:max-w-md sm:mx-4 sm:rounded-lg flex flex-col"
           style={{
             maxHeight: '90vh',
+            paddingTop: 'env(safe-area-inset-top, 0px)',
             borderTopLeftRadius: '16px',
             borderTopRightRadius: '16px',
           }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-border-light flex-shrink-0">
+          <div className="flex items-center justify-between p-4 border-b border-border-light flex-shrink-0 pt-4">
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5 text-text-primary" />
               <h2 id="mobile-filters-title" className="text-lg font-semibold text-text-primary">

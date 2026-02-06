@@ -100,12 +100,13 @@ const MobileFiltersModal = ({
         className="bg-white w-full sm:max-w-md sm:mx-4 sm:rounded-lg flex flex-col"
         style={{
           maxHeight: '90vh',
+          paddingTop: 'env(safe-area-inset-top, 0px)',
           borderTopLeftRadius: '16px',
           borderTopRightRadius: '16px',
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border-light flex-shrink-0">
+        <div className="flex items-center justify-between p-4 border-b border-border-light flex-shrink-0 pt-4">
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-text-primary" />
             <h2 id="mobile-filters-title" className="text-lg font-semibold text-text-primary">
