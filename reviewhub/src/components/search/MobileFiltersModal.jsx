@@ -100,7 +100,7 @@ const MobileFiltersModal = ({
         className="bg-white w-full sm:max-w-md sm:mx-4 sm:rounded-lg flex flex-col"
         style={{
           maxHeight: '90vh',
-          paddingTop: 'env(safe-area-inset-top, 0px)',
+          paddingTop: 'max(1rem, env(safe-area-inset-top))',
           borderTopLeftRadius: '16px',
           borderTopRightRadius: '16px',
         }}
@@ -148,7 +148,10 @@ const MobileFiltersModal = ({
         </div>
 
         {/* Sticky action bar */}
-        <div className="flex-shrink-0 p-4 border-t border-border-light bg-white flex gap-3">
+        <div
+          className="flex-shrink-0 p-4 border-t border-border-light bg-white flex gap-3"
+          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        >
           <Button
             variant="outline"
             onClick={handleReset}
