@@ -11,6 +11,7 @@ import {
   ChevronRight,
   Maximize2,
   Minimize2,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -609,27 +610,47 @@ export function ProductPage() {
     return result;
   }, [reviews, sortBy, filterRating, onlyWithPhotos]);
 
+  // Improved star rendering with proper half-star support (matches SearchResults)
   const renderStars = (rating) => {
     const value = Number(rating) || 0;
-    return [...Array(5)].map((_, i) => (
-      <Star
-        key={i}
-        className="h-4 w-4"
-        style={{
-          color: i < Math.floor(value)
-            ? '#FFC107'
-            : i < Math.ceil(value) && value % 1 >= 0.5
-            ? '#FFC107'
-            : '#E5E7EB',
-          fill: i < Math.floor(value)
-            ? '#FFC107'
-            : i < Math.ceil(value) && value % 1 >= 0.5
-            ? '#FFC107'
-            : 'none',
-          opacity: i < Math.ceil(value) && value % 1 >= 0.5 && i >= Math.floor(value) ? 0.5 : 1,
-        }}
-      />
-    ));
+    const fullStars = Math.floor(value);
+    const hasHalfStar = value % 1 >= 0.25 && value % 1 < 0.75;
+    const hasFullFromPartial = value % 1 >= 0.75;
+    const actualFullStars = fullStars + (hasFullFromPartial ? 1 : 0);
+
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, i) => {
+          if (i < actualFullStars) {
+            // Full star
+            return (
+              <Star
+                key={i}
+                className="h-4 w-4 text-star-gold fill-star-gold"
+              />
+            );
+          } else if (i === actualFullStars && hasHalfStar) {
+            // Half star
+            return (
+              <div key={i} className="relative w-4 h-4">
+                <Star className="absolute inset-0 h-4 w-4 text-border-light" />
+                <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
+                  <Star className="h-4 w-4 text-star-gold fill-star-gold" />
+                </div>
+              </div>
+            );
+          } else {
+            // Empty star
+            return (
+              <Star
+                key={i}
+                className="h-4 w-4 text-border-light"
+              />
+            );
+          }
+        })}
+      </div>
+    );
   };
 
   const hasActiveFilters =
@@ -643,12 +664,12 @@ export function ProductPage() {
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen py-16"
-        style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
-      >
+      <div className="min-h-screen py-16 bg-gradient-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center" style={{ color: '#6B7280' }}>Loading product details…</p>
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+            <span className="ml-2 text-text-secondary">Loading product details…</span>
+          </div>
         </div>
       </div>
     );
@@ -656,10 +677,7 @@ export function ProductPage() {
 
   if (error) {
     return (
-      <div
-        className="min-h-screen py-16"
-        style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
-      >
+      <div className="min-h-screen py-16 bg-gradient-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-center text-red-600">{error}</p>
         </div>
@@ -669,12 +687,9 @@ export function ProductPage() {
 
   if (!product) {
     return (
-      <div
-        className="min-h-screen py-16"
-        style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
-      >
+      <div className="min-h-screen py-16 bg-gradient-primary">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center" style={{ color: '#6B7280' }}>Product not found.</p>
+          <p className="text-center text-text-secondary">Product not found.</p>
         </div>
       </div>
     );
@@ -716,30 +731,16 @@ export function ProductPage() {
     'No detailed description has been provided for this product yet.';
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)' }}
-    >
+    <div className="min-h-screen bg-gradient-primary">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 lg:py-8">
         {/* Product Header Card */}
-        <div
-          className="mb-8 lg:mb-12 p-4 md:p-6 lg:p-8"
-          style={{
-            background: '#FFFFFF',
-            borderRadius: '12px',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-          }}
-        >
+        <div className="mb-8 lg:mb-12 p-4 md:p-6 lg:p-8 bg-white-surface rounded-md shadow-card">
           <div className="grid lg:grid-cols-2 gap-6 lg:gap-8">
             <div>
               <img
                 src={imageUrl}
                 alt={productName}
-                className="w-full object-cover"
-                style={{
-                  borderRadius: '12px',
-                  height: 'clamp(200px, 40vh, 384px)',
-                }}
+                className="w-full object-cover rounded-md h-[clamp(200px,40vh,384px)]"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src =
@@ -750,17 +751,11 @@ export function ProductPage() {
 
             <div>
               <div className="mb-3 lg:mb-4">
-                <h1
-                  className="font-bold mb-1 lg:mb-2"
-                  style={{
-                    color: '#1A1A1A',
-                    fontSize: 'clamp(1.5rem, 3vw, 1.875rem)',
-                  }}
-                >
+                <h1 className="font-bold mb-1 lg:mb-2 text-text-primary text-2xl sm:text-3xl">
                   {productName}
                 </h1>
                 {productBrand && (
-                  <p className="text-base lg:text-lg" style={{ color: '#6B7280' }}>
+                  <p className="text-base lg:text-lg text-text-secondary">
                     {productBrand}
                   </p>
                 )}
@@ -769,22 +764,19 @@ export function ProductPage() {
               <div className="flex items-center flex-wrap gap-2 lg:space-x-4 mb-4 lg:mb-6">
                 <div className="flex items-center space-x-1">
                   {renderStars(ratingStats.average || product.average_rating)}
-                  <span
-                    className="text-lg font-semibold ml-2"
-                    style={{ color: '#1A1A1A' }}
-                  >
+                  <span className="text-lg font-semibold ml-2 text-text-primary">
                     {ratingStats.total
                       ? ratingStats.average.toFixed(1)
                       : product.average_rating?.toFixed?.(1) || 'N/A'}
                   </span>
                 </div>
-                <span style={{ color: '#6B7280' }}>
+                <span className="text-text-secondary">
                   ({ratingStats.total || product.review_count || 0} reviews)
                 </span>
               </div>
 
               {ratingStats.photoCount > 0 && (
-                <div className="mb-4 text-sm" style={{ color: '#6B7280' }}>
+                <div className="mb-4 text-sm text-text-secondary">
                   {ratingStats.photoCount} review
                   {ratingStats.photoCount === 1 ? '' : 's'} include photos.
                 </div>
@@ -792,15 +784,12 @@ export function ProductPage() {
 
               {specs && Array.isArray(specs) && specs.length > 0 && (
                 <div className="mb-6">
-                  <h3
-                    className="font-semibold mb-3"
-                    style={{ color: '#1A1A1A' }}
-                  >
+                  <h3 className="font-semibold mb-3 text-text-primary">
                     Specifications
                   </h3>
                   <ul className="space-y-2">
                     {specs.map((spec, index) => (
-                      <li key={index} style={{ color: '#6B7280' }}>
+                      <li key={index} className="text-text-secondary">
                         • {spec}
                       </li>
                     ))}
@@ -809,13 +798,12 @@ export function ProductPage() {
               )}
 
               <div className="mb-6">
-                <p style={{ color: '#6B7280' }}>{description}</p>
+                <p className="text-text-secondary">{description}</p>
               </div>
 
               {product.price_min != null || product.price_max != null ? (
                 <div className="mb-6">
-                  <p className="text-lg font-semibold" style={{ color: '#1A1A1A' }}>
-                    Price Range{' '}
+                  <p className="text-xl font-bold text-accent-blue">
                     {product.price_min != null && product.price_max != null
                       ? `$${product.price_min} - $${product.price_max}`
                       : product.price_min != null
@@ -829,22 +817,14 @@ export function ProductPage() {
 
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
-                  className="flex-1 bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity min-h-[44px]"
-                  style={{
-                    borderRadius: '8px',
-                  }}
+                  className="flex-1 bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity min-h-[44px] rounded-sm"
                   onClick={handleWriteReviewClick}
                 >
                   Write Review
                 </Button>
                 <Button
                   variant="outline"
-                  className="flex-1 min-h-[44px]"
-                  style={{
-                    borderRadius: '8px',
-                    borderColor: '#E5E7EB',
-                    color: '#374151',
-                  }}
+                  className="flex-1 min-h-[44px] rounded-sm border-border-light text-gray-700"
                 >
                   Compare Prices
                 </Button>
@@ -860,25 +840,13 @@ export function ProductPage() {
         >
           {/* Rating Summary */}
           <div className="lg:col-span-1">
-            <div
-              style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-              }}
-            >
+            <div className="bg-white-surface rounded-md shadow-card">
               <div className="p-4 lg:p-6">
-                <h3
-                  className="text-lg font-semibold mb-4"
-                  style={{ color: '#1A1A1A' }}
-                >
+                <h3 className="text-lg font-semibold mb-4 text-text-primary">
                   Customer Reviews
                 </h3>
                 <div className="text-center mb-6">
-                  <div
-                    className="text-4xl font-bold mb-2"
-                    style={{ color: '#1A1A1A' }}
-                  >
+                  <div className="text-4xl font-bold mb-2 text-text-primary">
                     {ratingStats.total
                       ? ratingStats.average.toFixed(1)
                       : product.average_rating?.toFixed?.(1) || 'N/A'}
@@ -886,11 +854,11 @@ export function ProductPage() {
                   <div className="flex justify-center mb-2">
                     {renderStars(ratingStats.average || product.average_rating)}
                   </div>
-                  <p style={{ color: '#6B7280' }}>
+                  <p className="text-text-secondary">
                     {ratingStats.total || product.review_count || 0} total reviews
                   </p>
                   {ratingStats.photoCount > 0 && (
-                    <p className="mt-1 text-xs" style={{ color: '#6B7280' }}>
+                    <p className="mt-1 text-xs text-text-secondary">
                       {ratingStats.photoCount} review
                       {ratingStats.photoCount === 1 ? '' : 's'} with photos
                     </p>
@@ -900,17 +868,11 @@ export function ProductPage() {
                 <div className="space-y-3">
                   {ratingStats.distribution.map((item) => (
                     <div key={item.stars} className="flex items-center space-x-3">
-                      <span
-                        className="text-sm w-6"
-                        style={{ color: '#FFC107' }}
-                      >
+                      <span className="text-sm w-6 text-star-gold">
                         {item.stars}★
                       </span>
                       <Progress value={item.percentage} className="flex-1" />
-                      <span
-                        className="text-sm w-12"
-                        style={{ color: '#6B7280' }}
-                      >
+                      <span className="text-sm w-12 text-text-secondary">
                         {item.count}
                       </span>
                     </div>
@@ -935,33 +897,16 @@ export function ProductPage() {
             )}
 
             {/* Filters Panel */}
-            <div
-              className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 items-start sm:items-center p-3 sm:p-4"
-              style={{
-                background: '#FFFFFF',
-                borderRadius: '12px',
-                boxShadow: '0 2px 4px rgba(0, 0, 0, 0.06)',
-                border: '1px solid #E5E7EB',
-              }}
-            >
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 items-start sm:items-center p-3 sm:p-4 bg-white-surface rounded-md shadow-input border border-border-light">
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Filter className="h-4 w-4 flex-shrink-0" style={{ color: '#6B7280' }} />
-                <span
-                  className="text-sm font-medium flex-shrink-0"
-                  style={{ color: '#374151' }}
-                >
+                <Filter className="h-4 w-4 flex-shrink-0 text-text-secondary" />
+                <span className="text-sm font-medium flex-shrink-0 text-gray-700">
                   Sort:
                 </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="flex-1 sm:flex-none px-3 py-2 text-sm min-h-[40px]"
-                  style={{
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '8px',
-                    color: '#374151',
-                    background: '#FFFFFF',
-                  }}
+                  className="flex-1 sm:flex-none px-3 py-2 text-sm min-h-[40px] border border-border-light rounded-sm text-gray-700 bg-white-surface focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
                 >
                   <option value="helpful">Most Helpful</option>
                   <option value="recent">Most Recent</option>
@@ -971,22 +916,13 @@ export function ProductPage() {
               </div>
 
               <div className="flex items-center gap-2 w-full sm:w-auto">
-                <span
-                  className="text-sm font-medium flex-shrink-0"
-                  style={{ color: '#374151' }}
-                >
+                <span className="text-sm font-medium flex-shrink-0 text-gray-700">
                   Rating:
                 </span>
                 <select
                   value={filterRating}
                   onChange={(e) => setFilterRating(e.target.value)}
-                  className="flex-1 sm:flex-none px-3 py-2 text-sm min-h-[40px]"
-                  style={{
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '8px',
-                    color: '#374151',
-                    background: '#FFFFFF',
-                  }}
+                  className="flex-1 sm:flex-none px-3 py-2 text-sm min-h-[40px] border border-border-light rounded-sm text-gray-700 bg-white-surface focus:border-accent-blue focus:ring-1 focus:ring-accent-blue/20 focus:outline-none transition-smooth"
                 >
                   <option value="all">All Ratings</option>
                   <option value="5">5 Stars</option>
@@ -1003,16 +939,9 @@ export function ProductPage() {
                   type="checkbox"
                   checked={onlyWithPhotos}
                   onChange={(e) => setOnlyWithPhotos(e.target.checked)}
-                  className="h-5 w-5 rounded"
-                  style={{
-                    borderColor: '#E5E7EB',
-                    accentColor: '#2196F3',
-                  }}
+                  className="h-5 w-5 rounded border-border-light text-accent-blue focus:ring-accent-blue"
                 />
-                <span
-                  className="text-sm"
-                  style={{ color: '#6B7280' }}
-                >
+                <span className="text-sm text-text-secondary">
                   With photos only
                 </span>
               </label>
@@ -1021,15 +950,7 @@ export function ProductPage() {
             {/* Individual Reviews */}
             <div className="space-y-6">
               {filteredAndSortedReviews.length === 0 ? (
-                <div
-                  className="p-6"
-                  style={{
-                    background: '#FFFFFF',
-                    borderRadius: '12px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                    color: '#6B7280',
-                  }}
-                >
+                <div className="p-6 bg-white-surface rounded-md shadow-card text-text-secondary">
                   {reviews.length === 0 ? (
                     <p>There are no reviews for this product yet.</p>
                   ) : hasActiveFilters ? (
@@ -1039,11 +960,7 @@ export function ProductPage() {
                         variant="outline"
                         size="sm"
                         onClick={clearFilters}
-                        style={{
-                          borderRadius: '8px',
-                          borderColor: '#E5E7EB',
-                          color: '#374151',
-                        }}
+                        className="rounded-sm border-border-light text-gray-700"
                       >
                         Clear filters
                       </Button>
@@ -1081,39 +998,18 @@ export function ProductPage() {
                   return (
                     <div
                       key={review.id}
-                      className="p-6 transition-all duration-300"
-                      style={{
-                        background: '#FFFFFF',
-                        borderRadius: '12px',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12)';
-                        e.currentTarget.style.transform = 'translateY(-4px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
-                        e.currentTarget.style.transform = 'translateY(0)';
-                      }}
+                      className="p-4 sm:p-6 bg-white-surface rounded-md shadow-card card-hover-lift"
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div>
                           <div className="flex items-center space-x-2 mb-2">
-                            <span
-                              className="font-semibold"
-                              style={{ color: '#1A1A1A' }}
-                            >
+                            <span className="font-semibold text-text-primary">
                               {reviewerName}
                             </span>
                             {isVerified && (
                               <Badge
                                 variant="secondary"
-                                className="text-xs"
-                                style={{
-                                  background: '#E8F5E9',
-                                  color: '#2E7D32',
-                                  borderRadius: '8px',
-                                }}
+                                className="text-xs bg-green-50 text-green-700 rounded-sm"
                               >
                                 <Shield className="h-3 w-3 mr-1" />
                                 Verified Purchase
@@ -1121,14 +1017,9 @@ export function ProductPage() {
                             )}
                           </div>
                           <div className="flex items-center space-x-2">
-                            <div className="flex">
-                              {renderStars(review.rating)}
-                            </div>
+                            {renderStars(review.rating)}
                             {createdAt && (
-                              <span
-                                className="text-sm"
-                                style={{ color: '#6B7280' }}
-                              >
+                              <span className="text-sm text-text-secondary">
                                 {createdAt}
                               </span>
                             )}
@@ -1137,28 +1028,20 @@ export function ProductPage() {
                       </div>
 
                       <div className="flex items-center justify-between mb-2">
-                        <h4
-                          className="font-semibold"
-                          style={{ color: '#1A1A1A' }}
-                        >
+                        <h4 className="font-semibold text-text-primary">
                           {review.title || 'Review'}
                         </h4>
                         {hasImages && (
                           <Badge
                             variant="outline"
-                            className="text-xs"
-                            style={{
-                              borderColor: '#2196F3',
-                              color: '#2196F3',
-                              borderRadius: '8px',
-                            }}
+                            className="text-xs border-accent-blue text-accent-blue rounded-sm"
                           >
                             Includes photos
                           </Badge>
                         )}
                       </div>
 
-                      <p className="mb-4" style={{ color: '#6B7280' }}>
+                      <p className="mb-4 text-text-secondary">
                         {review.content || review.comment}
                       </p>
 
@@ -1176,8 +1059,7 @@ export function ProductPage() {
                               <img
                                 src={img.thumb}
                                 alt="Review"
-                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover hover:opacity-80 transition"
-                                style={{ borderRadius: '8px' }}
+                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-sm hover:opacity-80 transition"
                                 onError={(e) => {
                                   e.currentTarget.onerror = null;
                                   e.currentTarget.src =
@@ -1193,7 +1075,7 @@ export function ProductPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          style={{ color: '#6B7280', borderRadius: '8px' }}
+                          className="text-text-secondary rounded-sm"
                         >
                           <ThumbsUp className="h-4 w-4 mr-2" />
                           Helpful ({helpful})
@@ -1201,7 +1083,7 @@ export function ProductPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          style={{ color: '#6B7280', borderRadius: '8px' }}
+                          className="text-text-secondary rounded-sm"
                         >
                           Reply
                         </Button>
@@ -1213,12 +1095,7 @@ export function ProductPage() {
             </div>
 
             <div className="text-center mt-8">
-              <Button
-                className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity px-8"
-                style={{
-                  borderRadius: '8px',
-                }}
-              >
+              <Button className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity px-8 rounded-sm">
                 Load More Reviews
               </Button>
             </div>
