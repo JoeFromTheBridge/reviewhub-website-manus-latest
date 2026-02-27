@@ -4,6 +4,10 @@ Status: Phase 0 complete · Phase 1 in progress
 Purpose of this document:
 Serve as the single source of truth for continuing development in a new AI environment (Claude), without relying on prior chat context.
 
+Last Updated: 2026-02-27
+
+---
+
 1. Project Overview
 
 ReviewHub is a product review platform (not a blog) focused on structured reviews, community trust, and scalable discovery.
@@ -20,7 +24,58 @@ Avoid premature complexity
 
 Everything user-facing must be auditable and reversible
 
-2. Tech Stack (Locked)
+---
+
+2. Business Context (Strategic Decisions — Locked)
+
+Nature of Project
+
+ReviewHub is a passion project and long-term side hustle. There is no short-term revenue pressure. The timeline to meaningful income is 2–3 years, and that is acceptable. Success in Year 1 is measured by: genuine reviews from real users, credible UX, and slow but real organic search growth — not revenue.
+
+Market Positioning
+
+The gap is real: Amazon reviews are compromised by fakes, Consumer Reports is paywalled and expert-driven, and niche review sites are too fragmented. ReviewHub's value proposition is being the trusted, community-first alternative — a universal review destination built on authentic user reviews.
+
+Monetization Plan (Long-Term)
+
+Primary: Affiliate marketing (product links)
+Secondary: Display advertising (once meaningful traffic exists)
+Future: Sponsored content, premium memberships
+Note: Monetization must never compromise review integrity. Trust > Revenue at all times.
+
+---
+
+3. Launch Category Strategy (DECIDED — Do Not Revisit)
+
+ReviewHub will launch with 3 focused categories and expand deliberately from there. The infrastructure is universal, but the user-facing experience launches focused to build trust and depth before breadth.
+
+Launch Categories (Phase 1)
+
+1. Home & Everyday Products
+   Reason: Strongest market gap. No free community alternative to Wirecutter/Consumer Reports.
+   Includes: Kitchen, cleaning, household goods, small appliances.
+
+2. Outdoor & Sporting Goods
+   Reason: Passionate community, high-consideration purchases, fragmented niche competition.
+   Includes: Camping gear, fitness equipment, hiking, cycling.
+
+3. Pet Products
+   Reason: Highly motivated researchers, fast-growing market, no dominant trusted review destination.
+   Includes: Food, accessories, health products, toys.
+
+Ruled Out for Launch
+
+Electronics: Too saturated, lowest affiliate commissions (1–4%), dominated by established players (Rtings, Wirecutter, CNET).
+
+Clothing & Apparel: Structural challenges. Fit is subjective and body-type dependent, sizing varies by brand, heavy influencer competition, expensive traffic acquisition.
+
+Category Expansion Model
+
+New categories are added one at a time, triggered by user demand signals — not a calendar date. The right trigger is users attempting to review products in categories that don't exist yet. Target depth before launch: 50+ products per category with real reviews.
+
+---
+
+4. Tech Stack (Locked)
 Frontend
 
 React 18
@@ -63,10 +118,15 @@ Email: SendGrid / SMTP provider
 
 Domains/DNS: EasyDNS
 
-3. Roadmap (Completed vs Pending)
+Note: Get the thereviewhub.ca domain behind Cloudflare's proxy (free tier). Provides bot filtering, DDoS protection, and edge caching. Low effort, high value.
+
+---
+
+5. Roadmap (Completed vs Pending)
+
 ✅ Phase 0 — Stabilization (COMPLETE)
 
-Milestone: M0 — Stable FE + BE deployed
+Milestone: M0 — Stable FE + BE deployed (Completed 2026-01-28)
 
 Completed:
 
@@ -98,19 +158,35 @@ Solid, boring, reliable core UX
 
 No experimental features
 
+Planned (in priority order):
+
+[ ] Product detail page polish (star ratings, review summary, sort controls, verified badges, helpful votes)
+[ ] Search & filters (category filter, sort by rating/date, keyword search)
+[ ] Auth UX polish (signup/login/reset flows feel smooth and professional)
+[ ] Admin basics (product CRUD, review moderation — must be operable without touching DB)
+[ ] Basic analytics (page views, top products)
+
+Content tasks running in parallel with Phase 1:
+
+[ ] Seed 20–30 real products per launch category
+[ ] Write or recruit 2–3 genuine reviews per product
+[ ] Identify 10–15 high-intent search queries per category to target for SEO
+
+⏳ Phase 2 — Trust & Quality (PENDING)
+
 Planned:
 
-Product detail page polish
+Reviewer reputation signals
 
-Search & filters (category, sort, tags)
+Spam detection and reporting tools
 
-Auth UX polish (signup/login/reset)
+Review edit history and transparency
 
-Admin basics (product CRUD, review moderation)
+GDPR compliance (data export/deletion)
 
-Basic analytics (page views, top products)
+Verified-profile / social login options
 
-⏳ Phase 2 — Advanced & Ops (PENDING)
+⏳ Phase 3 — Discovery & Growth (PENDING)
 
 Planned:
 
@@ -118,13 +194,56 @@ Recommendation engine
 
 Caching layer (Redis/CDN)
 
-Monitoring & alerts
+Full-text search (Elasticsearch)
 
-Data export / privacy tooling
+Category and trending pages
+
+Monitoring & alerts
 
 Voice search proof-of-concept
 
-4. Key Architectural Decisions (ADR Summary)
+⏳ Phase 4 — Monetization (PENDING)
+
+Planned:
+
+Affiliate link framework with clear disclosures
+
+Sponsored placements (verified brands only, strict guidelines)
+
+Brand analytics dashboard (premium)
+
+Review widgets for brand embedding
+
+Note: Monetization is deliberately deferred until trust and traffic are established.
+
+---
+
+6. Bot Prevention Strategy
+
+Layer 1 — Active Now
+
+Email verification strictly enforced before any review can be submitted (already implemented)
+
+Rate limiting on review submission and product suggestion routes (extend from auth endpoints)
+
+Honeypot fields on signup and review forms (hidden input; bots fill it, humans don't)
+
+Layer 2 — When Traffic Grows
+
+Cloudflare proxy (free tier) — bot score detection, IP reputation, challenge pages
+
+Self-declared ownership signal on reviews ("I own this product" checkbox) — lightweight but filters lazy bots
+
+Layer 3 — When Scale Justifies It
+
+Behavioral scoring: flag accounts with no profile completeness, reviews submitted within 10 minutes of account creation, identical review text patterns
+
+Admin panel flags for manual review of suspicious accounts
+
+---
+
+7. Key Architectural Decisions (ADR Summary)
+
 ADR-001 — Tech Stack
 
 Decision: React + Flask monolith with clear FE/BE separation
@@ -143,11 +262,14 @@ Decision: Users cannot directly create products
 Reason: Prevent duplicates, spam, and low-quality entries
 Consequence: Requires a controlled suggestion pipeline (see below)
 
-5. Major Brainstorming Outcomes
+---
+
+8. Major Brainstorming Outcomes
+
 Smart Product Suggestion Pipeline (Approved Concept)
 
 Problem:
-Users want to review products that don’t exist yet.
+Users want to review products that don't exist yet.
 
 Solution:
 Users can suggest a product while submitting a review — not create it.
@@ -156,7 +278,7 @@ Flow:
 
 User searches for product
 
-Product not found → “Suggest product”
+Product not found → "Suggest product"
 
 Minimal form:
 
@@ -196,7 +318,9 @@ Avoid rework
 
 Phase 1 completes UX logic, Phase 2+ handles aesthetics
 
-6. Privacy & Compliance Direction
+---
+
+9. Privacy & Compliance Direction
 
 GDPR-first design
 
@@ -212,7 +336,10 @@ Admin visibility into deletion/export requests
 
 Privacy is not optional and must be first-class.
 
-7. Future Upgrades (Approved but Not Started)
+---
+
+10. Future Upgrades (Approved but Not Started)
+
 Platform Enhancements
 
 Recommendation engine (collaborative + trending)
@@ -243,7 +370,9 @@ Review helpfulness voting
 
 Affiliate links (future monetization)
 
-8. Coding Preferences & Standards (CRITICAL)
+---
+
+11. Coding Preferences & Standards (CRITICAL)
 
 This section must be followed by any AI or contributor.
 
@@ -253,7 +382,7 @@ Prefer clarity over cleverness
 
 No premature abstractions
 
-No “magic” helpers without justification
+No "magic" helpers without justification
 
 Fewer dependencies > more dependencies
 
@@ -305,7 +434,7 @@ Full file replacements preferred over patches
 
 Clear commit messages
 
-No “WIP” commits on main
+No "WIP" commits on main
 
 Snapshots used as working memory
 
@@ -313,7 +442,9 @@ GitHub is the source of truth for code
 
 Documentation drives development
 
-9. Deployment Reality (Non-Negotiable)
+---
+
+12. Deployment Reality (Non-Negotiable)
 
 Frontend: Vercel auto-deploy on push
 
@@ -330,26 +461,3 @@ Auth flows
 Email links
 
 Image loading
-
-10. How Claude Should Use This Document
-
-Claude should:
-
-Treat this file as authoritative
-
-Not re-architect unless explicitly asked
-
-Not re-open Phase 0 tasks
-
-Ask before introducing new dependencies
-
-Update roadmap/tasks when work is completed
-
-Optimize for long-term maintainability
-
-Final Note
-
-This project is intentionally methodical.
-Speed is acceptable only when it does not sacrifice correctness.
-
-If a decision feels clever instead of boring — it’s probably wrong.
