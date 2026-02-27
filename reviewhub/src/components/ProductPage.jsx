@@ -14,9 +14,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import RecommendationSection from './recommendations/RecommendationSection';
 import { ReviewForm } from './reviews/ReviewForm';
 import apiService from '../services/api';
@@ -865,14 +863,28 @@ export function ProductPage() {
                   )}
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {ratingStats.distribution.map((item) => (
-                    <div key={item.stars} className="flex items-center space-x-3">
-                      <span className="text-sm w-6 text-star-gold">
-                        {item.stars}★
-                      </span>
-                      <Progress value={item.percentage} className="flex-1" />
-                      <span className="text-sm w-12 text-text-secondary">
+                    <div key={item.stars} className="flex items-center gap-2">
+                      {/* Star label: number + icon, fixed width for alignment */}
+                      <div className="flex items-center gap-0.5 w-10 flex-shrink-0">
+                        <span className="text-sm font-medium text-text-primary tabular-nums leading-none">
+                          {item.stars}
+                        </span>
+                        <Star className="h-3 w-3 text-star-gold fill-star-gold flex-shrink-0" />
+                      </div>
+                      {/* Progress bar */}
+                      <div
+                        className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden"
+                        aria-label={`${item.count} review${item.count !== 1 ? 's' : ''} with ${item.stars} star${item.stars !== 1 ? 's' : ''} (${item.percentage}%)`}
+                      >
+                        <div
+                          className="h-full bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${item.count > 0 ? Math.max(item.percentage, 3) : 0}%` }}
+                        />
+                      </div>
+                      {/* Count */}
+                      <span className="text-sm font-medium text-text-secondary w-8 text-right tabular-nums flex-shrink-0">
                         {item.count}
                       </span>
                     </div>
