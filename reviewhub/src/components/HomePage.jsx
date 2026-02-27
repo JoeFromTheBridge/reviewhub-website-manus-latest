@@ -65,13 +65,13 @@ function getReviewImageUrl(image) {
 }
 
 export function HomePage() {
-  const [searchQuery, setSearchQuery] = useState('')
   const [categories, setCategories] = useState([])
   const [featuredReviews, setFeaturedReviews] = useState([])
   const [products, setProducts] = useState([])
   const [reviewCount, setReviewCount] = useState(0)
   const [productCount, setProductCount] = useState(0)
   const [categoryCount, setCategoryCount] = useState(0)
+  const [userCount, setUserCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -116,6 +116,18 @@ export function HomePage() {
           ? productsResponse.total
           : productsData.length
       setProductCount(totalProducts)
+
+      // Try to fetch user count (gracefully handle if endpoint doesn't exist)
+      try {
+        const statsResponse = await apiService.getStats?.()
+        if (statsResponse?.user_count != null) {
+          setUserCount(statsResponse.user_count)
+        } else if (statsResponse?.users != null) {
+          setUserCount(statsResponse.users)
+        }
+      } catch {
+        // User count endpoint may not exist yet - that's OK
+      }
     } catch (error) {
       setError('Failed to load homepage data')
       console.error('Error fetching homepage data:', error)
@@ -179,6 +191,18 @@ export function HomePage() {
     return Number(value || 0).toLocaleString()
   }
 
+  // Dynamic subheadline based on user count thresholds
+  const getHeroSubheadline = () => {
+    if (userCount >= 10000) {
+      return "Join 10,000+ shoppers who've found honest product feedback—no brands, no bots, no paid promotions."
+    } else if (userCount >= 1000) {
+      return "Join 1,000+ shoppers who've found honest product feedback—no brands, no bots, no paid promotions."
+    } else if (userCount >= 100) {
+      return "Join 100+ shoppers who've found honest product feedback—no brands, no bots, no paid promotions."
+    }
+    return "Join shoppers building Canada's most trusted review community—no brands, no bots, no paid promotions."
+  }
+
   // Helper to get product price (similar to SearchResults)
   const getProductPrice = (product) => {
     if (!product) return null
@@ -234,58 +258,40 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-soft-blue to-soft-lavender flex flex-col">
-      {/* Hero Section - with softened CTA gradient */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#5B7DD4]/75 to-[#A391E2]/75">
+      {/* Hero Section - Community-focused messaging */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-[#5B7DD4] to-[#A391E2]">
         <div
           className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
           style={{
-            paddingTop: 'clamp(32px, 8vh, 120px)',
-            paddingBottom: 'clamp(24px, 5vh, 80px)',
+            paddingTop: 'clamp(40px, 10vh, 140px)',
+            paddingBottom: 'clamp(32px, 7vh, 100px)',
           }}
         >
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="text-center lg:text-left">
-              <h1
-                className="font-semibold text-white mb-4 lg:mb-6 leading-tight"
-                style={{
-                  fontSize: 'clamp(1.75rem, 4vw, 3rem)',
-                }}
-              >
-                Make Smarter
-                <span className="block text-white/90">Purchase Decisions</span>
+              <h1 className="font-bold text-white mb-4 lg:mb-6 leading-[1.1] text-3xl sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
+                Real Reviews. Real People.
+                <span className="block text-[#FFC107] mt-1">Zero BS.</span>
               </h1>
-              <p
-                className="text-white/80 mb-6 lg:mb-8 max-w-lg mx-auto lg:mx-0"
-                style={{
-                  fontSize: 'clamp(0.875rem, 1.5vw, 1.125rem)',
-                }}
-              >
-                Read authentic reviews from real customers and share your own experiences
-                to help others make informed choices.
+              <p className="text-white/85 mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 text-base sm:text-lg lg:text-xl leading-relaxed">
+                {getHeroSubheadline()}
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-                {/* Primary: Browse Products - larger, more prominent */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                {/* Primary CTA: Find Your Next Purchase */}
                 <Button
                   size="lg"
-                  className="bg-white text-accent-blue hover:bg-white/90 rounded-md font-medium w-full sm:w-auto sm:min-w-[160px] min-h-[48px]"
-                  style={{
-                    padding: '0.75rem 2rem',
-                  }}
+                  className="bg-white text-gray-900 hover:bg-white/95 hover:shadow-lg hover:-translate-y-0.5 rounded-lg font-semibold w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
                   onClick={() => navigate('/search?tab=products')}
                 >
-                  Browse Products
+                  Find Your Next Purchase
                 </Button>
-                {/* Secondary: Write Your First Review - improved visibility */}
+                {/* Secondary CTA: Share Your Experience */}
                 <Button
                   variant="outline"
-                  className="text-white border-white/80 hover:bg-white hover:text-accent-blue rounded-md w-full sm:w-auto sm:min-w-[160px] min-h-[44px] bg-white/10 backdrop-blur-sm shadow-sm"
-                  style={{
-                    padding: '0.625rem 1.5rem',
-                    fontSize: '0.875rem',
-                  }}
+                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-900 rounded-lg font-medium w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
                   onClick={handleWriteReview}
                 >
-                  Write Your First Review
+                  Share Your Experience
                 </Button>
               </div>
             </div>
@@ -303,9 +309,50 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Stats Section - Positioned for credibility (right after hero) */}
+      {!loading && !error && (
+        <section className="py-12 sm:py-16 lg:py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8 sm:mb-10 lg:mb-12">
+              <p className="text-sm sm:text-base text-text-secondary uppercase tracking-[0.15em] mb-2">Trusted by Canadians</p>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-text-primary">Our Community</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-12 text-center">
+              <div className="flex flex-col items-center">
+                <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
+                  <Star className="h-8 w-8 text-accent-blue" />
+                </div>
+                <h3 className="text-4xl lg:text-5xl font-bold text-text-primary mb-2">
+                  {formatCount(reviewCount)}
+                </h3>
+                <p className="text-base lg:text-lg text-text-secondary">Total Reviews</p>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
+                  <TrendingUp className="h-8 w-8 text-accent-blue" />
+                </div>
+                <h3 className="text-4xl lg:text-5xl font-bold text-text-primary mb-2">
+                  {formatCount(productCount)}
+                </h3>
+                <p className="text-base lg:text-lg text-text-secondary">Products Listed</p>
+              </div>
+              <div className="flex flex-col items-center">
+                <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
+                  <Users className="h-8 w-8 text-accent-blue" />
+                </div>
+                <h3 className="text-4xl lg:text-5xl font-bold text-text-primary mb-2">
+                  {formatCount(categoryCount)}
+                </h3>
+                <p className="text-base lg:text-lg text-text-secondary">Categories Covered</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Main content wrapper - gradient flows across all sections */}
       <div className="flex-1 bg-gradient-to-br from-soft-blue to-soft-lavender">
-        {/* Recent Reviews Section - Directly after Hero */}
+        {/* Recent Reviews Section */}
         <section className="py-8 sm:py-12 lg:py-16">
           <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="text-center mb-6 sm:mb-8 lg:mb-12">
@@ -597,47 +644,6 @@ export function HomePage() {
             )}
           </div>
         </section>
-
-        {/* Stats (live from API) */}
-        {!loading && !error && (
-          <section className="py-8 sm:py-12 lg:py-16">
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-              <div className="text-center mb-6 sm:mb-8 lg:mb-12">
-                <p className="text-sm sm:text-base text-text-secondary uppercase tracking-[0.1em] mb-1 sm:mb-2">Statistics</p>
-                <h2 className="text-2xl sm:text-3xl font-semibold text-text-primary">Our Community</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                <div className="flex flex-col items-center">
-                  <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                    <Star className="h-8 w-8 text-accent-blue" />
-                  </div>
-                  <h3 className="text-4xl font-bold text-text-primary mb-2">
-                    {formatCount(reviewCount)}
-                  </h3>
-                  <p className="text-lg text-text-secondary">Total Reviews</p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                    <TrendingUp className="h-8 w-8 text-accent-blue" />
-                  </div>
-                  <h3 className="text-4xl font-bold text-text-primary mb-2">
-                    {formatCount(productCount)}
-                  </h3>
-                  <p className="text-lg text-text-secondary">Products Listed</p>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className="bg-white-surface p-4 rounded-full mb-4 shadow-sleek">
-                    <Users className="h-8 w-8 text-accent-blue" />
-                  </div>
-                  <h3 className="text-4xl font-bold text-text-primary mb-2">
-                    {formatCount(categoryCount)}
-                  </h3>
-                  <p className="text-lg text-text-secondary">Categories Covered</p>
-                </div>
-              </div>
-            </div>
-          </section>
-        )}
 
         {/* Personalized Recommendations (for authenticated users) */}
         {isAuthenticated && (
