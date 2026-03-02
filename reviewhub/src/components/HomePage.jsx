@@ -56,13 +56,16 @@ const LAUNCH_CATEGORIES = [
   }
 ]
 
-// Scrolling Review Feed Component
-function ScrollingReviewFeed({ reviews, columnCount = 3 }) {
-  const [scrollPositions, setScrollPositions] = useState([0, 0, 0])
+// Single Column Scrolling Review Feed Component
+function ScrollingReviewFeed({ reviews }) {
+  const [scrollPosition, setScrollPosition] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const containerRef = useRef(null)
   const animationRef = useRef(null)
   const prefersReducedMotion = useRef(false)
+
+  // Tile height (approximate for single wide tile)
+  const tileHeight = 110
 
   // Check for reduced motion preference
   useEffect(() => {
@@ -80,25 +83,10 @@ function ScrollingReviewFeed({ reviews, columnCount = 3 }) {
     return () => mediaQuery.removeEventListener('change', handleChange)
   }, [])
 
-  // Split reviews into columns
-  const columns = useMemo(() => {
-    const cols = Array.from({ length: columnCount }, () => [])
-    reviews.forEach((review, index) => {
-      cols[index % columnCount].push(review)
-    })
-    // Duplicate for seamless loop
-    return cols.map(col => [...col, ...col, ...col])
-  }, [reviews, columnCount])
-
-  // Animation speeds for each column (pixels per frame)
-  const speeds = useMemo(() => {
-    if (columnCount === 1) return [0.3]
-    if (columnCount === 2) return [0.3, 0.45]
-    return [0.3, 0.5, 0.4]
-  }, [columnCount])
-
-  // Tile height (approximate)
-  const tileHeight = 120
+  // Duplicate reviews for seamless loop
+  const loopedReviews = useMemo(() => {
+    return [...reviews, ...reviews, ...reviews]
+  }, [reviews])
 
   // Animation loop
   useEffect(() => {
@@ -112,12 +100,10 @@ function ScrollingReviewFeed({ reviews, columnCount = 3 }) {
       // Target ~20fps for performance
       if (delta >= 50) {
         lastTime = timestamp
-        setScrollPositions(prev => {
-          const singleSetHeight = (reviews.length / columnCount) * tileHeight
-          return prev.map((pos, i) => {
-            const newPos = pos + speeds[i] * (delta / 50)
-            return newPos >= singleSetHeight ? 0 : newPos
-          })
+        setScrollPosition(prev => {
+          const singleSetHeight = reviews.length * tileHeight
+          const newPos = prev + 0.5 * (delta / 50)
+          return newPos >= singleSetHeight ? 0 : newPos
         })
       }
 
@@ -131,7 +117,7 @@ function ScrollingReviewFeed({ reviews, columnCount = 3 }) {
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [reviews.length, columnCount, speeds, isPaused])
+  }, [reviews.length, isPaused])
 
   // Pause animation when not visible
   useEffect(() => {
@@ -157,7 +143,7 @@ function ScrollingReviewFeed({ reviews, columnCount = 3 }) {
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            className={`h-3 w-3 ${
+            className={`w-4 h-4 ${
               star <= rating
                 ? 'fill-yellow-400 text-yellow-400'
                 : 'text-gray-300'
@@ -172,62 +158,194 @@ function ScrollingReviewFeed({ reviews, columnCount = 3 }) {
     <section
       ref={containerRef}
       aria-label="Recent Community Reviews"
-      className={`relative overflow-hidden ${
-        columnCount === 1
-          ? 'h-[280px] bg-white/10 rounded-xl mx-auto max-w-sm'
-          : 'h-[420px]'
-      }`}
+      className="relative overflow-hidden h-[400px]"
       style={{ willChange: 'transform' }}
     >
-      <div className={`flex ${columnCount === 1 ? 'justify-center px-3' : 'gap-3 lg:gap-4'}`}>
-        {columns.slice(0, columnCount).map((column, colIndex) => (
-          <div
-            key={colIndex}
-            className={`flex flex-col gap-3 ${columnCount === 1 ? 'w-full' : 'flex-1'}`}
-            style={{
-              transform: `translateY(-${scrollPositions[colIndex]}px)`,
-              transition: prefersReducedMotion.current ? 'none' : undefined
-            }}
+      <div
+        className="absolute w-full"
+        style={{
+          transform: `translateY(-${scrollPosition}px)`,
+          transition: prefersReducedMotion.current ? 'none' : undefined
+        }}
+      >
+        {loopedReviews.map((review, idx) => (
+          <article
+            key={`${review.id}-${idx}`}
+            className="bg-white rounded-lg shadow-sm p-4 mb-3"
           >
-            {column.map((review, reviewIndex) => (
-              <article
-                key={`${review.id}-${reviewIndex}`}
-                className="bg-white rounded-lg shadow-sm p-3 lg:p-4"
-                style={{ minHeight: '100px' }}
-              >
-                <div className="flex gap-3">
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-semibold text-sm">
-                      {review.initials || review.username?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
-                    </span>
-                  </div>
+            <div className="flex items-start gap-4">
+              {/* Avatar - Left side */}
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-semibold text-base">
+                  {review.initials || review.username?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                </span>
+              </div>
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="font-medium text-gray-900 text-sm truncate">
-                        {review.username}
-                      </span>
-                      {renderStars(review.rating)}
-                    </div>
-                    <p className="text-gray-700 text-sm line-clamp-2 mb-1">
-                      {review.snippet || review.comment || review.content || ''}
-                    </p>
-                    <p className="text-gray-400 text-xs truncate">
-                      {review.productName || review.product?.name || 'Product'}
-                    </p>
-                  </div>
+              {/* Content - Right side */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold text-gray-900 text-base truncate">
+                    {review.username}
+                  </span>
+                  {renderStars(review.rating)}
                 </div>
-              </article>
-            ))}
-          </div>
+                <p className="text-gray-700 text-sm line-clamp-2 mb-1">
+                  {review.snippet || review.comment || review.content || ''}
+                </p>
+                <p className="text-gray-400 text-xs mt-1 truncate">
+                  {review.productName || review.product?.name || 'Product'}
+                </p>
+              </div>
+            </div>
+          </article>
         ))}
       </div>
 
       {/* Gradient overlays for smooth fade */}
-      <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#5B7DD4] to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#5B7DD4] to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#6B84D8] to-transparent pointer-events-none z-10" />
+      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#9B8ADF] to-transparent pointer-events-none z-10" />
+    </section>
+  )
+}
+
+// Mobile Scrolling Review Feed (contained in rounded box)
+function MobileScrollingReviewFeed({ reviews }) {
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const [isPaused, setIsPaused] = useState(false)
+  const containerRef = useRef(null)
+  const animationRef = useRef(null)
+  const prefersReducedMotion = useRef(false)
+
+  const tileHeight = 100
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    prefersReducedMotion.current = mediaQuery.matches
+
+    const handleChange = (e) => {
+      prefersReducedMotion.current = e.matches
+      if (e.matches) {
+        setIsPaused(true)
+      }
+    }
+
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
+  const loopedReviews = useMemo(() => {
+    return [...reviews, ...reviews, ...reviews]
+  }, [reviews])
+
+  useEffect(() => {
+    if (prefersReducedMotion.current || isPaused) return
+
+    let lastTime = 0
+    const animate = (timestamp) => {
+      if (!lastTime) lastTime = timestamp
+      const delta = timestamp - lastTime
+
+      if (delta >= 50) {
+        lastTime = timestamp
+        setScrollPosition(prev => {
+          const singleSetHeight = reviews.length * tileHeight
+          const newPos = prev + 0.4 * (delta / 50)
+          return newPos >= singleSetHeight ? 0 : newPos
+        })
+      }
+
+      animationRef.current = requestAnimationFrame(animate)
+    }
+
+    animationRef.current = requestAnimationFrame(animate)
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+    }
+  }, [reviews.length, isPaused])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!prefersReducedMotion.current) {
+          setIsPaused(!entry.isIntersecting)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
+  const renderStars = (rating) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-3 h-3 ${
+              star <= rating
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'text-gray-300'
+            }`}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  return (
+    <section
+      ref={containerRef}
+      aria-label="Recent Community Reviews"
+      className="relative overflow-hidden h-[280px] bg-white/10 rounded-xl mx-auto max-w-sm"
+      style={{ willChange: 'transform' }}
+    >
+      <div
+        className="absolute w-full px-3 pt-2"
+        style={{
+          transform: `translateY(-${scrollPosition}px)`,
+          transition: prefersReducedMotion.current ? 'none' : undefined
+        }}
+      >
+        {loopedReviews.map((review, idx) => (
+          <article
+            key={`${review.id}-${idx}`}
+            className="bg-white rounded-lg shadow-sm p-3 mb-2"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white font-semibold text-sm">
+                  {review.initials || review.username?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-medium text-gray-900 text-sm truncate">
+                    {review.username}
+                  </span>
+                  {renderStars(review.rating)}
+                </div>
+                <p className="text-gray-700 text-xs line-clamp-2">
+                  {review.snippet || ''}
+                </p>
+                <p className="text-gray-400 text-xs truncate mt-0.5">
+                  {review.productName || 'Product'}
+                </p>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-white/10 to-transparent pointer-events-none z-10 rounded-t-xl" />
+      <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white/10 to-transparent pointer-events-none z-10 rounded-b-xl" />
     </section>
   )
 }
@@ -255,7 +373,7 @@ function CategoryCard({ category, featuredProducts = [] }) {
   }
 
   return (
-    <Card className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6">
+    <Card className="bg-white/95 backdrop-blur-sm rounded-xl shadow-md hover:shadow-lg transition-shadow p-6">
       {/* Icon Badge */}
       <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.iconGradient} flex items-center justify-center mb-4`}>
         <IconComponent className="w-6 h-6 text-white" />
@@ -430,121 +548,114 @@ export function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-soft-blue to-soft-lavender flex flex-col">
-      {/* Hero Section - Community-focused messaging with scrolling review feed */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#5B7DD4] to-[#A391E2]">
-        <div
-          className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-          style={{
-            paddingTop: 'clamp(40px, 10vh, 140px)',
-            paddingBottom: 'clamp(32px, 7vh, 100px)',
-          }}
-        >
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            {/* Left Column - Text Content */}
-            <div className="text-center lg:text-left">
-              <h1 className="font-bold text-white mb-4 lg:mb-6 leading-[1.1] text-3xl sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
-                Real Reviews. Real People.
-                <span className="block text-[#FFC107] mt-1">Zero BS.</span>
-              </h1>
-              <p className="text-white/85 mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 text-base sm:text-lg lg:text-xl leading-relaxed">
-                {getHeroSubheadline()}
-              </p>
+    <div className="min-h-screen flex flex-col">
+      {/* Continuous gradient wrapper for Hero, Stats, and Categories */}
+      <div className="bg-gradient-to-b from-[#5B7DD4] via-[#7B8BD9] to-[#9B9ADE]">
+        {/* Hero Section - Community-focused messaging with scrolling review feed */}
+        <section className="relative overflow-hidden">
+          <div
+            className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+            style={{
+              paddingTop: 'clamp(40px, 10vh, 140px)',
+              paddingBottom: 'clamp(32px, 7vh, 100px)',
+            }}
+          >
+            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+              {/* Left Column - Text Content */}
+              <div className="text-center lg:text-left">
+                <h1 className="font-bold text-white mb-4 lg:mb-6 leading-[1.1] text-3xl sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
+                  Real Reviews. Real People.
+                  <span className="block text-[#FFC107] mt-1">Zero BS.</span>
+                </h1>
+                <p className="text-white/85 mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 text-base sm:text-lg lg:text-xl leading-relaxed">
+                  {getHeroSubheadline()}
+                </p>
 
-              {/* Mobile: Scrolling feed between subheadline and CTAs */}
-              <div className="lg:hidden mb-8">
-                <ScrollingReviewFeed reviews={scrollingReviews} columnCount={1} />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                {/* Primary CTA: Find Your Next Purchase */}
-                <Button
-                  size="lg"
-                  className="bg-white text-gray-900 hover:bg-white/95 hover:shadow-lg hover:-translate-y-0.5 rounded-lg font-semibold w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
-                  onClick={() => navigate('/search?tab=products')}
-                >
-                  Find Your Next Purchase
-                </Button>
-                {/* Secondary CTA: Share Your Experience */}
-                <Button
-                  variant="outline"
-                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-900 rounded-lg font-medium w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
-                  onClick={handleWriteReview}
-                >
-                  Share Your Experience
-                </Button>
-              </div>
-            </div>
-
-            {/* Right Column - Scrolling Review Feed (Desktop/Tablet) */}
-            <div className="hidden md:block">
-              {/* Tablet: 2 columns */}
-              <div className="block lg:hidden">
-                <ScrollingReviewFeed reviews={scrollingReviews} columnCount={2} />
-              </div>
-              {/* Desktop: 3 columns */}
-              <div className="hidden lg:block">
-                <ScrollingReviewFeed reviews={scrollingReviews} columnCount={3} />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats Section - Positioned for credibility (right after hero) */}
-      {!loading && !error && (
-        <section className="py-12 sm:py-16 lg:py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-8 sm:mb-10 lg:mb-12">
-              <p className="text-sm sm:text-base text-text-secondary uppercase tracking-[0.15em] mb-2">Trusted by Canadians</p>
-              <h2 className="text-2xl sm:text-3xl font-semibold text-text-primary">Our Community</h2>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-12 text-center">
-              <div className="flex flex-col items-center">
-                <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
-                  <Star className="h-8 w-8 text-accent-blue" />
+                {/* Mobile: Scrolling feed between subheadline and CTAs */}
+                <div className="md:hidden mb-8">
+                  <MobileScrollingReviewFeed reviews={scrollingReviews} />
                 </div>
-                <h3 className="text-4xl lg:text-5xl font-bold text-text-primary mb-2">
-                  {formatCount(reviewCount)}
-                </h3>
-                <p className="text-base lg:text-lg text-text-secondary">Total Reviews</p>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
-                  <TrendingUp className="h-8 w-8 text-accent-blue" />
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                  {/* Primary CTA: Find Your Next Purchase */}
+                  <Button
+                    size="lg"
+                    className="bg-white text-gray-900 hover:bg-white/95 hover:shadow-lg hover:-translate-y-0.5 rounded-lg font-semibold w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
+                    onClick={() => navigate('/search?tab=products')}
+                  >
+                    Find Your Next Purchase
+                  </Button>
+                  {/* Secondary CTA: Share Your Experience */}
+                  <Button
+                    variant="outline"
+                    className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-900 rounded-lg font-medium w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
+                    onClick={handleWriteReview}
+                  >
+                    Share Your Experience
+                  </Button>
                 </div>
-                <h3 className="text-4xl lg:text-5xl font-bold text-text-primary mb-2">
-                  {formatCount(productCount)}
-                </h3>
-                <p className="text-base lg:text-lg text-text-secondary">Products Listed</p>
               </div>
-              <div className="flex flex-col items-center">
-                <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
-                  <Users className="h-8 w-8 text-accent-blue" />
-                </div>
-                <h3 className="text-4xl lg:text-5xl font-bold text-text-primary mb-2">
-                  {formatCount(categoryCount)}
-                </h3>
-                <p className="text-base lg:text-lg text-text-secondary">Categories Covered</p>
+
+              {/* Right Column - Single Column Scrolling Review Feed (Desktop/Tablet) */}
+              <div className="hidden md:block">
+                <ScrollingReviewFeed reviews={scrollingReviews} />
               </div>
             </div>
           </div>
         </section>
-      )}
 
-      {/* Main content wrapper - gradient flows across all sections */}
-      <div className="flex-1 bg-gradient-to-br from-soft-blue to-soft-lavender">
-        {/* Category Browse Sections - NEW (replaces Recent Reviews) */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        {/* Stats Section - Positioned for credibility (right after hero) */}
+        {!loading && !error && (
+          <section className="py-12 sm:py-16 lg:py-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="text-center mb-8 sm:mb-10 lg:mb-12">
+                <p className="text-sm sm:text-base text-white/70 uppercase tracking-[0.15em] mb-2">Trusted by Canadians</p>
+                <h2 className="text-2xl sm:text-3xl font-semibold text-white">Our Community</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-12 text-center">
+                <div className="flex flex-col items-center">
+                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full mb-4">
+                    <Star className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2">
+                    {formatCount(reviewCount)}
+                  </h3>
+                  <p className="text-base lg:text-lg text-white/80">Total Reviews</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full mb-4">
+                    <TrendingUp className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2">
+                    {formatCount(productCount)}
+                  </h3>
+                  <p className="text-base lg:text-lg text-white/80">Products Listed</p>
+                </div>
+                <div className="flex flex-col items-center">
+                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full mb-4">
+                    <Users className="h-8 w-8 text-white" />
+                  </div>
+                  <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2">
+                    {formatCount(categoryCount)}
+                  </h3>
+                  <p className="text-base lg:text-lg text-white/80">Categories Covered</p>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Category Browse Sections */}
+        <section className="py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-8">
-              <p className="text-gray-500 uppercase tracking-wide text-sm mb-2">EXPLORE</p>
-              <h2 className="text-3xl font-bold text-gray-900">Browse by Category</h2>
+              <p className="text-white/70 uppercase tracking-wide text-sm mb-2">EXPLORE</p>
+              <h2 className="text-3xl font-bold text-white">Browse by Category</h2>
             </div>
 
             {loading ? (
               <div className="flex justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
@@ -559,7 +670,10 @@ export function HomePage() {
             )}
           </div>
         </section>
+      </div>
 
+      {/* Main content wrapper - lighter gradient for remaining sections */}
+      <div className="flex-1 bg-gradient-to-br from-soft-blue to-soft-lavender">
         {/* Personalized Recommendations (for authenticated users) */}
         {isAuthenticated && (
           <section className="py-8 sm:py-12 lg:py-16">
