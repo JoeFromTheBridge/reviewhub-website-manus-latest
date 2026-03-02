@@ -1,67 +1,304 @@
 // reviewhub/src/components/HomePage.jsx
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Star, TrendingUp, Users, Loader2 } from 'lucide-react'
+import { Star, TrendingUp, Users, Loader2, Home, Mountain, Heart, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import RecommendationSection from './recommendations/RecommendationSection'
-import ImageOptimizer from './ui/image-optimizer'
 import Footer from './Footer'
 import { useAuth } from '../contexts/AuthContext'
 import apiService from '../services/api'
 
-import heroImage from '../assets/hero_image.png'
-import electronicsIcon from '../assets/category_electronics.png'
-import automotiveIcon from '../assets/category_automotive.png'
-import homeIcon from '../assets/category_home.png'
-import beautyIcon from '../assets/category_beauty.png'
+// Sample reviews for scrolling feed (used when API returns insufficient data)
+const SAMPLE_REVIEWS = [
+  { id: 1, username: "Sarah M.", initials: "SM", rating: 5, snippet: "This vacuum changed my life! No more pet hair everywhere.", productName: "Dyson V15 Detect" },
+  { id: 2, username: "Mike T.", initials: "MT", rating: 4, snippet: "Great build quality, sturdy and reliable for outdoor use.", productName: "YETI Tundra 45 Cooler" },
+  { id: 3, username: "Emily R.", initials: "ER", rating: 5, snippet: "My dog absolutely loves this bed. Best purchase ever!", productName: "Casper Dog Bed" },
+  { id: 4, username: "Jason L.", initials: "JL", rating: 5, snippet: "Finally, a blender that actually crushes ice properly.", productName: "Vitamix E310" },
+  { id: 5, username: "Amanda K.", initials: "AK", rating: 4, snippet: "Perfect for camping trips. Keeps food cold for days.", productName: "Coleman Xtreme Cooler" },
+  { id: 6, username: "Chris P.", initials: "CP", rating: 5, snippet: "My cats are obsessed with this automatic feeder.", productName: "PetSafe Smart Feed" },
+  { id: 7, username: "Linda W.", initials: "LW", rating: 5, snippet: "Super quiet and powerful. Worth every penny.", productName: "Miele Complete C3" },
+  { id: 8, username: "David H.", initials: "DH", rating: 4, snippet: "Excellent tent, easy setup even in windy conditions.", productName: "REI Half Dome Plus" },
+  { id: 9, username: "Rachel G.", initials: "RG", rating: 5, snippet: "Best cat litter I've ever used. No tracking!", productName: "World's Best Cat Litter" },
+  { id: 10, username: "Tom B.", initials: "TB", rating: 5, snippet: "Makes smoothies in seconds. So easy to clean.", productName: "Ninja Professional Blender" },
+  { id: 11, username: "Jessica N.", initials: "JN", rating: 4, snippet: "Great hiking boots, broke in quickly with no blisters.", productName: "Salomon X Ultra 4" },
+  { id: 12, username: "Kevin S.", initials: "KS", rating: 5, snippet: "My puppy loves these treats. Vet approved!", productName: "Zuke's Mini Naturals" },
+]
 
-// Helper to safely extract image URL from various API response structures
-function getReviewImageUrl(image) {
-  if (!image) return ''
+// Category data for the three launch categories
+const LAUNCH_CATEGORIES = [
+  {
+    id: "home-everyday",
+    name: "Home & Everyday",
+    shortName: "Home",
+    description: "Trusted reviews for products you use every day",
+    iconGradient: "from-blue-500 to-blue-600",
+    icon: Home,
+    route: "/search?category=home-everyday&tab=products"
+  },
+  {
+    id: "outdoor-sports",
+    name: "Outdoor & Sporting Goods",
+    shortName: "Outdoor",
+    description: "Gear tested by real adventurers and athletes",
+    iconGradient: "from-green-500 to-green-600",
+    icon: Mountain,
+    route: "/search?category=outdoor-sports&tab=products"
+  },
+  {
+    id: "pet-products",
+    name: "Pet Products",
+    shortName: "Pets",
+    description: "Reviews from pet parents who care",
+    iconGradient: "from-purple-500 to-purple-600",
+    icon: Heart,
+    route: "/search?category=pet-products&tab=products"
+  }
+]
 
-  // Plain string - check if it's a valid URL
-  if (typeof image === 'string') {
-    const trimmed = image.trim()
-    if (!trimmed) return ''
-    if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
-      return trimmed
+// Scrolling Review Feed Component
+function ScrollingReviewFeed({ reviews, columnCount = 3 }) {
+  const [scrollPositions, setScrollPositions] = useState([0, 0, 0])
+  const [isPaused, setIsPaused] = useState(false)
+  const containerRef = useRef(null)
+  const animationRef = useRef(null)
+  const prefersReducedMotion = useRef(false)
+
+  // Check for reduced motion preference
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+    prefersReducedMotion.current = mediaQuery.matches
+
+    const handleChange = (e) => {
+      prefersReducedMotion.current = e.matches
+      if (e.matches) {
+        setIsPaused(true)
+      }
     }
-    return `/${trimmed.replace(/^\/+/, '')}`
+
+    mediaQuery.addEventListener('change', handleChange)
+    return () => mediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
+  // Split reviews into columns
+  const columns = useMemo(() => {
+    const cols = Array.from({ length: columnCount }, () => [])
+    reviews.forEach((review, index) => {
+      cols[index % columnCount].push(review)
+    })
+    // Duplicate for seamless loop
+    return cols.map(col => [...col, ...col, ...col])
+  }, [reviews, columnCount])
+
+  // Animation speeds for each column (pixels per frame)
+  const speeds = useMemo(() => {
+    if (columnCount === 1) return [0.3]
+    if (columnCount === 2) return [0.3, 0.45]
+    return [0.3, 0.5, 0.4]
+  }, [columnCount])
+
+  // Tile height (approximate)
+  const tileHeight = 120
+
+  // Animation loop
+  useEffect(() => {
+    if (prefersReducedMotion.current || isPaused) return
+
+    let lastTime = 0
+    const animate = (timestamp) => {
+      if (!lastTime) lastTime = timestamp
+      const delta = timestamp - lastTime
+
+      // Target ~20fps for performance
+      if (delta >= 50) {
+        lastTime = timestamp
+        setScrollPositions(prev => {
+          const singleSetHeight = (reviews.length / columnCount) * tileHeight
+          return prev.map((pos, i) => {
+            const newPos = pos + speeds[i] * (delta / 50)
+            return newPos >= singleSetHeight ? 0 : newPos
+          })
+        })
+      }
+
+      animationRef.current = requestAnimationFrame(animate)
+    }
+
+    animationRef.current = requestAnimationFrame(animate)
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current)
+      }
+    }
+  }, [reviews.length, columnCount, speeds, isPaused])
+
+  // Pause animation when not visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!prefersReducedMotion.current) {
+          setIsPaused(!entry.isIntersecting)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+
+    return () => observer.disconnect()
+  }, [])
+
+  const renderStars = (rating) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-3 w-3 ${
+              star <= rating
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'text-gray-300'
+            }`}
+          />
+        ))}
+      </div>
+    )
   }
 
-  // If backend nests inside an `image` field
-  if (image.image && typeof image.image === 'string') {
-    return getReviewImageUrl(image.image)
+  return (
+    <section
+      ref={containerRef}
+      aria-label="Recent Community Reviews"
+      className={`relative overflow-hidden ${
+        columnCount === 1
+          ? 'h-[280px] bg-white/10 rounded-xl mx-auto max-w-sm'
+          : 'h-[420px]'
+      }`}
+      style={{ willChange: 'transform' }}
+    >
+      <div className={`flex ${columnCount === 1 ? 'justify-center px-3' : 'gap-3 lg:gap-4'}`}>
+        {columns.slice(0, columnCount).map((column, colIndex) => (
+          <div
+            key={colIndex}
+            className={`flex flex-col gap-3 ${columnCount === 1 ? 'w-full' : 'flex-1'}`}
+            style={{
+              transform: `translateY(-${scrollPositions[colIndex]}px)`,
+              transition: prefersReducedMotion.current ? 'none' : undefined
+            }}
+          >
+            {column.map((review, reviewIndex) => (
+              <article
+                key={`${review.id}-${reviewIndex}`}
+                className="bg-white rounded-lg shadow-sm p-3 lg:p-4"
+                style={{ minHeight: '100px' }}
+              >
+                <div className="flex gap-3">
+                  {/* Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-semibold text-sm">
+                      {review.initials || review.username?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
+                    </span>
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-medium text-gray-900 text-sm truncate">
+                        {review.username}
+                      </span>
+                      {renderStars(review.rating)}
+                    </div>
+                    <p className="text-gray-700 text-sm line-clamp-2 mb-1">
+                      {review.snippet || review.comment || review.content || ''}
+                    </p>
+                    <p className="text-gray-400 text-xs truncate">
+                      {review.productName || review.product?.name || 'Product'}
+                    </p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Gradient overlays for smooth fade */}
+      <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#5B7DD4] to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#5B7DD4] to-transparent pointer-events-none" />
+    </section>
+  )
+}
+
+// Category Card Component
+function CategoryCard({ category, featuredProducts = [] }) {
+  const navigate = useNavigate()
+  const IconComponent = category.icon
+
+  const renderStars = (rating) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-3 w-3 ${
+              star <= Math.round(rating)
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'text-gray-300'
+            }`}
+          />
+        ))}
+      </div>
+    )
   }
-  if (image.image && typeof image.image === 'object') {
-    const nested = getReviewImageUrl(image.image)
-    if (nested) return nested
-  }
 
-  // Try various common field names
-  const candidate =
-    image.file_url ||
-    image.url ||
-    image.image_url ||
-    image.file_path ||
-    image.path ||
-    image.location ||
-    image.src ||
-    image.thumbnail_url ||
-    null
+  return (
+    <Card className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow p-6">
+      {/* Icon Badge */}
+      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.iconGradient} flex items-center justify-center mb-4`}>
+        <IconComponent className="w-6 h-6 text-white" />
+      </div>
 
-  if (!candidate) return ''
+      {/* Category Title */}
+      <h3 className="text-xl font-bold text-gray-900 mb-2">{category.name}</h3>
 
-  const trimmed = String(candidate).trim()
-  if (!trimmed) return ''
+      {/* Description */}
+      <p className="text-gray-600 text-sm mb-4">{category.description}</p>
 
-  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
-    return trimmed
-  }
+      {/* Product Count */}
+      <p className="text-sm text-gray-500 mb-4">
+        {featuredProducts.length > 0
+          ? `${featuredProducts.length}+ products reviewed`
+          : 'First reviews coming soon!'
+        }
+      </p>
 
-  return `/${trimmed.replace(/^\/+/, '')}`
+      {/* Featured Products */}
+      {featuredProducts.length > 0 && (
+        <div className="space-y-2 mb-4">
+          {featuredProducts.slice(0, 2).map((product, index) => (
+            <div key={product.id || index} className="flex items-center gap-2">
+              {renderStars(product.average_rating || product.averageRating || 5)}
+              <span className="text-gray-600 text-sm truncate">
+                {product.name || product.title}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* CTA Button */}
+      <Button
+        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors"
+        onClick={() => navigate(category.route)}
+      >
+        Explore {category.shortName}
+        <ArrowRight className="w-4 h-4" />
+      </Button>
+    </Card>
+  )
 }
 
 export function HomePage() {
@@ -88,8 +325,7 @@ export function HomePage() {
 
       const [categoriesResponse, reviewsResponse, productsResponse] = await Promise.all([
         apiService.getCategories(),
-        apiService.getReviews({ limit: 6, sort: 'created_at' }),
-        // Fetch products so we can map review.product_id → product name/brand
+        apiService.getReviews({ limit: 15, sort: 'created_at' }),
         apiService.getProducts({ per_page: 100 })
       ])
 
@@ -136,57 +372,6 @@ export function HomePage() {
     }
   }
 
-  const handleSearch = (e) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchQuery)}`)
-    }
-  }
-
-  // Build a category-specific search URL (using slug + id when available)
-  const buildCategoryHref = (category) => {
-    if (!category) return '/search?tab=reviews'
-
-    const isString = typeof category === 'string'
-    const slug = isString
-      ? category
-      : category.slug || category.name || 'all'
-
-    const params = new URLSearchParams()
-    params.set('tab', 'reviews')
-    params.set('category', slug)
-
-    if (!isString) {
-      if (category.id != null) {
-        params.set('category_id', String(category.id))
-      }
-      if (category.name) {
-        params.set('category_name', category.name)
-      }
-    }
-
-    return `/search?${params.toString()}`
-  }
-
-  // More forgiving icon picker: handles "Home", "Home & Garden", "Beauty", etc.
-  const getCategoryIcon = (categoryName = '') => {
-    const n = String(categoryName).toLowerCase()
-    if (n.includes('auto')) return automotiveIcon
-    if (n.includes('beaut')) return beautyIcon
-    if (n.includes('electr')) return electronicsIcon
-    if (n.includes('home')) return homeIcon
-    // Fallback
-    return electronicsIcon
-  }
-
-  // Static fallback tiles for Phase 0 when API returns empty
-  const STATIC_CATEGORIES = [
-    { id: 'electronics', name: 'Electronics', slug: 'electronics', img: electronicsIcon },
-    { id: 'automotive', name: 'Automotive', slug: 'automotive', img: automotiveIcon },
-    { id: 'home', name: 'Home & Garden', slug: 'home-garden', img: homeIcon },
-    { id: 'beauty', name: 'Beauty & Health', slug: 'beauty-health', img: beautyIcon }
-  ]
-
   const formatCount = (value) => {
     return Number(value || 0).toLocaleString()
   }
@@ -203,50 +388,6 @@ export function HomePage() {
     return "Join shoppers building Canada's most trusted review community—no brands, no bots, no paid promotions."
   }
 
-  // Helper to get product price (similar to SearchResults)
-  const getProductPrice = (product) => {
-    if (!product) return null
-    const priceMin = product.price_min ?? product.price ?? product.priceMin ?? null
-    const priceMax = product.price_max ?? product.priceMax ?? null
-    if (priceMin !== null) {
-      return { min: Number(priceMin), max: priceMax !== null ? Number(priceMax) : Number(priceMin) }
-    }
-    if (product.price_range) {
-      const matches = product.price_range.match(/\$(\d+(?:,\d{3})*(?:\.\d{2})?)/g)
-      if (matches && matches.length >= 1) {
-        const prices = matches.map(m => Number(m.replace(/[$,]/g, '')))
-        return { min: prices[0], max: prices[prices.length - 1] }
-      }
-    }
-    return null
-  }
-
-  const formatPrice = (product) => {
-    const price = getProductPrice(product)
-    if (!price) return product?.price_range || null
-    if (price.min === price.max) {
-      return `$${price.min.toLocaleString()}`
-    }
-    return `$${price.min.toLocaleString()} - $${price.max.toLocaleString()}`
-  }
-
-  const renderStars = (rating) => {
-    return (
-      <div className="flex items-center">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`h-4 w-4 ${
-              star <= rating
-                ? 'fill-star-gold text-star-gold'
-                : 'text-border-light'
-            }`}
-          />
-        ))}
-      </div>
-    )
-  }
-
   // Handle write review button - auth-aware navigation
   const handleWriteReview = () => {
     if (isAuthenticated) {
@@ -256,9 +397,41 @@ export function HomePage() {
     }
   }
 
+  // Prepare reviews for scrolling feed - use API data if sufficient, otherwise use samples
+  const scrollingReviews = useMemo(() => {
+    if (featuredReviews.length >= 6) {
+      return featuredReviews.map((review, index) => ({
+        id: review.id || index,
+        username: review.user?.username || review.user_username || review.user_name || 'Anonymous',
+        initials: (review.user?.username || review.user_username || 'A')[0].toUpperCase(),
+        rating: review.rating || 5,
+        snippet: review.comment || review.content || '',
+        productName: review.product?.name || review.product_name || 'Product'
+      }))
+    }
+    return SAMPLE_REVIEWS
+  }, [featuredReviews])
+
+  // Get featured products for each category
+  const getCategoryFeaturedProducts = (categoryId) => {
+    // Map our launch category IDs to potential API category names
+    const categoryMappings = {
+      'home-everyday': ['home', 'home & garden', 'home & everyday', 'household', 'kitchen', 'appliances'],
+      'outdoor-sports': ['outdoor', 'sports', 'outdoor & sports', 'sporting goods', 'camping', 'hiking'],
+      'pet-products': ['pet', 'pets', 'pet products', 'pet supplies', 'animals']
+    }
+
+    const matchingNames = categoryMappings[categoryId] || []
+
+    return products.filter(product => {
+      const productCategory = (product.category || product.category_name || '').toLowerCase()
+      return matchingNames.some(name => productCategory.includes(name))
+    }).slice(0, 2)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-soft-blue to-soft-lavender flex flex-col">
-      {/* Hero Section - Community-focused messaging */}
+      {/* Hero Section - Community-focused messaging with scrolling review feed */}
       <section className="relative overflow-hidden bg-gradient-to-r from-[#5B7DD4] to-[#A391E2]">
         <div
           className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
@@ -268,6 +441,7 @@ export function HomePage() {
           }}
         >
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left Column - Text Content */}
             <div className="text-center lg:text-left">
               <h1 className="font-bold text-white mb-4 lg:mb-6 leading-[1.1] text-3xl sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
                 Real Reviews. Real People.
@@ -276,6 +450,12 @@ export function HomePage() {
               <p className="text-white/85 mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 text-base sm:text-lg lg:text-xl leading-relaxed">
                 {getHeroSubheadline()}
               </p>
+
+              {/* Mobile: Scrolling feed between subheadline and CTAs */}
+              <div className="lg:hidden mb-8">
+                <ScrollingReviewFeed reviews={scrollingReviews} columnCount={1} />
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 {/* Primary CTA: Find Your Next Purchase */}
                 <Button
@@ -295,15 +475,17 @@ export function HomePage() {
                 </Button>
               </div>
             </div>
-            <div className="hidden lg:block">
-              <ImageOptimizer
-                src={heroImage}
-                alt="ReviewHub - Product Reviews Platform"
-                width={500}
-                height={400}
-                className="rounded-xl shadow-sleek"
-                lazy={false}
-              />
+
+            {/* Right Column - Scrolling Review Feed (Desktop/Tablet) */}
+            <div className="hidden md:block">
+              {/* Tablet: 2 columns */}
+              <div className="block lg:hidden">
+                <ScrollingReviewFeed reviews={scrollingReviews} columnCount={2} />
+              </div>
+              {/* Desktop: 3 columns */}
+              <div className="hidden lg:block">
+                <ScrollingReviewFeed reviews={scrollingReviews} columnCount={3} />
+              </div>
             </div>
           </div>
         </div>
@@ -352,12 +534,12 @@ export function HomePage() {
 
       {/* Main content wrapper - gradient flows across all sections */}
       <div className="flex-1 bg-gradient-to-br from-soft-blue to-soft-lavender">
-        {/* Recent Reviews Section */}
-        <section className="py-8 sm:py-12 lg:py-16">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-            <div className="text-center mb-6 sm:mb-8 lg:mb-12">
-              <p className="text-sm sm:text-base text-text-secondary uppercase tracking-[0.1em] mb-1 sm:mb-2">Community</p>
-              <h2 className="text-2xl sm:text-3xl font-semibold text-text-primary">Recent Reviews</h2>
+        {/* Category Browse Sections - NEW (replaces Recent Reviews) */}
+        <section className="py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-8">
+              <p className="text-gray-500 uppercase tracking-wide text-sm mb-2">EXPLORE</p>
+              <h2 className="text-3xl font-bold text-gray-900">Browse by Category</h2>
             </div>
 
             {loading ? (
@@ -365,281 +547,14 @@ export function HomePage() {
                 <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
               </div>
             ) : (
-              <div
-                className="grid gap-4 lg:gap-6"
-                style={{
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
-                }}
-              >
-                {featuredReviews.map((review) => {
-                  // Product id from review
-                  const productId =
-                    review.product?.id ??
-                    review.product?.product_id ??
-                    review.product_id ??
-                    review.productId ??
-                    null
-
-                  // Try to find the full product in the products list
-                  const matchedProduct = productId
-                    ? products.find(
-                        (p) =>
-                          p.id === productId ||
-                          p.product_id === productId
-                      )
-                    : null
-
-                  const productName =
-                    matchedProduct?.name ||
-                    matchedProduct?.title ||
-                    matchedProduct?.product_name ||
-                    review.product?.name ||
-                    review.product?.product_name ||
-                    review.product_name ||
-                    (review.title && review.title !== 'Review'
-                      ? review.title
-                      : 'Product')
-
-                  const productBrand =
-                    matchedProduct?.brand ||
-                    matchedProduct?.manufacturer ||
-                    review.product?.brand ||
-                    review.product?.manufacturer ||
-                    review.brand ||
-                    review.product_brand ||
-                    null
-
-                  const productCategory =
-                    matchedProduct?.category ||
-                    review.product?.category ||
-                    null
-
-                  const productImage =
-                    matchedProduct?.image_url ||
-                    matchedProduct?.imageUrl ||
-                    matchedProduct?.image ||
-                    matchedProduct?.thumbnail ||
-                    matchedProduct?.thumbnail_url ||
-                    review.product?.image_url ||
-                    review.product?.imageUrl ||
-                    review.product?.image ||
-                    null
-
-                  const priceDisplay = formatPrice(matchedProduct)
-
-                  // Get review images/photos if available (check multiple possible field names)
-                  const reviewImages = review.images || review.photos || review.image_urls || review.photo_urls || review.media || []
-                  const firstReviewImage = reviewImages.length > 0 ? reviewImages[0]?.url || reviewImages[0] : null
-
-                  const reviewTitle =
-                    review.title && review.title !== 'Review'
-                      ? review.title
-                      : `Review of ${productName}`
-
-                  return (
-                    <Card key={review.id} className="bg-white-surface shadow-sleek hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 rounded-md overflow-hidden">
-                      {/* Product Image at Top of Tile - only shown if product has an image */}
-                      {productImage && (
-                        <Link to={productId ? `/product/${productId}` : '#'}>
-                          <div className="w-full h-40 bg-soft-blue">
-                            <img
-                              src={productImage}
-                              alt={productName}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        </Link>
-                      )}
-                      <CardContent className="p-4 lg:p-6">
-                        {/* Category Badge */}
-                        {productCategory && (
-                          <Badge variant="secondary" className="bg-soft-blue text-accent-blue rounded-sm mb-2 text-xs">
-                            {productCategory}
-                          </Badge>
-                        )}
-
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex-1 min-w-0">
-                            {productId ? (
-                              <Link
-                                to={`/product/${productId}`}
-                                className="font-semibold text-text-primary hover:text-accent-blue transition-colors line-clamp-1 text-sm lg:text-base"
-                              >
-                                {productName}
-                              </Link>
-                            ) : (
-                              <span className="font-semibold text-text-primary line-clamp-1 text-sm lg:text-base">
-                                {productName}
-                              </span>
-                            )}
-                            {productBrand && (
-                              <p className="text-xs lg:text-sm text-text-secondary truncate">{productBrand}</p>
-                            )}
-                          </div>
-                          <div className="flex-shrink-0">
-                            {renderStars(review.rating)}
-                          </div>
-                        </div>
-
-                        {/* Price */}
-                        {priceDisplay && (
-                          <p className="text-base lg:text-lg font-bold text-accent-blue mb-2">{priceDisplay}</p>
-                        )}
-
-                        {/* Review Title & Content */}
-                        <h4 className="font-medium text-text-primary mb-2 text-sm lg:text-base line-clamp-1">
-                          {reviewTitle}
-                        </h4>
-                        <p className="text-text-secondary text-xs lg:text-sm mb-3 line-clamp-3">
-                          {review.comment || review.content}
-                        </p>
-
-                        {/* Review image thumbnails */}
-                        {(() => {
-                          // Extract valid image URLs using helper
-                          const validImages = reviewImages
-                            .map(img => getReviewImageUrl(img))
-                            .filter(url => url && url.length > 0)
-
-                          if (validImages.length === 0) return null
-
-                          return (
-                            <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
-                              {validImages.slice(0, 4).map((imgUrl, idx) => (
-                                <img
-                                  key={idx}
-                                  src={imgUrl}
-                                  alt={`Review photo ${idx + 1}`}
-                                  className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-sm"
-                                />
-                              ))}
-                              {validImages.length > 4 && (
-                                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-soft-blue rounded-sm flex items-center justify-center text-xs text-accent-blue font-medium">
-                                  +{validImages.length - 4}
-                                </div>
-                              )}
-                            </div>
-                          )
-                        })()}
-
-
-                        {/* Reviewer info - tighter spacing, reduced visual weight */}
-                        <div className="flex items-center justify-between text-xs text-text-secondary/70 mb-2">
-                          <div className="flex items-center gap-1.5">
-                            <span className="truncate max-w-[120px]">
-                              {review.user?.username ||
-                                review.user_username ||
-                                review.user_name ||
-                                'Anonymous'}
-                            </span>
-                            {(review.is_verified || review.verified_purchase) && (
-                              <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-medium">
-                                Verified
-                              </span>
-                            )}
-                          </div>
-                          {/* Only show helpful count if > 0 */}
-                          {(review.helpful_count > 0) && (
-                            <span className="text-text-secondary/60">{review.helpful_count} helpful</span>
-                          )}
-                        </div>
-
-                        {/* Review This Product Button */}
-                        {productId && (
-                          <Button
-                            variant="outline"
-                            className="w-full border-accent-blue text-accent-blue hover:bg-accent-blue hover:text-white rounded-md min-h-[44px] text-sm"
-                            onClick={() => {
-                              if (isAuthenticated) {
-                                navigate(`/product/${productId}?writeReview=true`)
-                              } else {
-                                navigate('/signup', { state: { from: `/product/${productId}?writeReview=true` } })
-                              }
-                            }}
-                          >
-                            Review This Product
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            )}
-
-            <div className="text-center mt-8">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-[#5B7DD4] to-[#A391E2] text-white hover:opacity-90 transition-opacity rounded-md px-8"
-                onClick={() => navigate('/search?tab=reviews')}
-              >
-                View All Reviews
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* Categories Section - Redesigned as clean navigation tiles */}
-        <section className="py-8 sm:py-12 lg:py-16">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-            <div className="text-center mb-6 sm:mb-8 lg:mb-12">
-              <p className="text-sm sm:text-base text-text-secondary uppercase tracking-[0.1em] mb-1 sm:mb-2">Explore</p>
-              <h2 className="text-2xl sm:text-3xl font-semibold text-text-primary">Browse by Category</h2>
-            </div>
-
-            {loading ? (
-              <div className="flex justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
-              </div>
-            ) : (
-              <div
-                className="grid gap-3 sm:gap-4 lg:gap-5"
-                style={{
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))',
-                }}
-              >
-                {(() => {
-                  // Use API categories if available, fallback to static
-                  const categoryList = categories.length ? categories : STATIC_CATEGORIES
-
-                  // Filter out categories with 0 products (if product_count is available)
-                  const visibleCategories = categoryList.filter(cat => {
-                    // If product_count is explicitly 0, hide it
-                    if (cat.product_count === 0) return false
-                    return true
-                  })
-
-                  return visibleCategories.map((category) => {
-                    const name = category.name || category.title || 'Category'
-                    const href = buildCategoryHref(category)
-                    const productCount = category.product_count
-                    const hasProducts = productCount !== undefined && productCount !== null
-
-                    return (
-                      <Link
-                        key={category.id || category.slug || name}
-                        to={href}
-                        className="group block"
-                      >
-                        <Card className="bg-white border border-border-light/60 shadow-sm hover:shadow-md hover:border-accent-blue/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 cursor-pointer rounded-lg overflow-hidden">
-                          <CardContent className="p-0">
-                            {/* Full-card tappable button */}
-                            <div className="min-h-[72px] sm:min-h-[80px] flex flex-col items-center justify-center px-4 py-4 sm:py-5">
-                              <h3 className="font-semibold text-text-primary text-sm sm:text-base text-center leading-tight mb-1">
-                                {name}
-                              </h3>
-                              {hasProducts && (
-                                <p className="text-xs text-text-secondary/60">
-                                  {productCount} {productCount === 1 ? 'product' : 'products'}
-                                </p>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    )
-                  })
-                })()}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
+                {LAUNCH_CATEGORIES.map((category) => (
+                  <CategoryCard
+                    key={category.id}
+                    category={category}
+                    featuredProducts={getCategoryFeaturedProducts(category.id)}
+                  />
+                ))}
               </div>
             )}
           </div>

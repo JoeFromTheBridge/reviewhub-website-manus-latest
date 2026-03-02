@@ -1,6 +1,6 @@
 # CLAUDE.md — ReviewHub Project Context (Authoritative)
 
-> **Last Updated:** 2026-02-27
+> **Last Updated:** 2026-03-02
 > **Current Phase:** Phase 1 — Core Review Product
 > **Status:** 🟢 Phase 0 Complete — M0 Milestone Achieved
 
@@ -267,12 +267,11 @@ Before advancing to Phase 2:
 
 **Objective:** Quality signals and spam prevention once real reviews arrive
 
-* Reviewer reputation signals
-* Spam detection and reporting tools
-* Review edit history and transparency
-* GDPR compliance (data export / deletion)
-* Verified profile / social login options
-* Enhanced bot prevention (behavioral scoring, Cloudflare bot management)
+* [x] Product detail page polish
+* [ ] Search, filters, sorting
+* [ ] Auth UX polish
+* [ ] Admin basics (roles, moderation)
+* [ ] Basic analytics
 
 ---
 
