@@ -1,7 +1,7 @@
 
 # CLAUDE.md — ReviewHub Project Context (Authoritative)
 
-> **Last Updated:** 2026-01-28
+> **Last Updated:** 2026-03-02
 > **Current Phase:** Phase 1 — Core Review Product
 > **Status:** 🟢 Phase 0 Complete — M0 Milestone Achieved
 
@@ -240,7 +240,7 @@ Before advancing:
 
 **Objective:** Complete, usable review product
 
-* [ ] Product detail page polish
+* [x] Product detail page polish
 * [ ] Search, filters, sorting
 * [ ] Auth UX polish
 * [ ] Admin basics (roles, moderation)
