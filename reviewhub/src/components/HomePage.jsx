@@ -201,9 +201,9 @@ function ScrollingReviewFeed({ reviews }) {
         ))}
       </div>
 
-      {/* Gradient overlays for smooth fade */}
-      <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#6B84D8] to-transparent pointer-events-none z-10" />
-      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#9B8ADF] to-transparent pointer-events-none z-10" />
+      {/* Gradient overlays for smooth fade - match rich hero gradient */}
+      <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#4A69BD] to-transparent pointer-events-none z-10" />
+      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#7B5DD6] to-transparent pointer-events-none z-10" />
     </section>
   )
 }
@@ -373,7 +373,7 @@ function CategoryCard({ category, featuredProducts = [] }) {
   }
 
   return (
-    <Card className="bg-white/95 backdrop-blur-sm rounded-xl shadow-md hover:shadow-lg transition-shadow p-6">
+    <Card className="bg-white rounded-xl shadow-md hover:shadow-lg transition-shadow p-6">
       {/* Icon Badge */}
       <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${category.iconGradient} flex items-center justify-center mb-4`}>
         <IconComponent className="w-6 h-6 text-white" />
@@ -549,96 +549,96 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Continuous gradient wrapper for Hero, Stats, and Categories */}
-      <div className="bg-gradient-to-b from-[#5B7DD4] via-[#7B8BD9] to-[#9B9ADE]">
-        {/* Hero Section - Community-focused messaging with scrolling review feed */}
-        <section className="relative overflow-hidden">
-          <div
-            className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
-            style={{
-              paddingTop: 'clamp(40px, 10vh, 140px)',
-              paddingBottom: 'clamp(32px, 7vh, 100px)',
-            }}
-          >
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-              {/* Left Column - Text Content */}
-              <div className="text-center lg:text-left">
-                <h1 className="font-bold text-white mb-4 lg:mb-6 leading-[1.1] text-3xl sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
-                  Real Reviews. Real People.
-                  <span className="block text-[#FFC107] mt-1">Zero BS.</span>
-                </h1>
-                <p className="text-white/85 mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 text-base sm:text-lg lg:text-xl leading-relaxed">
-                  {getHeroSubheadline()}
-                </p>
+      {/* Hero Section - Rich blue-purple gradient */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-[#4A69BD] via-[#6B5DD6] to-[#8B6DD4]">
+        <div
+          className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
+          style={{
+            paddingTop: 'clamp(40px, 10vh, 140px)',
+            paddingBottom: 'clamp(32px, 7vh, 100px)',
+          }}
+        >
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* Left Column - Text Content */}
+            <div className="text-center lg:text-left">
+              <h1 className="font-bold text-white mb-4 lg:mb-6 leading-[1.1] text-3xl sm:text-4xl lg:text-5xl xl:text-[3.5rem]">
+                Real Reviews. Real People.
+                <span className="block text-[#FFC107] mt-1">Zero BS.</span>
+              </h1>
+              <p className="text-white/90 mb-8 lg:mb-10 max-w-xl mx-auto lg:mx-0 text-base sm:text-lg lg:text-xl leading-relaxed">
+                {getHeroSubheadline()}
+              </p>
 
-                {/* Mobile: Scrolling feed between subheadline and CTAs */}
-                <div className="md:hidden mb-8">
-                  <MobileScrollingReviewFeed reviews={scrollingReviews} />
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                  {/* Primary CTA: Find Your Next Purchase */}
-                  <Button
-                    size="lg"
-                    className="bg-white text-gray-900 hover:bg-white/95 hover:shadow-lg hover:-translate-y-0.5 rounded-lg font-semibold w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
-                    onClick={() => navigate('/search?tab=products')}
-                  >
-                    Find Your Next Purchase
-                  </Button>
-                  {/* Secondary CTA: Share Your Experience */}
-                  <Button
-                    variant="outline"
-                    className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-900 rounded-lg font-medium w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
-                    onClick={handleWriteReview}
-                  >
-                    Share Your Experience
-                  </Button>
-                </div>
+              {/* Mobile: Scrolling feed between subheadline and CTAs */}
+              <div className="md:hidden mb-8">
+                <MobileScrollingReviewFeed reviews={scrollingReviews} />
               </div>
 
-              {/* Right Column - Single Column Scrolling Review Feed (Desktop/Tablet) */}
-              <div className="hidden md:block">
-                <ScrollingReviewFeed reviews={scrollingReviews} />
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                {/* Primary CTA: Find Your Next Purchase */}
+                <Button
+                  size="lg"
+                  className="bg-white text-gray-900 hover:bg-white/95 hover:shadow-lg hover:-translate-y-0.5 rounded-lg font-semibold w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
+                  onClick={() => navigate('/search?tab=products')}
+                >
+                  Find Your Next Purchase
+                </Button>
+                {/* Secondary CTA: Share Your Experience */}
+                <Button
+                  variant="outline"
+                  className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-gray-900 rounded-lg font-medium w-full sm:w-auto px-8 py-4 min-h-[52px] text-lg transition-all duration-200"
+                  onClick={handleWriteReview}
+                >
+                  Share Your Experience
+                </Button>
               </div>
             </div>
-          </div>
-        </section>
 
+            {/* Right Column - Single Column Scrolling Review Feed (Desktop/Tablet) */}
+            <div className="hidden md:block">
+              <ScrollingReviewFeed reviews={scrollingReviews} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Everything below hero uses search page gradient (bg-gradient-primary) */}
+      <div className="flex-1 bg-gradient-primary">
         {/* Stats Section - Positioned for credibility (right after hero) */}
         {!loading && !error && (
           <section className="py-12 sm:py-16 lg:py-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="text-center mb-8 sm:mb-10 lg:mb-12">
-                <p className="text-sm sm:text-base text-white/70 uppercase tracking-[0.15em] mb-2">Trusted by Canadians</p>
-                <h2 className="text-2xl sm:text-3xl font-semibold text-white">Our Community</h2>
+                <p className="text-sm sm:text-base text-gray-500 uppercase tracking-[0.15em] mb-2">Trusted by Canadians</p>
+                <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900">Our Community</h2>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 lg:gap-12 text-center">
                 <div className="flex flex-col items-center">
-                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full mb-4">
-                    <Star className="h-8 w-8 text-white" />
+                  <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
+                    <Star className="h-8 w-8 text-accent-blue" />
                   </div>
-                  <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2">
+                  <h3 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-2">
                     {formatCount(reviewCount)}
                   </h3>
-                  <p className="text-base lg:text-lg text-white/80">Total Reviews</p>
+                  <p className="text-base lg:text-lg text-gray-600">Total Reviews</p>
                 </div>
                 <div className="flex flex-col items-center">
-                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full mb-4">
-                    <TrendingUp className="h-8 w-8 text-white" />
+                  <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
+                    <TrendingUp className="h-8 w-8 text-accent-blue" />
                   </div>
-                  <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2">
+                  <h3 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-2">
                     {formatCount(productCount)}
                   </h3>
-                  <p className="text-base lg:text-lg text-white/80">Products Listed</p>
+                  <p className="text-base lg:text-lg text-gray-600">Products Listed</p>
                 </div>
                 <div className="flex flex-col items-center">
-                  <div className="bg-white/20 backdrop-blur-sm p-4 rounded-full mb-4">
-                    <Users className="h-8 w-8 text-white" />
+                  <div className="bg-soft-blue p-4 rounded-full mb-4 shadow-sm">
+                    <Users className="h-8 w-8 text-accent-blue" />
                   </div>
-                  <h3 className="text-4xl lg:text-5xl font-bold text-white mb-2">
+                  <h3 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-2">
                     {formatCount(categoryCount)}
                   </h3>
-                  <p className="text-base lg:text-lg text-white/80">Categories Covered</p>
+                  <p className="text-base lg:text-lg text-gray-600">Categories Covered</p>
                 </div>
               </div>
             </div>
@@ -649,13 +649,13 @@ export function HomePage() {
         <section className="py-12 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-8">
-              <p className="text-white/70 uppercase tracking-wide text-sm mb-2">EXPLORE</p>
-              <h2 className="text-3xl font-bold text-white">Browse by Category</h2>
+              <p className="text-gray-500 uppercase tracking-wide text-sm mb-2">EXPLORE</p>
+              <h2 className="text-3xl font-bold text-gray-900">Browse by Category</h2>
             </div>
 
             {loading ? (
               <div className="flex justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-white" />
+                <Loader2 className="h-8 w-8 animate-spin text-accent-blue" />
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6">
@@ -670,10 +670,7 @@ export function HomePage() {
             )}
           </div>
         </section>
-      </div>
 
-      {/* Main content wrapper - lighter gradient for remaining sections */}
-      <div className="flex-1 bg-gradient-to-br from-soft-blue to-soft-lavender">
         {/* Personalized Recommendations (for authenticated users) */}
         {isAuthenticated && (
           <section className="py-8 sm:py-12 lg:py-16">
