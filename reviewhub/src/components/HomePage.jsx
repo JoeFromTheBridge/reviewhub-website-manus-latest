@@ -159,7 +159,11 @@ function ScrollingReviewFeed({ reviews }) {
       ref={containerRef}
       aria-label="Recent Community Reviews"
       className="relative overflow-hidden h-[400px]"
-      style={{ willChange: 'transform' }}
+      style={{
+        willChange: 'transform',
+        maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)'
+      }}
     >
       <div
         className="absolute w-full"
@@ -200,10 +204,6 @@ function ScrollingReviewFeed({ reviews }) {
           </article>
         ))}
       </div>
-
-      {/* Gradient overlays for smooth fade - match rich hero gradient */}
-      <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[#4A69BD] to-transparent pointer-events-none z-10" />
-      <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#7B5DD6] to-transparent pointer-events-none z-10" />
     </section>
   )
 }
@@ -305,7 +305,11 @@ function MobileScrollingReviewFeed({ reviews }) {
       ref={containerRef}
       aria-label="Recent Community Reviews"
       className="relative overflow-hidden h-[280px] bg-white/10 rounded-xl mx-auto max-w-sm"
-      style={{ willChange: 'transform' }}
+      style={{
+        willChange: 'transform',
+        maskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)'
+      }}
     >
       <div
         className="absolute w-full px-3 pt-2"
@@ -343,9 +347,6 @@ function MobileScrollingReviewFeed({ reviews }) {
           </article>
         ))}
       </div>
-
-      <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-white/10 to-transparent pointer-events-none z-10 rounded-t-xl" />
-      <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white/10 to-transparent pointer-events-none z-10 rounded-b-xl" />
     </section>
   )
 }
@@ -549,8 +550,8 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Hero Section - Rich blue-purple gradient */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-[#4A69BD] via-[#6B5DD6] to-[#8B6DD4]">
+      {/* Hero Section - Original blue-purple gradient restored */}
+      <section className="relative overflow-hidden bg-gradient-to-r from-[#5B7DD4] to-[#A391E2]">
         <div
           className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
           style={{
